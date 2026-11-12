@@ -1,0 +1,67 @@
+{
+  "attestationDate": "2026-11-12",
+  "entries": [
+    {
+      "name": "RAI FIRST brand and product artwork",
+      "rightsBasis": "RAI FIRST operator attestation of commercial rights; retain the underlying contracts, source files, and author records in the private IP register",
+      "paths": [
+        "public/app-icon-192.png",
+        "public/app-icon-512.png",
+        "public/apple-touch-icon.png",
+        "public/assets/bot-mascot-circle.png",
+        "public/assets/bot-mascot-thumb.png",
+        "public/assets/bot-mascot.png",
+        "public/assets/headline-badge-circle.png",
+        "public/assets/headline-badge-thumb.png",
+        "public/assets/headline-badge.png",
+        "public/assets/mascots/mascot-1-raw.png",
+        "public/assets/mascots/mascot-1.png",
+        "public/assets/mascots/mascot-2-raw.png",
+        "public/assets/mascots/mascot-2.png",
+        "public/assets/mascots/mascot-3-raw.png",
+        "public/assets/mascots/mascot-3.png",
+        "public/assets/mascots/mascot-4-raw.png",
+        "public/assets/mascots/mascot-4.png",
+        "public/assets/mascots/mascot-5-raw.png",
+        "public/assets/mascots/mascot-5.png",
+        "public/assets/mascots/mascot-6-raw.png",
+        "public/assets/mascots/mascot-6.png",
+        "public/assets/mascots/mascot-7-raw.png",
+        "public/assets/mascots/mascot-7.png",
+        "public/assets/mascots/mascot-8-raw.png",
+        "public/assets/mascots/mascot-8.png",
+        "public/assets/rai-core-black.png",
+        "public/assets/rai-core-white.png",
+        "public/assets/rai-logo-black.png",
+        "public/assets/rai-logo-white-v2.png",
+        "public/assets/rai-logo-white.png",
+        "public/assets/rai-logo.png",
+        "public/favicon.ico",
+        "public/favicon.png",
+        "public/logo-black.png",
+        "public/logo-white.png",
+        "saas/public/assets/rai-backend-favicon.png",
+        "saas/public/assets/rai-favicon-32.png",
+        "saas/public/assets/rai-favicon.ico",
+        "saas/public/assets/rai-favicon.svg",
+        "saas/public/assets/rai-touch-180.png"
+      ]
+    },
+    {
+      "name": "Geist variable font subsets",
+      "rightsBasis": "SIL Open Font License 1.1; source package @fontsource-variable/geist; license shipped at third_party/geist/LICENSE",
+      "paths": [
+        "saas/public/assets/fonts/geist-latin-wght-normal.woff2",
+        "saas/public/assets/fonts/geist-vietnamese-wght-normal.woff2"
+      ]
+    },
+    {
+      "name": "Inter variable font subsets",
+      "rightsBasis": "SIL Open Font License 1.1; source package @fontsource-variable/inter; license shipped at third_party/inter/LICENSE",
+      "paths": [
+        "saas/public/assets/fonts/inter-latin-wght-normal.woff2",
+        "saas/public/assets/fonts/inter-vietnamese-wght-normal.woff2"
+      ]
+    }
+  ]
+}
