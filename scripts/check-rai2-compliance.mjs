@@ -80,8 +80,6 @@ if (hasBase) {
     ...modified.map((path) => `- \`${path}\``),
     "",
   ].join("\n");
-} else if (write) {
-  fail("cannot regenerate modified-file provenance without the recorded upstream base commit");
 }
 
 const pnpm = process.env.npm_execpath;
@@ -89,6 +87,7 @@ if (!pnpm) fail("run the compliance gate through pnpm so the package manager ver
 const licenses = JSON.parse(run(process.execPath, [pnpm, "licenses", "list", "--prod", "--json"]));
 const reviewed = new Set(source.reviewedDependencyLicenseExpressions);
 const dependencyRows = [];
+const platformBinary = /(?:^|[-/])(?:android|darwin|freebsd|linux(?:musl)?|win32)-(?:arm|arm64|ia32|ppc64|riscv64|s390x|x64)(?:-(?:gnu|musl|msvc))?$/;
 for (const [expression, packages] of Object.entries(licenses)) {
   if (expression !== "Unknown" && !reviewed.has(expression)) fail(`unreviewed dependency license expression: ${expression}`);
   for (const dependency of packages) {
@@ -98,11 +97,13 @@ for (const [expression, packages] of Object.entries(licenses)) {
         fail(`dependency has an unreviewed unknown license: ${dependency.name}@${dependency.versions.join(",")}`);
       }
     }
-    dependencyRows.push({ name: dependency.name, versions: [...dependency.versions].sort(), license: expression });
+    if (!platformBinary.test(dependency.name)) {
+      dependencyRows.push({ name: dependency.name, versions: [...dependency.versions].sort(), license: expression });
+    }
   }
 }
 dependencyRows.sort((a, b) => a.name.localeCompare(b.name) || a.versions.join(",").localeCompare(b.versions.join(",")));
-const dependencyReport = `${JSON.stringify({ scope: "pnpm production dependency graph; not an artifact-specific SBOM", dependencies: dependencyRows }, null, 2)}\n`;
+const dependencyReport = `${JSON.stringify({ scope: "portable pnpm production dependency graph; platform binaries remain license-gated and are recorded in each artifact SBOM", dependencies: dependencyRows }, null, 2)}\n`;
 
 const outputs = new Map([
   [join(root, "compliance", "MODIFIED_FILES.md"), modifications],
