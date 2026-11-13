@@ -101,6 +101,7 @@ try {
   assert((await evaluate("document.querySelector('.brand img').naturalWidth")) > 0, "RAI2 logo did not render");
   assert.equal(await evaluate("[...document.querySelectorAll('.brand img')].filter((image) => getComputedStyle(image).display !== 'none').length"), 1);
   assert.equal(await evaluate("getComputedStyle(document.getElementById('language')).display"), "none");
+  assert.equal(await evaluate("document.documentElement.lang"), "vi");
   await evaluate("document.getElementById('language').value = 'vi'; document.getElementById('language').dispatchEvent(new Event('change'))");
   assert.equal(await evaluate("document.documentElement.lang"), "vi");
   assert.equal(await evaluate("document.documentElement.dataset.theme"), "dark");
@@ -121,7 +122,9 @@ try {
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await waitFor("document.documentElement.clientWidth === 390");
   await capture("signin-mobile.png");
-  await evaluate("document.getElementById('language').value = 'en'; document.getElementById('language').dispatchEvent(new Event('change'))");
+  await evaluate("localStorage.removeItem('rai2_locale')");
+  await send("Page.navigate", { url: `${origin}?lang=en` });
+  await waitFor("document.getElementById('signin')?.hidden === false");
   assert.equal(await evaluate("document.documentElement.lang"), "en");
   assert.equal(await evaluate("document.querySelector('h1').textContent"), "Your RAI² workspace");
   assert.equal(await evaluate("document.getElementById('email').placeholder"), "");
@@ -131,14 +134,14 @@ try {
   await send("Network.setCookie", { name: "rai2_session", value: token, url: origin, httpOnly: true, sameSite: "Lax" });
   await send("Page.navigate", { url: origin });
   await waitFor("document.getElementById('account')?.hidden === false");
-  assert.equal(await evaluate("document.documentElement.lang"), "en");
-  assert.equal(await evaluate("document.getElementById('account-status').textContent"), "Unpaid");
+  assert.equal(await evaluate("document.documentElement.lang"), "vi");
+  assert.equal(await evaluate("document.getElementById('account-status').textContent"), "Chưa thanh toán");
   assert((await evaluate("document.body.scrollWidth")) <= 390, "account view overflows mobile viewport");
   assert.equal(await evaluate("getComputedStyle(document.querySelector('h1')).fontSize"), "28px");
   assert.equal(await evaluate("document.querySelector('h1').getBoundingClientRect().height <= 72"), true);
   await capture("account-mobile.png");
-  await evaluate("document.getElementById('language').value = 'vi'; document.getElementById('language').dispatchEvent(new Event('change'))");
-  assert.equal(await evaluate("document.getElementById('account-status').textContent"), "Chưa thanh toán");
+  await evaluate("document.getElementById('language').value = 'en'; document.getElementById('language').dispatchEvent(new Event('change'))");
+  assert.equal(await evaluate("document.getElementById('account-status').textContent"), "Unpaid");
   await capture("account-mobile-vi.png");
   await evaluate("document.getElementById('order-button').click()");
   await waitFor("document.getElementById('payment')?.hidden === false");

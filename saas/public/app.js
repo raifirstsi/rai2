@@ -137,9 +137,7 @@ const setHandleEditor = (open) => {
   input.focus();
   input.select();
 };
-const savedLocale = localStorage.getItem("rai2_locale");
-let locale = savedLocale === "vi" || savedLocale === "en" ? savedLocale
-  : navigator.language.toLowerCase().startsWith("vi") ? "vi" : "en";
+let locale = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "vi";
 let account = null;
 let messageKey = "";
 let messageError = false;
