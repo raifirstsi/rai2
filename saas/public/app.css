@@ -68,7 +68,6 @@ body.auth-pending .auth-loading { display: block; }
   position: sticky;
   top: 0;
   z-index: 20;
-  border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--ground) 88%, transparent);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
@@ -124,7 +123,7 @@ body.auth-pending .auth-loading { display: block; }
   font-weight: 600;
 }
 .quiet:hover { color: var(--ink); }
-.page-heading { padding: 64px 0 32px; }
+.page-heading { padding: 56px 0 28px; }
 .eyebrow {
   margin: 0 0 12px;
   color: var(--blue);
@@ -249,12 +248,31 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .primary:hover { border-color: var(--blue-hover); background: var(--blue-hover); box-shadow: 0 4px 12px rgb(0 153 255 / 0.24); }
 #signin .primary { width: 100%; margin-top: 6px; background: var(--ink); border-color: var(--ink); color: var(--ground); }
 #signin .primary:hover { background: color-mix(in srgb, var(--ink) 84%, var(--ground)); }
-#account { padding-bottom: 10px; }
-.billing-heading { padding: 24px 0 18px; display: flex; align-items: end; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); }
+#account {
+  padding: 16px 0 48px;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.65fr) minmax(0, 1.35fr);
+  align-items: start;
+  gap: clamp(40px, 7vw, 84px);
+}
+#account > #setup-note { grid-column: 1 / -1; margin-top: -18px; }
+#billing {
+  position: relative;
+  isolation: isolate;
+  padding: 42px 0 64px;
+}
+#billing::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(50% - 50vw);
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+}
+.billing-heading { padding: 0 0 24px; display: flex; align-items: end; justify-content: space-between; gap: 16px; }
 .billing-heading h2 { margin: 0; }
 .payment-panel { margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-alt); }
 .payment-panel h3 { margin-bottom: 18px; }
-.transaction-heading { margin-top: 34px; padding-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); }
+.transaction-heading { margin-top: 36px; padding-top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .transaction-heading h3 { margin: 0; }
 .transactions-list { display: grid; gap: 8px; margin-top: 12px; }
 .transaction-row { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); font-size: 13px; }
@@ -271,11 +289,17 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 28px;
-  border-bottom: 1px solid var(--line);
 }
-.account-heading { padding: 24px 0; border-top: 1px solid var(--line); }
+.account-heading {
+  padding: 0;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 14px;
+}
+.account-heading .status { justify-self: start; }
 .account-heading h2 { margin-bottom: 5px; }
-.workspace-row, .plan-row { padding: 22px 0; }
+.workspace-row { padding: 0; align-items: start; }
+.plan-row { padding: 0; }
 .workspace-row > div, .plan-row > div { min-width: 0; }
 .workspace-details { display: grid; gap: 7px; }
 .workspace-address-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
@@ -296,12 +320,11 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .workspace-handle-form {
   width: min(100%, 640px);
   margin-top: 8px;
-  padding: 16px;
+  padding: 14px 0 0;
   display: grid;
   gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-alt);
+  border: 0;
+  background: transparent;
 }
 .workspace-handle-form label { color: var(--ink); font-size: 13px; font-weight: 650; }
 .workspace-handle-control {
@@ -366,7 +389,6 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 #order-button { margin-top: 22px; }
 #paid-through, #trial-through, #setup-note { margin-top: 16px; }
 #trial-through { color: var(--blue); }
-.section-rule { margin: 42px 0 28px; border-top: 1px solid var(--line); }
 .payment-layout { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: 32px; align-items: start; }
 .qr { display: block; width: 216px; height: 216px; border: 1px solid var(--line); border-radius: 8px; background: #fff; object-fit: contain; }
 .payment-details { min-width: 0; margin: 0; }
@@ -375,7 +397,6 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
   display: grid;
   grid-template-columns: minmax(130px, 0.8fr) minmax(140px, 1.2fr);
   gap: 16px;
-  border-bottom: 1px solid var(--line);
   font-size: 13px;
 }
 dt { color: var(--muted); }
@@ -383,8 +404,10 @@ dd { margin: 0; color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
 .mono { font-family: ui-monospace, Consolas, monospace; }
 #payment-status, #payment-expiry { margin-top: 20px; }
 @media (max-width: 760px) {
-  .page-heading { padding: 48px 0 28px; }
+  .page-heading { padding: 44px 0 24px; }
   h1 { max-width: 620px; font-size: 30px; }
+  #account { grid-template-columns: 1fr; gap: 30px; padding: 12px 0 38px; }
+  #account > #setup-note { margin-top: -8px; }
 }
 @media (max-width: 640px) {
   .shell, .page-shell { width: min(100% - 32px, 560px); }
@@ -394,7 +417,7 @@ dd { margin: 0; color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
   .theme-toggle { width: 36px; height: 36px; }
   .header-actions select { max-width: 110px; min-height: 38px; padding: 6px 26px 6px 9px; font-size: 12px; }
   .header-actions .quiet { min-height: 38px; padding-inline: 3px; font-size: 12px; }
-  .page-heading { padding: 40px 0 24px; }
+  .page-heading { padding: 36px 0 22px; }
   .eyebrow { margin-bottom: 10px; font-size: 10px; }
   h1 { font-size: 28px; line-height: 1.12; }
   h2 { font-size: 20px; }
@@ -402,13 +425,15 @@ dd { margin: 0; color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
   body:has(#signin:not([hidden])) main.page-shell { min-height: calc(100dvh - 120px); gap: 20px; }
   body:not(.auth-pending):has(#signin:not([hidden])) .signin-brand { width: 72px; height: 42px; }
   .signin-brand img { width: 72px; }
-  .account-heading { gap: 12px; padding: 20px 0; }
-  .workspace-row, .plan-row { grid-template-columns: 1fr; gap: 16px; padding: 20px 0; }
-  .billing-heading { align-items: flex-start; padding-block: 20px; }
+  .account-heading { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 0; }
+  .account-heading .status { justify-self: end; }
+  .workspace-row, .plan-row { grid-template-columns: 1fr; gap: 16px; padding: 0; }
+  #billing { padding: 34px 0 48px; }
+  .billing-heading { align-items: flex-start; padding: 0 0 22px; }
   .payment-panel { padding: 14px; }
   .transaction-row { align-items: flex-start; }
   .workspace-address-line { align-items: flex-start; }
-  .workspace-handle-form { padding: 14px; }
+  .workspace-handle-form { padding: 12px 0 0; }
   .workspace-handle-footer { grid-template-columns: 1fr; }
   .workspace-handle-actions { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); }
   .workspace-handle-actions button { width: 100%; }
@@ -428,6 +453,7 @@ dd { margin: 0; color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
   .header-actions .quiet { font-size: 11px; }
   .page-heading { padding-top: 32px; }
   h1 { font-size: 24px; }
+  #account { gap: 26px; }
   .account-heading { grid-template-columns: 1fr; }
   .status { justify-self: start; }
   .column { padding: 24px 18px; }
