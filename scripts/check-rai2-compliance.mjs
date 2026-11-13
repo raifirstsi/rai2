@@ -9,7 +9,7 @@ const write = process.argv.includes("--write");
 const source = JSON.parse(readFileSync(join(root, "compliance", "rai2-source.json"), "utf8"));
 const assets = JSON.parse(readFileSync(join(root, "compliance", "assets.json"), "utf8"));
 const run = (command, args) => {
-  const result = spawnSync(command, args, { cwd: root, encoding: "utf8", shell: process.platform === "win32" });
+  const result = spawnSync(command, args, { cwd: root, encoding: "utf8" });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed: ${result.stderr.trim()}`);
   return result.stdout;
@@ -55,27 +55,38 @@ for (const path of [
   if (!existsSync(join(root, path))) fail(`reviewed third-party license is missing: ${path}`);
 }
 
-const diff = run("git", ["diff", "--name-only", "--diff-filter=AM", source.baseCommit]);
-const changedAssets = diff.split(/\r?\n/).filter((path) => /\.(?:gif|ico|jpe?g|otf|png|svg|ttf|webp|woff2)$/i.test(path)).sort();
 const inventoriedAssets = assets.entries.flatMap((entry) => entry.paths).sort();
-const missingAssets = changedAssets.filter((path) => !inventoriedAssets.includes(path));
-if (missingAssets.length) fail(`asset rights inventory is missing:\n${missingAssets.join("\n")}`);
 for (const path of inventoriedAssets) {
   if (!existsSync(join(root, path))) fail(`asset inventory names a missing file: ${path}`);
 }
 
-const modified = run("git", ["diff", "--name-only", "--diff-filter=M", source.baseCommit])
-  .split(/\r?\n/).filter(Boolean).sort();
-const modifications = [
-  "# RAI2 modified files",
-  "",
-  `RAI2 is derived from OpenMausBot at \`${source.baseCommit}\`. The following upstream files are modified in this source tree:`,
-  "",
-  ...modified.map((path) => `- \`${path}\``),
-  "",
-].join("\n");
+const hasBase = spawnSync("git", ["cat-file", "-e", `${source.baseCommit}^{commit}`], { cwd: root }).status === 0;
+let changedAssets = inventoriedAssets;
+let modifications = normalized("compliance/MODIFIED_FILES.md");
+let modifiedCount = modifications.split("\n").filter((line) => line.startsWith("- `")).length;
+if (hasBase) {
+  const diff = run("git", ["diff", "--name-only", "--diff-filter=AM", source.baseCommit]);
+  changedAssets = diff.split(/\r?\n/).filter((path) => /\.(?:gif|ico|jpe?g|otf|png|svg|ttf|webp|woff2)$/i.test(path)).sort();
+  const missingAssets = changedAssets.filter((path) => !inventoriedAssets.includes(path));
+  if (missingAssets.length) fail(`asset rights inventory is missing:\n${missingAssets.join("\n")}`);
+  const modified = run("git", ["diff", "--name-only", "--diff-filter=M", source.baseCommit])
+    .split(/\r?\n/).filter(Boolean).sort();
+  modifiedCount = modified.length;
+  modifications = [
+    "# RAI2 modified files",
+    "",
+    `RAI2 is derived from OpenMausBot at \`${source.baseCommit}\`. The following upstream files are modified in this source tree:`,
+    "",
+    ...modified.map((path) => `- \`${path}\``),
+    "",
+  ].join("\n");
+} else if (write) {
+  fail("cannot regenerate modified-file provenance without the recorded upstream base commit");
+}
 
-const licenses = JSON.parse(run("pnpm", ["licenses", "list", "--prod", "--json"]));
+const pnpm = process.env.npm_execpath;
+if (!pnpm) fail("run the compliance gate through pnpm so the package manager version is pinned");
+const licenses = JSON.parse(run(process.execPath, [pnpm, "licenses", "list", "--prod", "--json"]));
 const reviewed = new Set(source.reviewedDependencyLicenseExpressions);
 const dependencyRows = [];
 for (const [expression, packages] of Object.entries(licenses)) {
@@ -106,4 +117,4 @@ for (const [path, expected] of outputs) {
   }
 }
 
-console.log(`RAI2 compliance checks passed: OSS-only source, ${modified.length} modified upstream files, ${changedAssets.length} reviewed assets, ${dependencyRows.length} dependency records`);
+console.log(`RAI2 compliance checks passed: OSS-only source, ${modifiedCount} modified upstream files, ${changedAssets.length} reviewed assets, ${dependencyRows.length} dependency records`);
