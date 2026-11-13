@@ -1,4 +1,5 @@
 import type { WireBot } from "../../shared/wire.ts";
+import { distinctNewBotAvatarUrl, isRaiMascotUrl } from "../../shared/mascot-library.ts";
 import type { BotLimit } from "../host/starter-bot-limit.ts";
 import { freshLook } from "../bot-look.ts";
 import { validateBotCwd } from "../bot-cwd.ts";
@@ -21,17 +22,6 @@ import { writeMemoryFile, writeMemoryTopic } from "../workspace.ts";
 import { refusalBody, userError } from "../user-errors.ts";
 import type { ServerErrorBody } from "../../shared/server-text.ts";
 import { PASS, type RouteHandler } from "./table.ts";
-
-const DEFAULT_MASCOT_URLS = [
-  "/assets/mascots/mascot-1.png",
-  "/assets/mascots/mascot-2.png",
-  "/assets/mascots/mascot-3.png",
-  "/assets/mascots/mascot-4.png",
-  "/assets/mascots/mascot-5.png",
-  "/assets/mascots/mascot-6.png",
-  "/assets/mascots/mascot-7.png",
-  "/assets/mascots/mascot-8.png",
-];
 
 export type ModelSelectionCheck = { ok: true; selection: ModelSelection } | ({ ok: false; status: number } & ServerErrorBody);
 
@@ -132,7 +122,7 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       if (settings.computer === "local" && settings.approvalMode === "auto" && body.acknowledgeLocalAuto !== true) {
         return json(res, 400, { error: "Auto mode on this computer requires confirming the warning first (acknowledgeLocalAuto)" });
       }
-      if (settings.avatarUrl && !storedAvatarExists(settings.avatarUrl)) {
+      if (settings.avatarUrl && !isRaiMascotUrl(settings.avatarUrl) && !storedAvatarExists(settings.avatarUrl)) {
         return json(res, 400, { error: "avatarUrl must reference an existing stored image" });
       }
       if (settings.browserProfile && settings.browserProfile !== "guest" && !(cfg.browserProfiles ?? []).some(profile => profile.id === settings.browserProfile)) {
@@ -205,6 +195,7 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       if (kept.id && "error" in keptBotIds(kept, store)) return json(res, 409, { error: "a bot with this id already exists here" });
       // A bot moved in from another computer keeps its own look; a new one named no look starts in a fresh one.
       const look = kept.id || settings.color || settings.mascotBody ? undefined : freshLook(store.bots);
+      const existingBots = store.bots;
       const bot = store.createBot({ ...profile.patch, soul: settings.soul, section, modelSelection: selection,
         toolScope: settings.toolScope ?? undefined, color: settings.color ?? look?.color, mascotBody: settings.mascotBody ?? look?.mascotBody,
         ...(deps.team && creator ? { createdBy: creator } : {}), ...(reportsTo ? { reportsTo } : {}),
@@ -212,11 +203,17 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       const createdRoutines: Array<{ id: string; enabled: boolean }> = [];
       try {
         const { chiefOfStaff: _chief, managedSections: _managed, toolScope: _toolScope, ...ordinary } = settings;
+        const avatarUrl = kept.id
+          ? ordinary.avatarUrl || undefined
+          : ordinary.avatarUrl
+            ? distinctNewBotAvatarUrl(ordinary.avatarUrl, existingBots)
+            : bot.avatarUrl || undefined;
         store.patchBot(bot.id, {
           // Store creation completed the workspace defaults (effort included): the rest of the template must not undo them.
           ...ordinary, name: bot.name, section, modelSelection: bot.modelSelection,
           mascotExpression: ordinary.mascotExpression ?? undefined,
-          avatarUrl: ordinary.avatarUrl || DEFAULT_MASCOT_URLS[Math.floor(Math.random() * DEFAULT_MASCOT_URLS.length)],
+          avatarUrl,
+          avatarCrop: ordinary.avatarCrop ?? (avatarUrl ? "circle" : undefined),
           computer: ordinary.computer ?? undefined, cwd: checkedCwd.cwd ?? undefined,
           peers: ordinary.peers ?? undefined, mcpServers: ordinary.mcpServers ?? undefined,
           browserProfile: ordinary.browserProfile || undefined,

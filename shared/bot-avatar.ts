@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRaiMascotUrl } from "./mascot-library.ts";
 
 export const MASCOT_FACE_COLORS = ["white", "black"] as const;
 export const mascotFaceColorSchema = z.enum(MASCOT_FACE_COLORS);
@@ -46,17 +47,21 @@ export function clampAvatarFocus(value: unknown): number {
 }
 
 /**
- * Custom avatars are deliberately limited to this app's attachment server.
+ * Avatars are deliberately limited to this app's attachment server and curated mascot library.
  * Besides making persisted profiles portable across desktop/browser clients,
  * this prevents a bot profile from becoming an external tracking pixel or a
  * script-capable SVG.
  */
-export const botAvatarUrlSchema = z
-  .string()
-  .regex(
-    /^\/api\/attachments\/[A-Za-z0-9-]+\.(?:png|jpg|gif|webp)$/,
-    "must be a stored PNG, JPEG, GIF, or WebP attachment",
-  );
+const storedBotAvatarUrl = /^\/api\/attachments\/[A-Za-z0-9-]+\.(?:png|jpg|gif|webp)$/;
+
+export function isStoredBotAvatarUrl(value: unknown): value is string {
+  return typeof value === "string" && storedBotAvatarUrl.test(value);
+}
+
+export const botAvatarUrlSchema = z.string().refine(
+  (value) => isStoredBotAvatarUrl(value) || isRaiMascotUrl(value),
+  "must be an app-owned PNG, JPEG, GIF, or WebP avatar",
+);
 
 export function botAvatarUrlFromStoredPath(path: string): string | null {
   const name = path.replaceAll("\\", "/").split("/").pop();

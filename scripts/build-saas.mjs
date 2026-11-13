@@ -38,7 +38,7 @@ cpSync(join(root, "node_modules", "@fontsource-variable", "inter", "LICENSE"),
 mkdirSync(join(output, "third_party", "geist"), { recursive: true });
 cpSync(join(root, "node_modules", "@fontsource-variable", "geist", "LICENSE"),
   join(output, "third_party", "geist", "LICENSE"));
-for (let index = 1; index <= 8; index++) {
+for (let index = 1; index <= 15; index++) {
   cpSync(join(root, "public", "assets", "mascots", `mascot-${index}.png`),
     join(output, "public", "assets", "mascots", `mascot-${index}.png`));
 }

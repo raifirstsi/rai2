@@ -147,6 +147,7 @@ const { SignedInSites } = await import("./SignedInSites");
 const { AvatarImageGenerator } = await import("./AvatarImageGenerator");
 const { AvatarFraming } = await import("./avatar-editing");
 const { MascotFaceColorPicker } = await import("./MascotFaceColorPicker");
+const { MascotTemplatePicker } = await import("./MascotTemplatePicker");
 const { Switch } = await import("./SettingsPrimitives");
 const { OrgSkillsCard } = await import("./bot-settings/OrgSkillsCard");
 const { PackageProvenance } = await import("./bot-settings/PackageProvenance");
@@ -285,7 +286,7 @@ describe("the bot panel in Simple mode", () => {
     const rendered = panel(bot);
     expect(ofType(rendered, ChatShareMenu)!.props.bot).toBe(bot);
     const gear = find(rendered, "data-panel-gear");
-    expect([gear.props["aria-label"], gear.props.title]).toEqual(["Bot settings", "Bot settings"]);
+    expect([gear.props["aria-label"], gear.props.title]).toEqual(["RAI settings", "RAI settings"]);
     click(find(rendered, "aria-label", "Close settings"));
     expect(onClose).toHaveBeenCalled();
     const hero = ofType(rendered, PanelHero)!;
@@ -314,10 +315,10 @@ describe("the bot panel in Simple mode", () => {
     click(find(panel(bot), "data-panel-gear"));
     const settings = panel(bot);
     expect(shown(settings)).toEqual({ tab: undefined, page: "settings" });
-    expect(ofType(settings, PageHeader)!.props).toMatchObject({ back: "Details", title: "Bot settings" });
+    expect(ofType(settings, PageHeader)!.props).toMatchObject({ back: "Details", title: "RAI settings" });
     (ofType(settings, PageBody)!.props.onOpen as (page: string) => void)("apps");
     const apps = panel(bot);
-    expect(ofType(apps, PageHeader)!.props).toMatchObject({ back: "Bot settings", title: "Apps it can use", intro: "Switch on the apps Scout may use. Everything else stays off." });
+    expect(ofType(apps, PageHeader)!.props).toMatchObject({ back: "RAI settings", title: "Apps it can use", intro: "Switch on the apps Scout may use. Everything else stays off." });
     (ofType(apps, PageHeader)!.props.onBack as () => void)();
     expect(shown(panel(bot)).page).toBe("settings");
     (ofType(panel(bot), PageHeader)!.props.onBack as () => void)();
@@ -429,7 +430,7 @@ describe("the bot panel in Simple mode", () => {
     const settings = panel(bot).html;
     expect(switches(settings)).toBe(2);
     expect(settings).toContain('aria-label="Notifications"');
-    expect(settings).toContain('aria-label="Let apps talk to this bot"');
+    expect(settings).toContain('aria-label="Let apps talk to this RAI"');
   });
 });
 
@@ -563,6 +564,22 @@ describe("the avatar editor", () => {
     expect(patch).toHaveBeenLastCalledWith({ mascotBody: "star", avatarCrop: "mascot" });
   });
 
+  it("offers all RAI mascot templates and applies the selected picture", () => {
+    const bot = makeBot();
+    click(find(editor(bot), "data-avatar-tab", "template"));
+    const templates = editor(bot);
+    expect(templates.html.match(/data-mascot-template=/g)).toHaveLength(15);
+    const picker = ofType(templates, MascotTemplatePicker)!;
+    (picker.props as Parameters<typeof MascotTemplatePicker>[0]).onSelect("/assets/mascots/mascot-9.png");
+    expect(patch).toHaveBeenLastCalledWith({
+      avatarUrl: "/assets/mascots/mascot-9.png",
+      avatarCrop: "circle",
+      avatarZoom: AVATAR_ZOOM_MIN,
+      avatarFocusX: AVATAR_FOCUS_CENTER,
+      avatarFocusY: AVATAR_FOCUS_CENTER,
+    });
+  });
+
   it("resets the mascot as the Advanced card does", () => {
     click(find(editor(makeBot()), "data-avatar-reset"));
     expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot", color: "green", mascotExpression: null, mascotBody: "cursor", mascotFaceColor: null });
@@ -632,7 +649,7 @@ describe("the Details tab", () => {
   it("offers Add a routine, which says what routines are, and Automations while the bot has none, and lists them once it has some", () => {
     const empty = botTab(makeBot());
     expect(empty.html).toContain('data-panel-empty="routines"');
-    expect(empty.html).toContain('title="Jobs this bot runs on a schedule, like a news roundup every morning."');
+    expect(empty.html).toContain('title="Jobs this RAI runs on a schedule, like a news roundup every morning."');
     expect(empty.html).toMatch(/data-panel-automations=""[^>]*>Automations<svg/);
     expect(empty.html.match(/data-panel-page="routines"/g)).toHaveLength(1);
     const add = find(empty, "data-panel-page", "routines");
@@ -685,7 +702,7 @@ describe("the Bot settings page", () => {
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(switches(rendered.html)).toBe(2);
-    expect(rendered.html).toContain('aria-label="Let apps talk to this bot"');
+    expect(rendered.html).toContain('aria-label="Let apps talk to this RAI"');
     expect(rendered.html.match(/pl-\[38px\]/g)).toHaveLength(5);
     for (const gone of ['data-panel-row="always-allow"', 'data-panel-row="slack"', 'data-panel-page="visibility"']) expect(rendered.html, gone).not.toContain(gone);
   });
@@ -820,8 +837,8 @@ describe("the Bot settings page", () => {
   it("lets the approval level change while the bot is busy and says from when", () => {
     const rendered = settingsPage(makeBot({ busy: true }));
     expect(segment(rendered, "data-approval-choice").options.some((option) => option.disabled)).toBe(false);
-    expect(rendered.html).toContain("The bot is working. A change applies from its next step");
-    expect(settingsPage(makeBot()).html).not.toContain("The bot is working");
+    expect(rendered.html).toContain("The RAI is working. A change applies from its next step");
+    expect(settingsPage(makeBot()).html).not.toContain("The RAI is working");
   });
 
   it("holds the conversation's approval level, the composer's choice, beside the bot's own", () => {

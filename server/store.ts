@@ -20,6 +20,7 @@ import type { Destination } from "./surface.ts";
 import { newId, type ModelSelection } from "./contracts.ts";
 import { pickBotName } from "./names.ts";
 import { rotationColor } from "./bot-look.ts";
+import { pickUnusedRaiMascotUrl } from "../shared/mascot-library.ts";
 import { redactBotAuthored } from "./message-redaction.ts";
 import { AVATAR_FOCUS_CENTER, AVATAR_ZOOM_MIN, botAvatarProfile, clampAvatarFocus, clampAvatarZoom } from "../shared/bot-avatar.ts";
 import { approvalModeFor, isApprovalMode, modelSwitchNeedsAsk, threadApproval, type ApprovalMode } from "../shared/approval-mode.ts";
@@ -1305,7 +1306,7 @@ export class Store {
     profile: Partial<
       Pick<
         BotRecord,
-        "name" | "title" | "description" | "soul" | "color" | "mascotExpression" | "mascotBody" | "mascotFaceColor" | "modelSelection" | "section" | "cwd" | "visibility" | "toolScope" | "createdBy" | "reportsTo"
+        "name" | "title" | "description" | "soul" | "color" | "mascotExpression" | "mascotBody" | "mascotFaceColor" | "avatarUrl" | "modelSelection" | "section" | "cwd" | "visibility" | "toolScope" | "createdBy" | "reportsTo"
       >
     > = {},
     opts: {
@@ -1329,16 +1330,7 @@ export class Store {
       color: profile.color ?? rotationColor(this.bots.length), mascotFaceColor: profile.mascotFaceColor ?? undefined,
       ...(profile.mascotExpression ? { mascotExpression: profile.mascotExpression } : {}),
       ...(profile.mascotBody ? { mascotBody: profile.mascotBody } : {}),
-      avatarUrl: (profile as any).avatarUrl || [
-        "/assets/mascots/mascot-1.png",
-        "/assets/mascots/mascot-2.png",
-        "/assets/mascots/mascot-3.png",
-        "/assets/mascots/mascot-4.png",
-        "/assets/mascots/mascot-5.png",
-        "/assets/mascots/mascot-6.png",
-        "/assets/mascots/mascot-7.png",
-        "/assets/mascots/mascot-8.png",
-      ][Math.floor(Math.random() * 8)],
+      avatarUrl: profile.avatarUrl || pickUnusedRaiMascotUrl(this.bots),
       // Restricted from its first frame: no one else is ever told it exists.
       ...(profile.visibility && profile.visibility !== "everyone" ? { visibility: structuredClone(profile.visibility) } : {}),
       ...(toolScope.scope ? { toolScope: toolScope.scope } : {}),
@@ -1395,6 +1387,7 @@ export class Store {
         const modelSelection = this.newBotSelection(operation.fields.modelSelection);
         next = { id: operation.botId, threadId: operation.threadId, name: operation.fields.name,
           title: "", description: "", soul: "", notifications: true, color: rotationColor(nextBots.length), unread: false,
+          avatarUrl: pickUnusedRaiMascotUrl(nextBots), avatarCrop: "circle",
           resumeCursors: {}, createdAt, ...operation.fields, modelSelection,
           autoApprove: false, approvePeerComms: false,
           // A restricted Chief never creates a bot everyone sees.

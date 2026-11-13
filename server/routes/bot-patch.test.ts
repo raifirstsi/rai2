@@ -56,6 +56,7 @@ function fixture() {
     broadcast: () => {},
     audienceChanged: () => {},
     assertTeamComputerChangeIdle: () => {},
+    storedAvatarExists: () => false,
     routines: () => null,
     // A member's session may chat with this bot: the level that still can't move it or change what it may do.
     levelOf: () => "chat",
@@ -242,6 +243,32 @@ describe("PATCH /api/bots/:id vpsAlias relocation guard", () => {
     expect(refused.status).toBe(409);
     expect(refused.body.error).toBe(VPS_BOT_ALIAS_CHANGE_ERROR);
     expect(scan).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("PATCH /api/bots/:id avatar template", () => {
+  it("accepts a curated RAI mascot without treating it as an uploaded attachment", async () => {
+    const { store, bot, patch } = fixture();
+
+    const updated = await patch(bot.id, {
+      avatarUrl: "/assets/mascots/mascot-15.png",
+      avatarCrop: "circle",
+      avatarZoom: 1,
+      avatarFocusX: 0.5,
+      avatarFocusY: 0.5,
+    });
+
+    expect(updated.status).toBe(200);
+    expect(store.bot(bot.id)).toMatchObject({
+      avatarUrl: "/assets/mascots/mascot-15.png",
+      avatarCrop: "circle",
+    });
+  });
+
+  it("still refuses an attachment URL that is not stored", async () => {
+    const { bot, patch } = fixture();
+    const refused = await patch(bot.id, { avatarUrl: "/api/attachments/missing.png", avatarCrop: "circle" });
+    expect(refused).toEqual({ status: 400, body: { error: "avatarUrl must reference an existing stored image" } });
   });
 });
 

@@ -5393,6 +5393,14 @@ describe("harness HTTP API", () => {
       );
       expect(frame.bot).toMatchObject({ id: bot.id, avatarUrl, avatarCrop: "circle" });
 
+      const mascotUrl = "/assets/mascots/mascot-15.png";
+      const mascot = await api("PATCH", `/api/bots/${bot.id}/profile`, {
+        avatarUrl: mascotUrl,
+        avatarCrop: "circle",
+      });
+      expect(mascot.status).toBe(200);
+      expect(mascot.body.bot).toMatchObject({ avatarUrl: mascotUrl, avatarCrop: "circle" });
+
       for (const invalid of [
         { color: "red" },
         { avatarUrl: "https://tracker.example/avatar.png" },

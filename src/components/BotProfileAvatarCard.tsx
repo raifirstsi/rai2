@@ -10,7 +10,7 @@ import {
   type MausMotion,
   type MausState,
 } from "@/lib/mascot";
-import { BOT_AVATAR_CROPS } from "../../shared/bot-avatar";
+import { AVATAR_FOCUS_CENTER, AVATAR_ZOOM_MIN, BOT_AVATAR_CROPS } from "../../shared/bot-avatar";
 import { MASCOT_BODY_IDS } from "../../shared/mascot-bodies";
 import { FESTIVAL_IDS, FESTIVALS, type BotBodyId } from "../../shared/bot-body";
 import { BotAvatar, MausAvatar } from "./Avatar";
@@ -19,6 +19,7 @@ import { AvatarFraming, OrganizationAvatarIcons, RESET_MASCOT_PATCH, useAvatarIm
 import { t } from "@/lib/i18n";
 import { bodyName, colorName, expressionName, festivalName } from "@/lib/mascot-names";
 import { MascotFaceColorPicker } from "./MascotFaceColorPicker";
+import { MascotTemplatePicker } from "./MascotTemplatePicker";
 
 export function BotProfileAvatarCard({
   bot,
@@ -61,6 +62,21 @@ export function BotProfileAvatarCard({
             />
           </div>
         )}
+
+        <div className="mb-2 mt-4 text-[12px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
+          {t("templates.title")}
+        </div>
+        <MascotTemplatePicker
+          selectedUrl={crop === "mascot" ? null : bot.avatarUrl}
+          disabled={busy}
+          onSelect={(avatarUrl) => onPatch({
+            avatarUrl,
+            avatarCrop: "circle",
+            avatarZoom: AVATAR_ZOOM_MIN,
+            avatarFocusX: AVATAR_FOCUS_CENTER,
+            avatarFocusY: AVATAR_FOCUS_CENTER,
+          })}
+        />
 
         <div className="mt-2 flex gap-2">
           <input

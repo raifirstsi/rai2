@@ -15,11 +15,15 @@ import { AvatarImageGenerator } from "../AvatarImageGenerator";
 import { AvatarFraming, OrganizationAvatarIcons, RESET_MASCOT_PATCH, useAvatarImage, type AvatarPatch } from "../avatar-editing";
 import { Segmented } from "./rows";
 import { MascotFaceColorPicker } from "../MascotFaceColorPicker";
+import { MascotTemplatePicker } from "../MascotTemplatePicker";
+import { AVATAR_FOCUS_CENTER, AVATAR_ZOOM_MIN } from "../../../shared/bot-avatar";
+import { isRaiMascotUrl } from "../../../shared/mascot-library";
 
-export type AvatarEditorTab = "bot" | "generate" | "upload";
+export type AvatarEditorTab = "bot" | "template" | "generate" | "upload";
 
 const TABS: ReadonlyArray<readonly [AvatarEditorTab, LocaleKey]> = [
   ["bot", "botPanel.avatar.tabBot"],
+  ["template", "templates.title"],
   ["generate", "botPanel.avatar.tabGenerate"],
   ["upload", "botPanel.avatar.tabUpload"],
 ];
@@ -58,7 +62,7 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
   const image = useAvatarImage(bot, onPatch);
   const { fileRef, crop, uploading, generating, busy, error, upload, removeImage, generate } = image;
   const showsImage = crop !== "mascot" && Boolean(bot.avatarUrl);
-  const [tab, setTab] = useState<AvatarEditorTab>(showsImage ? "upload" : "bot");
+  const [tab, setTab] = useState<AvatarEditorTab>(isRaiMascotUrl(bot.avatarUrl) ? "template" : showsImage ? "upload" : "bot");
   const tabsRef = useRef<HTMLDivElement>(null);
   // The card is a dialog: focus moves into it, onto the tab it opened on, so Escape and Tab work from the start.
   useEffect(() => {
@@ -214,6 +218,20 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
               onGenerate={generate}
             />
           </div>
+        )}
+
+        {tab === "template" && (
+          <MascotTemplatePicker
+            selectedUrl={showsImage ? bot.avatarUrl : null}
+            disabled={busy}
+            onSelect={(avatarUrl) => onPatch({
+              avatarUrl,
+              avatarCrop: "circle",
+              avatarZoom: AVATAR_ZOOM_MIN,
+              avatarFocusX: AVATAR_FOCUS_CENTER,
+              avatarFocusY: AVATAR_FOCUS_CENTER,
+            })}
+          />
         )}
 
         {tab === "upload" && (

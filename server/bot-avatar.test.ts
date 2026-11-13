@@ -6,6 +6,7 @@ import {
   botAvatarCropSchema,
   botAvatarUrlFromStoredPath,
   botAvatarUrlSchema,
+  isStoredBotAvatarUrl,
   clampAvatarFocus,
   clampAvatarZoom,
 } from "../shared/bot-avatar.ts";
@@ -21,10 +22,15 @@ describe("bot avatar profile schema", () => {
   it("only accepts app-owned raster attachments", () => {
     expect(botAvatarUrlSchema.parse("/api/attachments/123e4567-e89b-12d3-a456-426614174000.webp"))
       .toContain("/api/attachments/");
+    expect(botAvatarUrlSchema.parse("/assets/mascots/mascot-15.png")).toBe("/assets/mascots/mascot-15.png");
+    expect(isStoredBotAvatarUrl("/api/attachments/avatar.png")).toBe(true);
+    expect(isStoredBotAvatarUrl("/assets/mascots/mascot-1.png")).toBe(false);
     for (const value of [
       "https://tracker.example/avatar.png",
       "/api/attachments/avatar.svg",
       "/api/attachments/../../config.json",
+      "/assets/mascots/mascot-16.png",
+      "/assets/mascots/../config.json",
       "data:image/png;base64,abc",
     ]) {
       expect(botAvatarUrlSchema.safeParse(value).success).toBe(false);
