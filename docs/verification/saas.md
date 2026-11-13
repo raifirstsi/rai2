@@ -1,5 +1,30 @@
 # RAI2 SaaS verification
 
+## Account portal surface refinement (2026-11-13, Asia/Saigon)
+
+- Pull request `raifirstsi/rai2#5` reduced decorative separators in the
+  account portal. Account and workspace now form a quiet two-column desktop
+  surface; billing is a softly separated band; mobile collapses to one column
+  with a full-width workspace action. The release version is
+  `0.1.152-rai2.5`.
+- Compliance, lint, RAI² locale check, SaaS typecheck, SaaS smoke and the
+  required `verify`/`package` CI jobs passed. The isolated portal fixture was
+  checked at 1440x900, 390x844 and 320x720; screenshots were reviewed for
+  overflow, hierarchy and button sizing.
+- Tag `v0.1.152-rai2.5` published the SaaS archive with SHA-256
+  `9bf56768e32b9246fd8a4e0b3ce34bb21f1b928619291664f64f9cad8c3b6b44`.
+  The archive checksum and CycloneDX SBOM hash were verified on the VPS before
+  activation.
+- The versioned SaaS directory was activated by atomic symlink replacement;
+  the prior `saas-v0.1.152-rai2.4-1d17201ecfd4f7d8` directory remains available
+  for rollback. `rai2-saas.service` restarted successfully; the runtime,
+  fleet agent and five workspace services were not restarted.
+- Post-deploy status remained `paymentsEnabled:true`, `privatePreview:false`.
+  SQLite `PRAGMA quick_check` passed and account/order/payment counts remained
+  `6/3/0`; no customer, order or payment was created by verification. The
+  encrypted post-deployment backup matched off-host at SHA-256
+  `d777593991faac6d5e9b77bf607b98bcce06d2ce62290e52c51ded58c5ed2173`.
+
 ## Audited clean-repository deployment (2026-11-13, Asia/Saigon)
 
 - Production source drift was found before activation: the v0.1.152-rai2.2

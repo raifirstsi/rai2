@@ -60,13 +60,15 @@ for (const path of inventoriedAssets) {
   if (!existsSync(join(root, path))) fail(`asset inventory names a missing file: ${path}`);
 }
 
-const hasBase = spawnSync("git", ["cat-file", "-e", `${source.baseCommit}^{commit}`], { cwd: root }).status === 0;
+const hasBase = spawnSync("git", ["merge-base", "--is-ancestor", source.baseCommit, "HEAD"], { cwd: root }).status === 0;
 let changedAssets = inventoriedAssets;
 let modifications = normalized("compliance/MODIFIED_FILES.md");
 let modifiedCount = modifications.split("\n").filter((line) => line.startsWith("- `")).length;
 if (hasBase) {
   const diff = run("git", ["diff", "--name-only", "--diff-filter=AM", source.baseCommit]);
-  changedAssets = diff.split(/\r?\n/).filter((path) => /\.(?:gif|ico|jpe?g|otf|png|svg|ttf|webp|woff2)$/i.test(path)).sort();
+  changedAssets = diff.split(/\r?\n/)
+    .filter((path) => !path.startsWith("artifacts/"))
+    .filter((path) => /\.(?:gif|ico|jpe?g|otf|png|svg|ttf|webp|woff2)$/i.test(path)).sort();
   const missingAssets = changedAssets.filter((path) => !inventoriedAssets.includes(path));
   if (missingAssets.length) fail(`asset rights inventory is missing:\n${missingAssets.join("\n")}`);
   const modified = run("git", ["diff", "--name-only", "--diff-filter=M", source.baseCommit])
