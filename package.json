@@ -65,6 +65,7 @@
     "saas:smoke": "node scripts/build-saas.mjs && node scripts/smoke-saas.mjs",
     "saas:package": "node scripts/build-saas.mjs && node scripts/package-rai2-saas.mjs",
     "package:rai2": "node scripts/build-rai2-release.mjs",
+    "benchmark:rai2-capacity": "node --experimental-strip-types scripts/benchmark-rai2-capacity.mjs",
     "build:companion": "tsc -p tsconfig.companion.build.json && node scripts/mark-module-scope.mjs dist-companion",
     "build:speech": "node electron/build-speech-helper.mjs",
     "build:cua": "node scripts/prepare-cua.mjs",

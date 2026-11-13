@@ -45,6 +45,7 @@ Use only mapped, tested commands:
 
 - [The headless command line](headless-cli.md)
 - [RAI2 SaaS](saas.md)
+- [RAI2 capacity](rai2-capacity.md)
 - [Chat turns](chat-turns.md)
 - [OpenAI reply readout](openai-readout.md)
 - [Conversation context compaction](context-compaction.md)
