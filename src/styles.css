@@ -1262,7 +1262,7 @@ html.dark .rai-logo-light,
 }
 
 /* 2. Light / Daylight theme OVERRIDE: ALWAYS show black logo, hide white logo */
-html:not(.dark) .rai-logo-light,
+:root:not(.dark):not([data-theme]):not([data-skin]) .rai-logo-light,
 [data-theme="light"] .rai-logo-light,
 [data-skin="daylight"] .rai-logo-light,
 [data-skin="linen"] .rai-logo-light,
@@ -1278,7 +1278,7 @@ html:not(.dark) .rai-logo-light,
   display: block !important;
 }
 
-html:not(.dark) .rai-logo-dark,
+:root:not(.dark):not([data-theme]):not([data-skin]) .rai-logo-dark,
 [data-theme="light"] .rai-logo-dark,
 [data-skin="daylight"] .rai-logo-dark,
 [data-skin="linen"] .rai-logo-dark,
