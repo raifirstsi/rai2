@@ -1,7 +1,7 @@
 {
   "name": "openmausbot",
   "private": true,
-  "version": "0.1.152-rai2.2",
+  "version": "0.1.152-rai2.3",
   "description": "A local-first chat app for running a team of AI agents.",
   "homepage": "https://github.com/raifirstsi/rai2",
   "repository": {

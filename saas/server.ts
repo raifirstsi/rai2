@@ -189,6 +189,19 @@ export function createSaasServer(options: SaasServerOptions): Server {
       paymentsEnabled, privatePreview: Boolean(previewEmail), trialDays: trialEnabled ? TRIAL_MS / 86_400_000 : 0,
       trialAvailable: trialEnabled && store.hasTrialCapacity(now(), config.maxWorkspaces!),
     });
+    if (method === "GET" && path === "/api/landing-session") {
+      const landingOrigin = `https://${config.tenantDomain}`;
+      if (req.headers.origin !== landingOrigin) return json(res, 403, { error: "landing origin required" });
+      const token = cookieToken(req);
+      const account = token ? store.accountForSession(sha256(token), now()) : null;
+      const signedIn = Boolean(account && (!previewEmail || account.email === previewEmail));
+      const workspaceReady = Boolean(signedIn && account?.workspaceState === "active" &&
+        Math.max(account.paidThrough, account.trialThrough) > now());
+      res.setHeader("access-control-allow-origin", landingOrigin);
+      res.setHeader("access-control-allow-credentials", "true");
+      res.setHeader("vary", "Origin");
+      return json(res, 200, { signedIn, workspaceReady });
+    }
     if (method === "GET" && (path === "/LICENSE" || path === "/NOTICE")) {
       const bundled = fileURLToPath(new URL(`.${path}`, import.meta.url));
       const source = fileURLToPath(new URL(`..${path}`, import.meta.url));

@@ -30,6 +30,35 @@ if (toggle) {
 }
 syncTheme();
 
+const syncLandingSession = (signedIn) => {
+  const workspaceHref = signedIn ? "https://app.rai2.si/?open=1" : "https://app.rai2.si/";
+  document.querySelectorAll(".session-cta").forEach((link) => {
+    link.href = workspaceHref;
+    link.textContent = signedIn ? "Truy cập RAI²" : "Trải nghiệm miễn phí";
+  });
+  document.querySelectorAll(".desktop-login-link, .mobile-login-link").forEach((link) => {
+    link.textContent = signedIn ? "Quản lí tài khoản" : "Đăng nhập";
+  });
+};
+syncLandingSession(/(?:^|;\s*)rai2_signed_in=1(?:;|$)/.test(document.cookie));
+
+const mascot = document.querySelector(".headline-mascot");
+const mascotMotion = mascot?.querySelector(".headline-mascot-motion");
+const mascotBadge = mascot?.querySelector(".headline-badge");
+const revealMascot = () => {
+  mascot?.classList.add("is-ready");
+  mascotMotion?.classList.add("is-ready");
+};
+if (mascotBadge?.complete && mascotBadge.naturalWidth > 0) revealMascot();
+else mascotBadge?.addEventListener("load", revealMascot, { once: true });
+
+if (location.hostname === "rai2.si") {
+  void fetch("https://app.rai2.si/api/landing-session", { credentials: "include", cache: "no-store" })
+    .then((response) => response.ok ? response.json() : Promise.reject(new Error("session unavailable")))
+    .then((session) => syncLandingSession(session.signedIn === true))
+    .catch(() => {});
+}
+
 const menuButton = document.querySelector(".mobile-menu-toggle");
 const menu = document.querySelector(".mobile-dialog");
 const closeMenu = () => {

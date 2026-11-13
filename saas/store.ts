@@ -160,9 +160,12 @@ export class SaasStore {
     if (!columns.some((column) => column.name === "workspace_handle_changed_at")) {
       this.#db.exec("ALTER TABLE accounts ADD COLUMN workspace_handle_changed_at INTEGER NOT NULL DEFAULT 0");
     }
-    if (!columns.some((column) => column.name === "workspace_last_activity_at")) {
+    const addedWorkspaceActivity = !columns.some((column) => column.name === "workspace_last_activity_at");
+    if (addedWorkspaceActivity) {
       this.#db.exec("ALTER TABLE accounts ADD COLUMN workspace_last_activity_at INTEGER NOT NULL DEFAULT 0");
     }
+    this.#db.prepare("UPDATE accounts SET workspace_last_activity_at = ? WHERE workspace_last_activity_at = 0 AND trial_started_at IS NOT NULL")
+      .run(Date.now());
     const orderColumns = this.#db.prepare("PRAGMA table_info(orders)").all() as Array<{ name: string }>;
     if (!orderColumns.some((column) => column.name === "plan_id")) {
       this.#db.exec("ALTER TABLE orders ADD COLUMN plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter'))");

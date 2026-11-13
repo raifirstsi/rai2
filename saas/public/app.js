@@ -94,6 +94,12 @@ const finishAuthBootstrap = () => {
   document.body.classList.remove("auth-pending");
   show("auth-loading", false);
 };
+const markLandingSession = (signedIn) => {
+  const value = signedIn ? "1" : "";
+  const maxAge = signedIn ? 2_592_000 : 0;
+  const shared = location.hostname === "rai2.si" || location.hostname.endsWith(".rai2.si");
+  document.cookie = `rai2_signed_in=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax${shared ? "; Domain=rai2.si; Secure" : ""}`;
+};
 let handleMessageKey = "";
 let handleMessageError = false;
 let handleEditorOpen = false;
@@ -277,6 +283,7 @@ const loadBilling = async () => {
 const refresh = async () => {
   try {
     account = await request("/api/me");
+    markLandingSession(true);
     show("signin", false);
     show("account", true);
     show("logout", true);
@@ -303,6 +310,7 @@ const refresh = async () => {
       return;
     }
     account = null;
+    markLandingSession(false);
     show("signin", true);
     show("account", false);
     show("billing", false);

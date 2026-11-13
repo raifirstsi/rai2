@@ -34,6 +34,18 @@ export function signInEnabled(list: SignInAllowList): boolean {
   return list.admins.length + list.members.length > 0;
 }
 
+export function rai2ManagementUrl(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  if (env.OMB_RAI2_TENANT !== "1") return undefined;
+  const raw = env.OMB_SIGNIN_TENANT_URL?.trim();
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" && url.origin === raw && !url.username && !url.password ? url.origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export type SignInFailure = { ok: false; status: number } & UserError;
 
 export interface EmailSignIn {
