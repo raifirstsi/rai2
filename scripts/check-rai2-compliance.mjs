@@ -60,7 +60,7 @@ for (const path of inventoriedAssets) {
   if (!existsSync(join(root, path))) fail(`asset inventory names a missing file: ${path}`);
 }
 
-const hasBase = spawnSync("git", ["cat-file", "-e", `${source.baseCommit}^{commit}`], { cwd: root }).status === 0;
+const hasBase = spawnSync("git", ["merge-base", "--is-ancestor", source.baseCommit, "HEAD"], { cwd: root }).status === 0;
 let changedAssets = inventoriedAssets;
 let modifications = normalized("compliance/MODIFIED_FILES.md");
 let modifiedCount = modifications.split("\n").filter((line) => line.startsWith("- `")).length;
