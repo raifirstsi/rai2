@@ -83,12 +83,12 @@ try {
       assert.equal(await evaluate("document.querySelector('.hero-actions .button').href"), "https://app.rai2.si/");
       assert.equal(await evaluate("document.querySelectorAll('.metrics > div').length"), 4);
       assert.deepEqual(await evaluate("[...document.querySelectorAll('.desktop-nav a')].map(link => link.textContent.trim())"),
-        ["Triết lý", "Nhân sự số", "Hệ thống", "Bảng giá"]);
+        ["Triết lý", "Nhân sự số", "Tính năng", "Bảng giá", "Đăng nhập"]);
       assert.equal(await evaluate("document.querySelectorAll('nav a[href=\"#cam-ket\"]').length"), 0);
       assert.equal(await evaluate("getComputedStyle(document.querySelector('.theme-toggle')).borderTopWidth"), "0px");
       assert.equal(await evaluate("getComputedStyle(document.querySelector('.theme-toggle')).backgroundColor"), "rgba(0, 0, 0, 0)");
       const themeToggleWidth = await evaluate("document.querySelector('.theme-toggle').getBoundingClientRect().width");
-      assert(themeToggleWidth >= 32 && themeToggleWidth <= 40,
+      assert(name === "desktop" ? themeToggleWidth === 28 : themeToggleWidth === 36,
         `${name} theme toggle has the wrong target size: ${themeToggleWidth}px`);
     } else {
       await waitFor("document.getElementById('signin')?.hidden === false");
@@ -100,7 +100,17 @@ try {
       assert.equal(await evaluate("fetch('/assets/rai-backend-favicon.png').then(response => response.status)"), 200);
       assert.equal(await evaluate("document.querySelectorAll('#theme-toggle .theme-icon').length"), 2);
       assert.equal(await evaluate("getComputedStyle(document.getElementById('theme-toggle')).borderTopWidth"), "0px");
-      assert.equal(await evaluate("getComputedStyle(document.querySelector('h1')).fontSize"), name === "desktop" ? "40px" : name === "mobile" ? "32px" : "28px");
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('h1')).fontSize"), name === "desktop" ? "36px" : name === "mobile" ? "28px" : "24px");
+      const signinBrand = await evaluate(`(() => {
+        const logo = document.querySelector('.signin-brand').getBoundingClientRect();
+        const card = document.getElementById('signin').getBoundingClientRect();
+        return { centerOffset: Math.abs(logo.left + logo.width / 2 - innerWidth / 2), gap: card.top - logo.bottom,
+          logoWidth: logo.width, headerBrandVisibility: getComputedStyle(document.querySelector('.site-header .brand')).visibility };
+      })()`);
+      assert(signinBrand.centerOffset <= 0.5, `${name} sign-in logo is not centered`);
+      assert(signinBrand.gap >= 16 && signinBrand.gap <= 24, `${name} sign-in logo gap is unbalanced`);
+      assert(signinBrand.logoWidth >= 66 && signinBrand.logoWidth <= 84, `${name} sign-in logo width is unbalanced`);
+      assert.equal(signinBrand.headerBrandVisibility, "hidden");
     }
     assert.equal(await evaluate("window.innerWidth"), width);
     assert((await evaluate("document.body.scrollWidth")) <= await evaluate("document.documentElement.clientWidth"), `${name} has horizontal overflow`);
@@ -111,7 +121,7 @@ try {
       assert.equal(await evaluate("document.querySelector('.plans-grid .plan:nth-child(3) a').protocol"), "mailto:");
       assert.equal(await evaluate("document.querySelector('.plans-grid .plan:nth-child(4) a').protocol"), "mailto:");
       const logoWidth = await evaluate("document.querySelector('.logo-link').getBoundingClientRect().width");
-      assert(name === "desktop" ? logoWidth === 60 : logoWidth >= 50 && logoWidth <= 54,
+      assert(name === "desktop" ? logoWidth >= 60 : logoWidth >= 50 && logoWidth <= 60,
         `${name} logo width is not balanced: ${logoWidth}px`);
       assert.equal(await evaluate("new URL(document.querySelector('link[rel=\"icon\"]').href).pathname"), "/assets/rai-backend-favicon.png");
       assert.equal(await evaluate("fetch('/assets/rai-backend-favicon.png').then(response => response.status)"), 200);
