@@ -1539,6 +1539,7 @@
   "phoneApp.androidAction": "Tải xuống tệp APK",
   "phoneApp.next": "Đã cài đặt xong? Tiếp theo hãy kết nối điện thoại và quét mã ghép nối bằng ứng dụng.",
   "sidebar.menu.settings": "Cài đặt",
+  "sidebar.menu.manageWorkspace": "Quản lý Workspace",
   "sidebar.menu.about": "Giới thiệu",
   "about.version": "Phiên bản {version}",
   "about.connectedTo": "Đã kết nối với {name} · phiên bản {version}",

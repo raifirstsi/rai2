@@ -15,6 +15,7 @@ import {
   Laptop,
   LifeBuoy,
   Loader2,
+  LayoutDashboard,
   RefreshCw,
   Settings as SettingsIcon,
   Smartphone,
@@ -461,6 +462,7 @@ export function profileMenuItems({
   simple,
   onUsage,
   onSettings,
+  onManageWorkspace,
   onShortcuts,
   onAbout,
   onHelp,
@@ -480,6 +482,7 @@ export function profileMenuItems({
   simple?: { tools: SidebarMenuItem[]; places: SidebarMenuItem[] };
   onUsage: () => void;
   onSettings: () => void;
+  onManageWorkspace?: () => void;
   onShortcuts: () => void;
   onAbout: () => void;
   onHelp: () => void;
@@ -509,10 +512,11 @@ export function profileMenuItems({
   } : null;
   const support: SidebarMenuItem = { key: "support", label: t("sidebar.menu.support"), icon: <LifeBuoy size={18} />, submenu: help, onSelect: () => {} };
   const settings: SidebarMenuItem = { key: "settings", label: t("sidebar.menu.settings"), icon: <SettingsIcon size={18} />, onSelect: onSettings };
+  const manageWorkspace: SidebarMenuItem | null = onManageWorkspace ? { key: "manage-workspace", label: t("sidebar.menu.manageWorkspace"), icon: <LayoutDashboard size={18} />, onSelect: onManageWorkspace } : null;
   const accountItem: SidebarMenuItem | null = account ? { key: "account", label: account, icon: <CircleUserRound size={18} />, onSelect: onAccount } : null;
   const present = (...items: Array<SidebarMenuItem | null | false>) => items.filter((item): item is SidebarMenuItem => Boolean(item));
   if (!simple) {
-    const rest = [...present(usageItem), ...phone, support, settings, ...present(update), ...(accountItem ? [{ ...accountItem, separatorBefore: true }] : []), ...accounts.map((item, index) => (index === 0 ? { ...item, separatorBefore: true } : item))];
+    const rest = [...present(usageItem), ...phone, support, settings, ...present(manageWorkspace), ...present(update), ...(accountItem ? [{ ...accountItem, separatorBefore: true }] : []), ...accounts.map((item, index) => (index === 0 ? { ...item, separatorBefore: true } : item))];
     return [...move, ...rest.map((item, index) => (move.length && index === 0 ? { ...item, separatorBefore: true } : item))];
   }
   const raised: SidebarMenuItem | null = update && updateTop ? {
@@ -527,7 +531,7 @@ export function profileMenuItems({
     present(raised),
     // Places you go first, then the app's own settings, then getting the phone app and help.
     simple.tools,
-    [...present(usageItem), settings],
+    [...present(usageItem), settings, ...present(manageWorkspace)],
     [...phone, { ...support, submenu: raised ? help : [...help, ...present(update)] }],
     [...simple.places, ...present(accountItem)],
     accounts,
@@ -590,6 +594,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const openCloudAccount = () => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: () => dispatch(phonePairingSettingsAction()) });
   const accounts = useAccounts();
+  const workspaceManagementUrl = state.config?.workspaceManagementUrl;
 
   const items = profileMenuItems({
     phone: simple
@@ -620,6 +625,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     } } : {}),
     onUsage: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }),
     onSettings: () => dispatch({ type: "toggleAppSettings" }),
+    onManageWorkspace: workspaceManagementUrl ? () => void openExternalLink(workspaceManagementUrl) : undefined,
     onShortcuts: () => {
       triggerRef.current?.closest("button")?.focus();
       dispatch({ type: "toggleShortcuts", open: true });

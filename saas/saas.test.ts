@@ -414,6 +414,12 @@ describe("RAI2 SaaS control plane", () => {
     expect(first.status).toBe(200);
     expect((await f.call("/api/auth/verify", "POST", { email: "a@example.test", code })).status).toBe(401);
     const alice = first.cookie!;
+    expect((await f.call("/api/landing-session", "GET", undefined, undefined,
+      { origin: "https://evil.example" })).status).toBe(403);
+    expect((await f.call("/api/landing-session", "GET", undefined, undefined,
+      { origin: "https://rai2.si" })).body).toEqual({ signedIn: false, workspaceReady: false });
+    expect((await f.call("/api/landing-session", "GET", undefined, alice,
+      { origin: "https://rai2.si" })).body).toEqual({ signedIn: true, workspaceReady: false });
     expect((await f.call("/api/me", "GET", undefined, alice)).body).toMatchObject({ email: "a@example.test", paidThrough: 0, workspaceUrl: null });
     expect((await f.call("/api/orders", "POST", { planId: "pro", amount: 1 }, alice)).status).toBe(400);
     const order = await f.call("/api/orders", "POST", { planId: "starter" }, alice);

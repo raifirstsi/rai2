@@ -2418,6 +2418,7 @@
   "accounts.close": "Close",
   "accounts.failed": "That didn't work. Try again in a moment.",
   "sidebar.menu.settings": "Settings",
+  "sidebar.menu.manageWorkspace": "Manage Workspace",
   "sidebar.menu.about": "About",
   "about.version": "Version {version}",
   "about.connectedTo": "Connected to {name} · version {version}",

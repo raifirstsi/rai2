@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { allowedScopes, createEmailSignIn, parseAllowList, signInEnabled } from "./account-signin.ts";
+import { allowedScopes, createEmailSignIn, parseAllowList, rai2ManagementUrl, signInEnabled } from "./account-signin.ts";
 import { startControlPlaneStub } from "./testing/control-plane-stub.ts";
 
 describe("the sign-in allow-list", () => {
@@ -65,6 +65,16 @@ describe("the exchange with the control plane", () => {
 });
 
 describe("RAI2 tenant sign-in", () => {
+  it("publishes only an exact HTTPS management origin for a RAI2 tenant", () => {
+    expect(rai2ManagementUrl({ OMB_RAI2_TENANT: "1", OMB_SIGNIN_TENANT_URL: "https://app.rai2.si" })).toBe("https://app.rai2.si");
+    for (const env of [
+      { OMB_SIGNIN_TENANT_URL: "https://app.rai2.si" },
+      { OMB_RAI2_TENANT: "1", OMB_SIGNIN_TENANT_URL: "http://app.rai2.si" },
+      { OMB_RAI2_TENANT: "1", OMB_SIGNIN_TENANT_URL: "https://app.rai2.si/path" },
+      { OMB_RAI2_TENANT: "1", OMB_SIGNIN_TENANT_URL: "https://user:secret@app.rai2.si" },
+    ]) expect(rai2ManagementUrl(env)).toBeUndefined();
+  });
+
   it("uses only its scoped HTTPS token and the tenant's owner allow-list", async () => {
     const slug = "u-1234567890abcdef1234";
     const token = "t".repeat(43);

@@ -112,7 +112,7 @@ describe("updatePhase", () => {
 describe("updateLabel", () => {
   it("names the version it is ready to install", () => {
     expect(updateLabel("downloaded", state({ status: "downloaded", version: "0.2.0" }))).toBe(
-      "Restart to update to MausBot 0.2.0",
+      "Restart to update to RAI² 0.2.0",
     );
   });
 
@@ -126,7 +126,7 @@ describe("updateLabel", () => {
     expect(updateLabel("installing", state({ status: "installing", message: "Restart is taking longer than expected." })))
       .toBe("Restart is taking longer than expected.");
     expect(updateLabel("downloaded", state({ status: "downloaded", version: "0.2.0", installMode: "handoff" })))
-      .toBe("Install MausBot 0.2.0");
+      .toBe("Install RAI² 0.2.0");
     expect(updateLabel("installing", state({ status: "installing", installMode: "handoff" })))
       .toBe("Opening a terminal…");
   });
@@ -200,11 +200,11 @@ describe("updateNoteworthy", () => {
 describe("outward links", () => {
   it("sends Help Center to the docs the website also links to", () => {
     expect(HELP_CENTER_URL).toBe(DOCS_URL);
-    expect(DOCS_URL).toBe("https://github.com/milind-soni/OpenMausBot/tree/main/docs");
+    expect(DOCS_URL).toBe("https://raifirst.si");
   });
 
   it("sends Send Feedback to the Discord community", () => {
-    expect(FEEDBACK_URL).toBe("https://discord.gg/9Wb8MEpXRs");
+    expect(FEEDBACK_URL).toBe("https://raifirst.si");
   });
 });
 
@@ -263,7 +263,7 @@ describe("the phone entries", () => {
   });
 
   it("on another server: to this server, and gone for a session that cannot make a pairing code", () => {
-    expect(shown("server", admin, paid("pro", ready))).toEqual([["Connect your phone", "to the bots here"], APP]);
+    expect(shown("server", admin, paid("pro", ready))).toEqual([["Connect your phone", "to the RAIs here"], APP]);
     expect(shown("server", chatOnly)).toEqual([APP]);
     expect(shown("server", { ...admin, pairingCodes: false })).toEqual([APP]);
     expect(shown("cloud", chatOnly)).toEqual([APP]);
@@ -331,7 +331,7 @@ describe("Get the phone app", () => {
   it("offers iPhone and Android with the links the website and Cloud page use", () => {
     expect(PHONE_APPS.map((app) => [app.id, app.url])).toEqual([["ios", IOS_APP_STORE_URL], ["android", ANDROID_APK_URL]]);
     expect(IOS_APP_STORE_URL).toBe("https://apps.apple.com/in/app/mausbot/id6803387923");
-    expect(ANDROID_APK_URL).toBe("https://github.com/milind-soni/OpenMausBot/releases/download/android-v1.5.0/OpenMausBot.apk");
+    expect(ANDROID_APK_URL).toBe("https://github.com/raifirstsi/bot/releases/download/android-v1.5.0/OpenMausBot.apk");
   });
 
   const render = (connect?: PhoneAppConnect[]) => {
@@ -398,6 +398,16 @@ describe("profileMenuItems", () => {
     expect(build({ update }).map((item) => item.key)).toEqual(["usage", "phone-app", "support", "settings", "update", "account"]);
   });
 
+  it("puts workspace management after Settings only when the server offers the portal", () => {
+    const onManageWorkspace = vi.fn();
+    const managed = build({ onManageWorkspace });
+    expect(managed.map((item) => item.key)).toEqual(["usage", "phone-app", "support", "settings", "manage-workspace", "account"]);
+    expect(managed.find((item) => item.key === "manage-workspace")!.label).toBe("Manage Workspace");
+    managed.find((item) => item.key === "manage-workspace")!.onSelect();
+    expect(onManageWorkspace).toHaveBeenCalledOnce();
+    expect(build().some((item) => item.key === "manage-workspace")).toBe(false);
+  });
+
   it("opens the Usage and account pages of Settings", () => {
     const onUsage = vi.fn(), onAccount = vi.fn();
     const items = build({ onUsage, onAccount });
@@ -444,6 +454,10 @@ describe("Simple mode's account menu", () => {
       ["place", "switch-place", "account"],
     ]);
     expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).toEqual(["help", "feedback", "shortcuts", "about", "update"]);
+  });
+
+  it("keeps workspace management with Settings in Simple mode", () => {
+    expect(groups(build({ onManageWorkspace: noop }))).toContainEqual(["usage", "settings", "manage-workspace"]);
   });
 
   it("raises an update that is ready or failed to its own top row with a pill, and keeps it out of support", () => {
