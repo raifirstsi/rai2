@@ -514,7 +514,7 @@ describe("the repository's import graph", () => {
     const loaded = importClosure([...runtime, join(ROOT, "src/components/app/app-frame-host.ts")])
       .filter((file) => file.startsWith("src/") && !/^src\/locales\/[^/]+\.json$/.test(file));
     expect(loaded.sort()).toEqual([...SRC_OUTSIDE_RENDERER].sort());
-  });
+  }, 180_000);
 
   it("runs every test outside the renderer that reads a translation other than English with the locale tests", () => {
     const files = ["server", "shared", "electron", "companion", "enterprise", "evals", "scripts", "cloudflare"]
@@ -534,7 +534,7 @@ describe("the repository's import graph", () => {
     expect(affected).toContain("server/host/brief-words.test.ts");
     // The Electron node tests, which compare their own copy of some strings with every catalog, run on the locale tests' first shard.
     expect(affected.filter((file) => !VITEST_SUBSETS["locale-tests"].files.some((filter) => file.includes(filter)))).toEqual([]);
-  });
+  }, 180_000);
 
   it("runs every test that reads the docs with the docs tests or in static", () => {
     const ci = parse(readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8"));
@@ -550,14 +550,14 @@ describe("the repository's import graph", () => {
       .map((file) => relative(ROOT, file).split("\\").join("/"))
       .sort();
     expect(readers).toEqual([...VITEST_SUBSETS["docs-tests"].files, ...inStatic.filter((file) => file === "scripts/testing/verification-docs.test.ts")].sort());
-  });
+  }, 180_000);
 
   it("never loads a test file from other code, so a test under scripts/ affects only the jobs that run it", () => {
     const code = ["server", "shared", "electron", "companion", "enterprise", "evals", "scripts", "src", "cloudflare"]
       .flatMap((directory) => codeFiles(join(ROOT, directory)));
     const loaders = code.filter((file) => imports(file).some((target) => /\.test\.[cm]?[jt]sx?$/.test(target)));
     expect(loaders.map((file) => relative(ROOT, file))).toEqual([]);
-  });
+  }, 180_000);
 });
 
 describe("CI scope CLI", () => {

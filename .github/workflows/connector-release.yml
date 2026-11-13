@@ -5,11 +5,7 @@ name: Connector image
 # Admin pins it by digest; the summary prints it. Only a release tag publishes:
 # no pull request starts this, and a manual run on a branch builds nothing.
 on:
-  # release.yml dispatches this on the tag it just published: a tag created
-  # with the workflow token never fires push events on its own.
   workflow_dispatch:
-  push:
-    tags: ["v*"]
 
 permissions:
   contents: read
@@ -17,7 +13,7 @@ permissions:
 jobs:
   publish:
     name: publish to GHCR
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
