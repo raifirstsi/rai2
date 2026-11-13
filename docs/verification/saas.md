@@ -1,5 +1,50 @@
 # RAI2 SaaS verification
 
+## Audited clean-repository deployment (2026-11-13, Asia/Saigon)
+
+- Production source drift was found before activation: the v0.1.152-rai2.2
+  baseline did not contain the current account, landing and tenant-management
+  hotfixes. Its runtime canary was rolled back to the prior 0.1.151 archive,
+  all five workspace health checks passed, and its SaaS artifact was not
+  activated.
+- The active production behavior was moved into the clean repository without
+  importing the old Git history or restricted enterprise source. Pull request
+  `raifirstsi/rai2#1` passed the required `verify` and `package` checks and was
+  squash-merged as `afa53b36d91452760b5f7194277eadccf5cf6e4a`.
+- Tag `v0.1.152-rai2.3` rebuilt and published both artifacts in GitHub Actions.
+  The runtime SHA-256 is
+  `22f207af503bc1817d339da610a8191e581641fcf9d2a595d778f084964fccab`;
+  the SaaS SHA-256 is
+  `e8ec32d826bf0e232560acb537e62e070dafedac19c8412cef37133db41987eb`.
+  Both artifact-specific CycloneDX SBOM hashes and the absence of enterprise
+  source were checked again after upload to the VPS.
+- Runtime deployment used one workspace as a canary, then restarted the other
+  four one at a time. Every loopback health probe passed before proceeding.
+  The fleet agent was restarted last and its Unix-socket health returned
+  `{ok:true}`. The installed runtime reports `0.1.152-rai2.3`.
+- The SaaS release matched the active production backend, account JS/CSS and
+  mascot JS/CSS byte-for-byte. It was activated by atomic symlink replacement;
+  the previous `saas-mascot-load-ready-40d5b045c6639517` directory remains the
+  application rollback. Internal and public health/status matched after the
+  restart.
+- SQLite `PRAGMA quick_check` returned `ok`. Account/order/payment/unmatched
+  counts remained `6/3/0/0`; verification created no customer, order, payment
+  or workspace. Public `/api/me` remained `401`. LICENSE and NOTICE returned
+  `200`. Five workspace health probes, fleet health and all service states
+  passed; the service journals had no warning-or-higher rows after rollout.
+- Read-only Chrome checks passed both public landing and account surfaces at
+  1440x900, 390x844 and 320x720 after their stale assertions were corrected in
+  `raifirstsi/rai2#2`. The landing-session endpoint returned no signed-in state
+  without a cookie and emitted the exact allow-origin/credentials headers.
+- The encrypted pre-deployment backup was copied off-host with matching
+  SHA-256
+  `1cd32506bb816d1bb28991f03a94397bab79905cdc8424a53cd9ba6acfcf816c`.
+  The post-deployment backup also matched off-host at
+  `bc9df00d251f820c66068a9d2cea4f8d1314e152129134367629a1d8b1ec2161`.
+  The timer remained active. These exact encrypted archives were not decrypted
+  during production rollout; restore workflow behavior was verified separately
+  with disposable backup fixtures.
+
 All API tests use temporary SQLite data, a fake mailer, and a recording fleet.
 No test may address `rai2.si`, a real SePay endpoint, or a live tenant home.
 
