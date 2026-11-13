@@ -7,7 +7,7 @@
 // the owner's app reads them on this computer and on their own Cloud.
 import { z } from "zod";
 
-import { botAvatarUrlSchema } from "../../shared/bot-avatar.ts";
+import { isStoredBotAvatarUrl } from "../../shared/bot-avatar.ts";
 import { readAttachment } from "../attachments.ts";
 import { arrivedRoute, automationsOffRoute, homeRoute } from "../cloud-send-arrived.ts";
 import { moveFilesRoute } from "../cloud-send-files.ts";
@@ -64,7 +64,7 @@ export function createCloudSendRoutes(deps: CloudSendRouteDeps): RouteHandler {
     inRoom: (botId) => (deps.chats?.store.groups ?? []).some((group) => !group.dm && group.memberIds.includes(botId)),
     automated: (botId) => Boolean(deps.move && automatedBot(deps.move, botId)),
     skills: deps.skills,
-    picture: (avatarUrl) => botAvatarUrlSchema.safeParse(avatarUrl).success ? readAttachment(avatarUrl.slice("/api/attachments/".length))?.bytes ?? null : null,
+    picture: (avatarUrl) => isStoredBotAvatarUrl(avatarUrl) ? readAttachment(avatarUrl.slice("/api/attachments/".length))?.bytes ?? null : null,
     logins: () => deps.logins.changes(),
     onePassword: () => {
       const connectedAt = deps.logins.onePasswordConnectedAt();

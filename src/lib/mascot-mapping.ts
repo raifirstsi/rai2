@@ -1,13 +1,6 @@
-export const MASCOT_LIBRARY = [
-  { id: "mascot-1", url: "/assets/mascots/mascot-1.png", name: "Capybara Laptop" },
-  { id: "mascot-2", url: "/assets/mascots/mascot-2.png", name: "Capybara RAI² Laptop" },
-  { id: "mascot-3", url: "/assets/mascots/mascot-3.png", name: "Capybara Tai Nghe" },
-  { id: "mascot-4", url: "/assets/mascots/mascot-4.png", name: "Capybara Hồng Tai Nghe" },
-  { id: "mascot-5", url: "/assets/mascots/mascot-5.png", name: "Capybara Studio" },
-  { id: "mascot-6", url: "/assets/mascots/mascot-6.png", name: "Chuột Lang Headphone" },
-  { id: "mascot-7", url: "/assets/mascots/mascot-7.png", name: "Gấu Bông Capybara" },
-  { id: "mascot-8", url: "/assets/mascots/mascot-8.png", name: "Capybara Tablet" },
-] as const;
+import { RAI_MASCOT_LIBRARY } from "../../shared/mascot-library";
+
+export const MASCOT_LIBRARY = RAI_MASCOT_LIBRARY;
 
 export const READY_BOT_MASCOT_MAP: Record<string, string> = {
   assistant: "/assets/mascots/mascot-1.png",

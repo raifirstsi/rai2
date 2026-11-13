@@ -39,6 +39,12 @@ function renderCard(bot: Bot) {
 }
 
 describe("BotProfileAvatarCard body picker", () => {
+  it("offers the full RAI mascot template catalog", () => {
+    const markup = renderCard(makeBot());
+    expect(markup.match(/data-mascot-template=/g)).toHaveLength(15);
+    expect(markup).toContain('data-mascot-template="mascot-15"');
+  });
+
   it("renders one option per body catalog entry, labeled by name", () => {
     const markup = renderCard(makeBot());
 

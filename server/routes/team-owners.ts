@@ -9,7 +9,7 @@ import type { AdminActionRow } from "../admin-activity.ts";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
-import { botAvatarUrlSchema } from "../../shared/bot-avatar.ts";
+import { isStoredBotAvatarUrl } from "../../shared/bot-avatar.ts";
 import { botOwner, nameFromEmail, ownerEmail } from "../../shared/bot-owner.ts";
 import { attachmentExists, readAttachment } from "../attachments.ts";
 import { setReportsTo } from "../bot-owners.ts";
@@ -48,7 +48,7 @@ function sessionEmail(auth: RequestAuth): string | null {
 }
 
 function storedPicture(avatarUrl: string | undefined): string | null {
-  if (!avatarUrl || !botAvatarUrlSchema.safeParse(avatarUrl).success) return null;
+  if (!isStoredBotAvatarUrl(avatarUrl)) return null;
   const name = avatarUrl.slice(ATTACHMENT.length);
   return attachmentExists(name) ? name : null;
 }

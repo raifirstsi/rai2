@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRaiMascotUrl } from "../../shared/mascot-library.ts";
 
 import { approvalModeFor, isApprovalMode, type ApprovalMode } from "../../shared/approval-mode.ts";
 import { normalizeConnectorScopes } from "../../shared/connector-scopes.ts";
@@ -181,7 +182,7 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
       }
       const profile = parseBotProfilePatch(body);
       if (!profile.ok) return json(res, 400, { error: profile.error });
-      if (profile.patch.avatarUrl && !storedAvatarExists(profile.patch.avatarUrl)) {
+      if (profile.patch.avatarUrl && !isRaiMascotUrl(profile.patch.avatarUrl) && !storedAvatarExists(profile.patch.avatarUrl)) {
         return json(res, 400, { error: "avatarUrl must reference an existing stored image" });
       }
       const patch: Record<string, unknown> = {};
