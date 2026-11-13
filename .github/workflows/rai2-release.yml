@@ -25,9 +25,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm saas:test
       - run: pnpm package:rai2
-      - run: node scripts/smoke-rai2-package.mjs release/rai2-runtime-*.tgz
+      - run: node scripts/smoke-rai2-package.mjs "$(realpath release/rai2-runtime-*.tgz)"
       - run: pnpm saas:package
-      - run: node scripts/smoke-rai2-saas-package.mjs release/rai2-saas-*.tgz
+      - run: node scripts/smoke-rai2-saas-package.mjs "$(realpath release/rai2-saas-*.tgz)"
       - name: Publish immutable release
         env:
           GH_TOKEN: ${{ github.token }}

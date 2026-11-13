@@ -46,9 +46,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm package:rai2
-      - run: node scripts/smoke-rai2-package.mjs release/rai2-runtime-*.tgz
+      - run: node scripts/smoke-rai2-package.mjs "$(realpath release/rai2-runtime-*.tgz)"
       - run: pnpm saas:package
-      - run: node scripts/smoke-rai2-saas-package.mjs release/rai2-saas-*.tgz
+      - run: node scripts/smoke-rai2-saas-package.mjs "$(realpath release/rai2-saas-*.tgz)"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: rai2-auditable-baseline-${{ github.sha }}
