@@ -45,8 +45,6 @@ export function TocConstraintModal({
 
   const [mobileTab, setMobileTab] = useState<"input" | "result">("input");
 
-  if (!isOpen) return null;
-
   const input: TocDiagnosticInput = {
     hasBacklogOver48h: hasBacklog,
     backlogDepartment: quoteDays >= 3 ? "ZONE_3_SALES" : "ZONE_4_OPERATIONS",
@@ -60,8 +58,12 @@ export function TocConstraintModal({
   const diagnosis: TocDiagnosisResult = diagnoseBusinessConstraint(input);
 
   useEffect(() => {
-    saveTocDiagnosis(diagnosis);
-  }, [diagnosis]);
+    if (isOpen) {
+      saveTocDiagnosis(diagnosis);
+    }
+  }, [isOpen, diagnosis]);
+
+  if (!isOpen) return null;
 
   let recommendedAgentName = diagnosis.recommendedAgentKey;
   for (const dept of RAI2_DEPARTMENTS) {

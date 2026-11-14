@@ -8,7 +8,7 @@ import { orgCardAction, orgPackagePreview, type OrgLibraryListing, type OrgLibra
 import type { PackageDocument } from "../../shared/package-format";
 import type { Routine } from "@/lib/routines";
 import { api, useStore, type Bot, type Group } from "@/state/store";
-import { ArrowLeft, Check, Compass, ExternalLink, FolderOpen, Github, Loader2, Search, Share2, UploadCloud, Users, X } from "lucide-react";
+import { ArrowLeft, Check, Compass, Crown, ExternalLink, FolderOpen, Github, Loader2, Search, Share2, Sparkles, UploadCloud, Users, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { catalogCopy, catalogMatches, type TeamCatalog, type TeamCatalogEntry } from "@/lib/team-catalog";
@@ -20,6 +20,11 @@ import { HireAgentDialog } from "./HireAgentDialog";
 import { CompanyFingerprintModal } from "./CompanyFingerprintModal";
 import { TocConstraintModal } from "./TocConstraintModal";
 import { ContextVaultModal } from "./ContextVaultModal";
+import { StrategyMapModal } from "./StrategyMapModal";
+import { FridayPulseModal } from "./FridayPulseModal";
+import { FiveLeversModal } from "./FiveLeversModal";
+import { useRai2Mode } from "@/lib/rai2-mode";
+import { Rai2ModeSwitcher } from "./Rai2ModeSwitcher";
 import { NewBotDialog } from "./lazy-screens";
 import { ShareTeamDialog } from "./ShareTeamDialog";
 import { OrgLibraryTab } from "./TeamLibraryPanelOrg";
@@ -135,9 +140,14 @@ export function TeamLibraryPanel({
   const [orgError, setOrgError] = useState("");
   const [pendingOrg, setPendingOrg] = useState<OrgLibraryPackage | null>(null);
   const [hireDialogOpen, setHireDialogOpen] = useState(false);
+  const [hireDialogZone, setHireDialogZone] = useState<number>(2);
   const [fingerprintModalOpen, setFingerprintModalOpen] = useState(false);
   const [tocModalOpen, setTocModalOpen] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
+  const [strategyMapModalOpen, setStrategyMapModalOpen] = useState(false);
+  const [fridayPulseModalOpen, setFridayPulseModalOpen] = useState(false);
+  const [fiveLeversModalOpen, setFiveLeversModalOpen] = useState(false);
+  const { isEnterprise, setMode: setRai2Mode } = useRai2Mode();
   const [addingReadyBotId, setAddingReadyBotId] = useState<string | null>(null);
   const tabChosen = useRef(false);
   // Monotonic scout token: a late response from an older scout must never overwrite a newer one's state.
@@ -498,17 +508,20 @@ export function TeamLibraryPanel({
                   : t("templates.subtitle")}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-2">
             {!pending && (
-              <button
-                onClick={() => void openExternal(catalog?.repositoryUrl ?? COMMUNITY_TEAMS_REPOSITORY)}
-                className="hidden items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink sm:flex"
-                title={t("templates.openRepository")}
-              >
-                <Github size={16} />
-                <span className="max-sm:hidden">{t("templates.communityRepo")}</span>
-                <ExternalLink size={12} />
-              </button>
+              <>
+                <Rai2ModeSwitcher className="w-[230px] hidden sm:flex" />
+                <button
+                  onClick={() => void openExternal(catalog?.repositoryUrl ?? COMMUNITY_TEAMS_REPOSITORY)}
+                  className="hidden items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink sm:flex"
+                  title={t("templates.openRepository")}
+                >
+                  <Github size={16} />
+                  <span className="max-sm:hidden">{t("templates.communityRepo")}</span>
+                  <ExternalLink size={12} />
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -674,16 +687,46 @@ export function TeamLibraryPanel({
                   onDetails={(entry) => void loadOrgDetails(entry)}
                 />
               )}
-              {tab === "explore" && (
+               {tab === "explore" && (
                 <div>
-                  <AbsenceReadinessGauge
-                    className="mb-5 sm:mb-6"
-                    activeBotIds={state.bots.map((b) => b.id)}
-                    onHireDepartment={() => setHireDialogOpen(true)}
-                    onOpenFingerprint={() => setFingerprintModalOpen(true)}
-                    onOpenTocDiagnostic={() => setTocModalOpen(true)}
-                    onOpenContextVault={() => setVaultModalOpen(true)}
-                  />
+                  {isEnterprise ? (
+                    <AbsenceReadinessGauge
+                      className="mb-5 sm:mb-6"
+                      activeBotIds={(state.bots || []).flatMap((b) => [b.id, b.name, b.title, (b as any).role, b.section].filter(Boolean) as string[])}
+                      onHireDepartment={(_deptCode, zoneNumber) => {
+                        if (zoneNumber) setHireDialogZone(zoneNumber);
+                        setHireDialogOpen(true);
+                      }}
+                      onOpenFingerprint={() => setFingerprintModalOpen(true)}
+                      onOpenTocDiagnostic={() => setTocModalOpen(true)}
+                      onOpenContextVault={() => setVaultModalOpen(true)}
+                      onOpenStrategyMap={() => setStrategyMapModalOpen(true)}
+                      onOpenFridayPulse={() => setFridayPulseModalOpen(true)}
+                      onOpenFiveLevers={() => setFiveLeversModalOpen(true)}
+                    />
+                  ) : (
+                    <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-hairline/60 bg-card p-4 sm:p-5 shadow-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                          <Sparkles size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-[14px] font-bold text-ink">Chế Độ Tạo Bot Tự Do (Creator Mode)</h3>
+                          <p className="text-[12px] text-ink-secondary">
+                            Thoải mái tạo và tùy biến nhân sự số không bị ràng buộc bởi rào chắn 7 Vùng.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRai2Mode("enterprise")}
+                        className="ui-button ui-button-secondary text-xs shrink-0 whitespace-nowrap"
+                      >
+                        <Crown size={14} className="text-amber-500 mr-1 inline" />
+                        Mở Quản Trị 7 Vùng (Enterprise)
+                      </button>
+                    </div>
+                  )}
                   <ReadyBotGallery search={search} onDialog={setNestedDialog} onAdded={onClose} />
                   <div className="mb-3 text-[12px] font-medium text-ink-secondary">
                     {search ? t("templates.searchResults") : t("templates.communityTemplates")}
@@ -982,6 +1025,7 @@ export function TeamLibraryPanel({
       <HireAgentDialog
         open={hireDialogOpen}
         onClose={() => setHireDialogOpen(false)}
+        initialZone={hireDialogZone}
         onSelectAgent={(agent) => {
           setHireDialogOpen(false);
           setAddingReadyBotId(agent.key);
@@ -1002,6 +1046,44 @@ export function TeamLibraryPanel({
       <ContextVaultModal
         isOpen={vaultModalOpen}
         onClose={() => setVaultModalOpen(false)}
+      />
+      <StrategyMapModal
+        isOpen={strategyMapModalOpen}
+        onClose={() => setStrategyMapModalOpen(false)}
+        onHireDepartment={(_deptCode, zoneNumber) => {
+          setStrategyMapModalOpen(false);
+          if (zoneNumber) setHireDialogZone(zoneNumber);
+          setHireDialogOpen(true);
+        }}
+        onOpenTocDiagnostic={() => {
+          setStrategyMapModalOpen(false);
+          setTocModalOpen(true);
+        }}
+        onOpenFridayPulse={() => {
+          setStrategyMapModalOpen(false);
+          setFridayPulseModalOpen(true);
+        }}
+      />
+      <FridayPulseModal
+        isOpen={fridayPulseModalOpen}
+        onClose={() => setFridayPulseModalOpen(false)}
+        onOpenTocDiagnostic={() => {
+          setFridayPulseModalOpen(false);
+          setTocModalOpen(true);
+        }}
+        onOpenStrategyMap={() => {
+          setFridayPulseModalOpen(false);
+          setStrategyMapModalOpen(true);
+        }}
+      />
+      <FiveLeversModal
+        isOpen={fiveLeversModalOpen}
+        onClose={() => setFiveLeversModalOpen(false)}
+        onHireDepartment={(_deptCode, zoneNumber) => {
+          setFiveLeversModalOpen(false);
+          if (zoneNumber) setHireDialogZone(zoneNumber);
+          setHireDialogOpen(true);
+        }}
       />
       {addingReadyBotId &&
         createPortal(

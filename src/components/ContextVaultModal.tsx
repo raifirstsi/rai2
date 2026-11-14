@@ -9,12 +9,15 @@ import {
   Route,
   RotateCcw,
   Loader2,
+  FileCheck,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
 import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
 import { buildBotMemoryBundle, mergeMemoryWithCustomNotes } from "@/lib/role-context-router";
 import { saveMemoryDoc, fetchMemoryDoc } from "@/lib/memory";
+import { VoiceToSopModal } from "./VoiceToSopModal";
+import { DataReadinessGauge } from "./DataReadinessGauge";
 import {
   CONTEXT_PILLARS,
   distillUnscriptedKnowledge,
@@ -68,10 +71,16 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   const [distillNotice, setDistillNotice] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<TaskType>("proposal");
   const [viewMode, setViewMode] = useState<"edit" | "router" | "record">("edit");
+  const [voiceToSopOpen, setVoiceToSopOpen] = useState(false);
+  const { state } = useStore();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    saveContextVaultToStorage(contents);
-  }, [contents]);
+    if (isOpen) {
+      saveContextVaultToStorage(contents);
+    }
+  }, [isOpen, contents]);
 
   const currentContent = contents[activeTab] || "";
   const sharpness = useMemo(
@@ -85,10 +94,6 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   );
 
   if (!isOpen) return null;
-
-  const { state } = useStore();
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   const handleSyncAllBots = async () => {
     setIsSyncing(true);
@@ -254,6 +259,17 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           </button>
         </div>
 
+        {/* Data Readiness Fuel Gauge /20 */}
+        <div className="px-3 pt-3 shrink-0 sm:px-5">
+          <DataReadinessGauge
+            vaultData={contents}
+            onSelectPillar={(pillarId) => {
+              setViewMode("edit");
+              setActiveTab(pillarId as ContextPillarId);
+            }}
+          />
+        </div>
+
         {/* Content Body: Edit Mode */}
         {viewMode === "edit" && (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
@@ -311,14 +327,26 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
                       {CONTEXT_PILLARS[activeTab].subtitle}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleResetToTemplate}
-                    className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-text hover:underline"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Nạp mẫu chuẩn</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {activeTab === "sops" && (
+                      <button
+                        type="button"
+                        onClick={() => setVoiceToSopOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                      >
+                        <FileCheck size={13} />
+                        <span>Đóng gói SOP (Voice)</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleResetToTemplate}
+                      className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-text hover:underline"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Nạp mẫu chuẩn</span>
+                    </button>
+                  </div>
                 </div>
 
                 <textarea
@@ -581,6 +609,15 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           </div>
         </div>
       </div>
+
+      <VoiceToSopModal
+        isOpen={voiceToSopOpen}
+        onClose={() => setVoiceToSopOpen(false)}
+        onSopSaved={() => {
+          const fresh = loadSavedContextVault();
+          if (fresh) setContents(fresh);
+        }}
+      />
     </div>
   );
 };
