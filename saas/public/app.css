@@ -398,6 +398,11 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 /* Badges */
+#account-status,
+#account-plan-badge {
+  display: none !important;
+}
+
 .status {
   display: inline-flex;
   align-items: center;
