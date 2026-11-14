@@ -55,6 +55,17 @@ describe("sidebar previews", () => {
     const group = { id: "g", name: "Room", messages: [message({ text: "Done.", from: { botId: "ada", name: "Ada", color: "green" } }), screen()] } as unknown as Group;
     expect(groupPreview(group, [bot], [], false)).toBe("Ada: Done.");
   });
+
+  it("translates setup offer greeting to Vietnamese when locale is vi, and English when en", () => {
+    const greetingMsg = message({ text: "Hi, I'm Nimbus. What would you like me to do?", setupOffer: true });
+    setLocale("vi");
+    try {
+      expect(botPreview({ ...bot, name: "Nimbus" } as Bot, [greetingMsg], [], false)).toBe("Chào bạn, mình là Nimbus. Bạn muốn mình giúp gì?");
+    } finally {
+      setLocale("en");
+    }
+    expect(botPreview({ ...bot, name: "Nimbus" } as Bot, [greetingMsg], [], false)).toBe("Hi, I'm Nimbus. What would you like me to do?");
+  });
 });
 
 describe("a server card in the sidebar", () => {
