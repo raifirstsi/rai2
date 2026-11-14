@@ -68,14 +68,49 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
     onConnection?.(status ? connected : null);
   }, [status, connected, onConnection]);
 
+  const pollTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
+    };
+  }, []);
+
   const requestQr = async () => {
     setBusy("qr");
     setError(null);
     try {
-      const res = (await api("/api/zalo/personal/qr", { method: "POST" })) as { ok: boolean; qrCode: string };
-      if (mounted.current && res.qrCode) {
-        setQrCodeData(res.qrCode);
-      }
+      await api("/api/zalo/personal/qr", { method: "POST" });
+      
+      // Start polling status
+      if (pollTimer.current) clearInterval(pollTimer.current);
+      pollTimer.current = window.setInterval(async () => {
+        try {
+          const res = (await api("/api/zalo/personal/qr")) as {
+            connected: boolean;
+            qrStatus: string;
+            qrData: string | null;
+            error?: string | null;
+          };
+          if (!mounted.current) return;
+          if (res.qrData) {
+            setQrCodeData(res.qrData);
+          }
+          if (res.connected || res.qrStatus === "ready") {
+            if (pollTimer.current) {
+              clearInterval(pollTimer.current);
+              pollTimer.current = null;
+            }
+            void load();
+          }
+          if (res.error) {
+            setError(res.error);
+          }
+        } catch {}
+      }, 2000);
     } catch (cause) {
       if (mounted.current) {
         setError(cause instanceof Error ? cause.message : "Không thể khởi tạo mã QR đăng nhập");
@@ -215,8 +250,12 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
               <div className="flex flex-col items-center gap-3 py-2 text-center">
                 {qrCodeData ? (
                   <>
-                    <div className="rounded-lg bg-white p-3 shadow-md">
-                      <QRCodeSVG value={qrCodeData} size={150} level="M" />
+                    <div className="overflow-hidden rounded-lg bg-white p-2 shadow-md">
+                      {qrCodeData.startsWith("data:image/") ? (
+                        <img src={qrCodeData} alt="Mã QR Zalo" className="size-48 object-contain" />
+                      ) : (
+                        <QRCodeSVG value={qrCodeData} size={180} level="M" />
+                      )}
                     </div>
                     <div className="text-[12px] text-ink-secondary">
                       Mở ứng dụng <strong className="text-ink">Zalo trên điện thoại</strong> → Bấm icon <strong>Quét mã QR</strong> để đăng nhập.

@@ -142,10 +142,48 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
     }
 
     // Zalo Personal QR Generator Endpoint
-    if (path === "/api/zalo/personal/qr" && method === "POST") {
+    if (path === "/api/zalo/personal/qr") {
       if (!auth.scopes.includes("admin")) return json(res, 403, { error: "Admin only" });
-      const qrPayload = `https://qr.zalo.me/connect/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      return json(res, 200, { ok: true, qrCode: qrPayload, expiresIn: 180 });
+
+      if (method === "POST") {
+        try {
+          await fetch("http://127.0.0.1:18789/login-qr", { method: "POST" });
+        } catch {}
+        return json(res, 200, { ok: true, status: "started" });
+      }
+
+      if (method === "GET") {
+        try {
+          const gwRes = await fetch("http://127.0.0.1:18789/status", { signal: AbortSignal.timeout(3000) });
+          const gwData = await gwRes.json() as {
+            connected: boolean;
+            qrStatus: string;
+            qrData: string | null;
+            userInfo?: { id?: string; name?: string; avatar?: string };
+            error?: string | null;
+          };
+
+          if (gwData.connected || gwData.qrStatus === "ready") {
+            const config: ZaloPersonalConfig = {
+              phone: gwData.userInfo?.id || "Zalo User",
+              gatewayUrl: "http://127.0.0.1:18789",
+              configuredAt: Date.now(),
+            };
+            writeFileAtomic(personalFile, JSON.stringify(config, null, 2), { mode: 0o600 });
+          }
+
+          return json(res, 200, gwData);
+        } catch {
+          return json(res, 200, {
+            connected: false,
+            qrStatus: "idle",
+            qrData: null,
+            error: "Zalo Gateway chưa sẵn sàng",
+          });
+        }
+      }
+
+      return json(res, 405, { error: "method not allowed" });
     }
 
     return json(res, 404, { error: "not found" });
