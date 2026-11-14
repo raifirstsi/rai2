@@ -365,3 +365,30 @@ export function routeContextForTask(
     tokensSavedEstimate,
   };
 }
+
+export const VAULT_STORAGE_KEY = "rai2_context_vault_v1";
+
+export function loadSavedContextVault(): Record<ContextPillarId, string> | null {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      const saved = window.localStorage.getItem(VAULT_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // fallback
+    }
+  }
+  return null;
+}
+
+export function saveContextVaultToStorage(
+  contents: Record<ContextPillarId, string>
+): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      window.localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(contents));
+    } catch {
+      // ignore
+    }
+  }
+}
+

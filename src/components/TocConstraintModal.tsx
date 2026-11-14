@@ -1,4 +1,4 @@
-import { useState, useId, type CSSProperties } from "react";
+import { useState, useId, useEffect, type CSSProperties } from "react";
 import {
   X,
   Sparkles,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import {
   diagnoseBusinessConstraint,
+  saveTocDiagnosis,
   type TocDiagnosticInput,
   type TocDiagnosisResult,
 } from "@/lib/toc-detector";
@@ -57,6 +58,10 @@ export function TocConstraintModal({
   };
 
   const diagnosis: TocDiagnosisResult = diagnoseBusinessConstraint(input);
+
+  useEffect(() => {
+    saveTocDiagnosis(diagnosis);
+  }, [diagnosis]);
 
   let recommendedAgentName = diagnosis.recommendedAgentKey;
   for (const dept of RAI2_DEPARTMENTS) {
