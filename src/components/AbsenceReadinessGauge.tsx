@@ -17,10 +17,13 @@ export interface AbsenceReadinessGaugeProps {
   /** Active bot keys or IDs */
   activeBotIds?: string[];
   className?: string;
-  onHireDepartment?: (deptCode: string) => void;
+  onHireDepartment?: (deptCode: string, zoneNumber?: number) => void;
   onOpenFingerprint?: () => void;
   onOpenTocDiagnostic?: () => void;
   onOpenContextVault?: () => void;
+  onOpenFridayPulse?: () => void;
+  onOpenStrategyMap?: () => void;
+  onOpenFiveLevers?: () => void;
 }
 
 const ZONE_WEIGHTS: Record<string, number> = {
@@ -39,18 +42,26 @@ export function computeAbsenceReadiness(activeBotIds: string[] = []): {
   level: { title: string; subtitle: string; status: string };
   gapAlerts: Array<{ deptCode: string; title: string; reason: string }>;
 } {
-  const activeSet = new Set(
-    (activeBotIds || [])
-      .filter((id): id is string => typeof id === "string" && id.length > 0)
-      .map((id) => id.trim().toLowerCase())
-  );
+  const activeTokens = (activeBotIds || [])
+    .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+    .map((id) => id.trim().toLowerCase());
+  const activeSet = new Set(activeTokens);
 
   const zones: ZoneReadiness[] = RAI2_DEPARTMENTS.map((dept: RaiDepartment) => {
-    const matchingAgents = dept.agents.filter(
-      (agent) =>
-        activeSet.has(agent.key.toLowerCase()) ||
-        activeSet.has(agent.name.toLowerCase())
-    );
+    const matchingAgents = dept.agents.filter((agent) => {
+      const keyLower = agent.key.toLowerCase();
+      const nameLower = agent.name.toLowerCase();
+      const titleLower = agent.title?.toLowerCase();
+
+      if (activeSet.has(keyLower) || activeSet.has(nameLower)) return true;
+      if (titleLower && activeSet.has(titleLower)) return true;
+
+      return activeTokens.some((tok) => {
+        if (tok.includes(keyLower) || keyLower.includes(tok)) return true;
+        if (nameLower && (tok.includes(nameLower) || nameLower.includes(tok))) return true;
+        return false;
+      });
+    });
     const activeCount = matchingAgents.length;
     const totalAgents = dept.agents.length;
 
@@ -115,6 +126,9 @@ export function AbsenceReadinessGauge({
   onOpenFingerprint,
   onOpenTocDiagnostic,
   onOpenContextVault,
+  onOpenFridayPulse,
+  onOpenStrategyMap,
+  onOpenFiveLevers,
 }: AbsenceReadinessGaugeProps) {
   const { overallScore, zones, level, gapAlerts } = useMemo(
     () => computeAbsenceReadiness(activeBotIds),
@@ -149,11 +163,38 @@ export function AbsenceReadinessGauge({
         </div>
       </header>
 
-      {(onOpenTocDiagnostic || onOpenFingerprint || onOpenContextVault) && (
+      {(onOpenTocDiagnostic || onOpenFingerprint || onOpenContextVault || onOpenStrategyMap || onOpenFridayPulse || onOpenFiveLevers) && (
         <div
           data-readiness-actions=""
           className="flex gap-2 overflow-x-auto border-b border-hairline/40 px-4 py-3 scrollbar-none sm:px-5"
         >
+          {onOpenFiveLevers && (
+            <button
+              type="button"
+              onClick={onOpenFiveLevers}
+              className="ui-button shrink-0 whitespace-nowrap"
+            >
+              Mô Phỏng 5 Đòn Bẩy (P&amp;L)
+            </button>
+          )}
+          {onOpenFridayPulse && (
+            <button
+              type="button"
+              onClick={onOpenFridayPulse}
+              className="ui-button ui-button-primary shrink-0 whitespace-nowrap"
+            >
+              Báo Cáo Nhịp Thở 17:00
+            </button>
+          )}
+          {onOpenStrategyMap && (
+            <button
+              type="button"
+              onClick={onOpenStrategyMap}
+              className="ui-button shrink-0 whitespace-nowrap"
+            >
+              Bản Đồ 7 Vùng
+            </button>
+          )}
           {onOpenTocDiagnostic && (
             <button
               type="button"
@@ -246,7 +287,7 @@ export function AbsenceReadinessGauge({
                 {!isCovered && onHireDepartment && (
                   <button
                     type="button"
-                    onClick={() => onHireDepartment(zone.code)}
+                    onClick={() => onHireDepartment(zone.code, zone.zone)}
                     className="ui-button ui-button-sm shrink-0"
                   >
                     Tuyển

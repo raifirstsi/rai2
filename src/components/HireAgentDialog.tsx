@@ -1,4 +1,4 @@
-import { useState, useId } from "react";
+import { useState, useEffect, useId } from "react";
 import {
   Check,
   Sparkles,
@@ -18,6 +18,7 @@ interface HireAgentDialogProps {
   open: boolean;
   onClose: () => void;
   onSelectAgent?: (agent: RaiAgentDefinition) => void;
+  initialZone?: number;
 }
 
 const SHORT_ZONE_NAMES: Record<number, string> = {
@@ -30,13 +31,27 @@ const SHORT_ZONE_NAMES: Record<number, string> = {
   7: "Z7 Nhân Sự",
 };
 
-export function HireAgentDialog({ open, onClose, onSelectAgent }: HireAgentDialogProps) {
+export function HireAgentDialog({ open, onClose, onSelectAgent, initialZone }: HireAgentDialogProps) {
   const dialogTitleId = useId();
-  const [selectedZone, setSelectedZone] = useState<number>(2);
-  const [activeAgent, setActiveAgent] = useState<RaiAgentDefinition | null>(
-    RAI2_DEPARTMENTS[1]?.agents[0] ?? RAI2_DEPARTMENTS[0]?.agents[0] ?? null
-  );
+  const [selectedZone, setSelectedZone] = useState<number>(initialZone && initialZone >= 1 && initialZone <= 7 ? initialZone : 2);
+  const [activeAgent, setActiveAgent] = useState<RaiAgentDefinition | null>(() => {
+    const startZone = initialZone && initialZone >= 1 && initialZone <= 7 ? initialZone : 2;
+    const dept = RAI2_DEPARTMENTS.find((d) => d.zone === startZone);
+    return dept?.agents[0] ?? RAI2_DEPARTMENTS[0]?.agents[0] ?? null;
+  });
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
+
+  useEffect(() => {
+    if (open) {
+      const targetZone = initialZone && initialZone >= 1 && initialZone <= 7 ? initialZone : 2;
+      setSelectedZone(targetZone);
+      const dept = RAI2_DEPARTMENTS.find((d) => d.zone === targetZone) ?? RAI2_DEPARTMENTS[0];
+      if (dept && dept.agents.length > 0) {
+        setActiveAgent(dept.agents[0]);
+      }
+      setMobileView("list");
+    }
+  }, [open, initialZone]);
 
   if (!open) return null;
 

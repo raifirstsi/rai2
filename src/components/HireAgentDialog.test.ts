@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import React from "react";
+import { renderToString } from "react-dom/server";
+import { HireAgentDialog } from "./HireAgentDialog";
 import { RAI2_DEPARTMENTS } from "@/lib/rai2-departments";
 
 describe("HireAgentDialog - Data & Department Mapping", () => {
@@ -23,5 +26,18 @@ describe("HireAgentDialog - Data & Department Mapping", () => {
         expect(agent.zone).toBe(dept.zone);
       }
     }
+  });
+
+  it("renders HireAgentDialog component and respects initialZone prop", () => {
+    const html = renderToString(
+      React.createElement(HireAgentDialog, {
+        open: true,
+        onClose: () => {},
+        initialZone: 4,
+      })
+    );
+
+    expect(html).toContain("Z4 Vận Hành");
+    expect(html).toContain("Vận Hành");
   });
 });

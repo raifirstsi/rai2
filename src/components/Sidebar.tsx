@@ -2,7 +2,7 @@ import { OrganizationIdentity } from "./OrganizationIdentity";
 import { RaiLogo } from "./RaiLogo";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch } from "react";
 import { createPortal } from "react-dom";
-import { Archive, BookOpen, Bot as BotIcon, Check, ChevronRight, ClipboardCopy, Crown, FolderPlus, Gauge, LayoutTemplate, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Phone, Pin, Plus, Search, Sparkles, SquarePen, TextQuote, Trash2, Users, X } from "lucide-react";
+import { Activity, Archive, BookOpen, Bot as BotIcon, Check, ChevronRight, ClipboardCopy, Compass, Crown, FileCheck, FolderPlus, Gauge, LayoutTemplate, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Phone, Pin, Plus, Search, ShieldAlert, Sparkles, SquarePen, TextQuote, Trash2, TrendingUp, Users, X } from "lucide-react";
 import { api, useStore, formatTime, visibleMessages, currentTaskBot, botOpensTo, openBot, openThread, type Action, type AppState, type Bot, type BotProject, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { approvalModeFor } from "../../shared/approval-mode";
 import { liveActivityLabel, sidebarMessage } from "@/lib/live-activity";
@@ -34,6 +34,13 @@ import { NewBotDialog, ShareTeamDialog, TeamLibraryPanel } from "./lazy-screens"
 import { HireAgentDialog } from "./HireAgentDialog";
 import { TocConstraintModal } from "./TocConstraintModal";
 import { ContextVaultModal } from "./ContextVaultModal";
+import { VoiceToSopModal } from "./VoiceToSopModal";
+import { MarginGuardModal } from "./MarginGuardModal";
+import { StrategyMapModal } from "./StrategyMapModal";
+import { FridayPulseModal } from "./FridayPulseModal";
+import { FiveLeversModal } from "./FiveLeversModal";
+import { useRai2Mode } from "@/lib/rai2-mode";
+import { Rai2ModeSwitcher } from "./Rai2ModeSwitcher";
 import { SidebarNewChatPanel } from "./SidebarNewChatPanel";
 import { openCommandPalette } from "./CommandPalette";
 import { TeamSettingsDialog } from "./TeamSettingsDialog";
@@ -974,6 +981,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const [plusOpen, setPlusOpen] = useState(false);
   const plusMotion = useMenuMotion(plusOpen);
   const advanced = useAdvancedMode();
+  const { isEnterprise, isCreator, setMode: setRai2Mode } = useRai2Mode();
   const attentionPinned = useAttentionPinned();
   const inboxSupport = useInboxSupport();
   const [newRoom, setNewRoom] = useState(false);
@@ -984,8 +992,14 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const [teamLibraryOpen, setTeamLibraryOpen] = useState(false);
   const [teamInstallUrl, setTeamInstallUrl] = useState<string | null>(null);
   const [hireDialogOpen, setHireDialogOpen] = useState(false);
+  const [hireDialogZone, setHireDialogZone] = useState<number>(2);
   const [tocModalOpen, setTocModalOpen] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
+  const [voiceToSopModalOpen, setVoiceToSopModalOpen] = useState(false);
+  const [marginGuardModalOpen, setMarginGuardModalOpen] = useState(false);
+  const [strategyMapModalOpen, setStrategyMapModalOpen] = useState(false);
+  const [fridayPulseModalOpen, setFridayPulseModalOpen] = useState(false);
+  const [fiveLeversModalOpen, setFiveLeversModalOpen] = useState(false);
   const [addingReadyBotId, setAddingReadyBotId] = useState<string | null>(null);
   const [archivedBotsOpen, setArchivedBotsOpen] = useState(false);
   const [teamFeedback, setTeamFeedback] = useState<{
@@ -1223,7 +1237,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             <LayoutTemplate size={16} className="text-ink-secondary" />
             {t("sidebar.teamLibrary")}
           </button>}
-          {teamSettingsAllowed !== false && (
+          {teamSettingsAllowed !== false && isEnterprise && (
             <>
               <button
                 onClick={() => { setPlusOpen(false); setTocModalOpen(true); }}
@@ -1248,6 +1262,78 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
               >
                 <BookOpen size={16} className="text-emerald-500 shrink-0" />
                 <span className="flex-1 font-medium text-ink truncate">Két Sắt Ngữ Cảnh</span>
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); setVoiceToSopModalOpen(true); }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <FileCheck size={16} className="text-blue-500 shrink-0" />
+                <span className="flex-1 font-medium text-ink truncate">Đóng Gói SOP (Voice)</span>
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); setMarginGuardModalOpen(true); }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <ShieldAlert size={16} className="text-amber-500 shrink-0" />
+                <span className="flex-1 font-medium text-ink truncate">Margin Guard (P&L)</span>
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); setStrategyMapModalOpen(true); }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <Compass size={16} className="text-indigo-500 shrink-0" />
+                <span className="flex-1 font-medium text-ink truncate">Bản Đồ 7 Vùng</span>
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); setFridayPulseModalOpen(true); }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <Activity size={16} className="text-violet-500 shrink-0" />
+                <span className="flex-1 font-medium text-ink truncate">Nhịp Thở 17:00 ($ARI$)</span>
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); setFiveLeversModalOpen(true); }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <TrendingUp size={16} className="text-emerald-500 shrink-0" />
+                <span className="flex-1 font-medium text-ink truncate">Mô Phỏng 5 Đòn Bẩy (P&L)</span>
+              </button>
+            </>
+          )}
+          {teamSettingsAllowed !== false && isCreator && (
+            <>
+              <div role="separator" className={MENU_ITEM_SEPARATOR} />
+              <button
+                onClick={() => {
+                  setPlusOpen(false);
+                  setRai2Mode("enterprise");
+                }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <Crown size={16} className="text-amber-500 shrink-0" />
+                <span className="flex-1 font-semibold text-ink truncate">Chuyển: Enterprise OS</span>
+              </button>
+            </>
+          )}
+          {teamSettingsAllowed !== false && isEnterprise && (
+            <>
+              <div role="separator" className={MENU_ITEM_SEPARATOR} />
+              <button
+                onClick={() => {
+                  setPlusOpen(false);
+                  setRai2Mode("creator");
+                }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <Sparkles size={16} className="text-accent shrink-0" />
+                <span className="flex-1 text-ink-secondary truncate">Chuyển: Tạo Bot Tự Do</span>
               </button>
             </>
           )}
@@ -1358,6 +1444,9 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
 
       {density === "icons" && !rail && <DesktopWorkspaceSwitcher compact cloudHome={state.config?.cloudHome === true} place={state.config?.team?.name} owner={cloudOwner} howTo={state.cloudHowTo} onMenuClosed={endHowTo} />}
       <OrganizationIdentity compact={density === "icons"} />
+      <div className={cn("px-3 pb-2 pt-1", density === "icons" && "px-1 pb-1 pt-0")}>
+        <Rai2ModeSwitcher compact={density === "icons"} />
+      </div>
       {phone ? null : simple ? searchShown && <SidebarSearchPill query={query} onQuery={setQuery} onClose={closeSearch} /> : <div className={cn("pt-1 pb-3", density === "icons" ? "hidden" : "px-3")}>
         <div className={cn("flex h-8 items-center gap-2 rounded-full px-3 focus-within:ring-focus", ELEVATED_CONTROL)}>
           <Search size={15} className="shrink-0 text-ink-secondary" />
@@ -1707,6 +1796,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <HireAgentDialog
         open={hireDialogOpen}
         onClose={() => setHireDialogOpen(false)}
+        initialZone={hireDialogZone}
         onSelectAgent={(agent) => {
           setHireDialogOpen(false);
           setAddingReadyBotId(agent.key);
@@ -1723,6 +1813,52 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <ContextVaultModal
         isOpen={vaultModalOpen}
         onClose={() => setVaultModalOpen(false)}
+      />
+      <VoiceToSopModal
+        isOpen={voiceToSopModalOpen}
+        onClose={() => setVoiceToSopModalOpen(false)}
+      />
+      <MarginGuardModal
+        isOpen={marginGuardModalOpen}
+        onClose={() => setMarginGuardModalOpen(false)}
+      />
+      <StrategyMapModal
+        isOpen={strategyMapModalOpen}
+        onClose={() => setStrategyMapModalOpen(false)}
+        onHireDepartment={(_deptCode, zoneNumber) => {
+          setStrategyMapModalOpen(false);
+          if (zoneNumber) setHireDialogZone(zoneNumber);
+          setHireDialogOpen(true);
+        }}
+        onOpenTocDiagnostic={() => {
+          setStrategyMapModalOpen(false);
+          setTocModalOpen(true);
+        }}
+        onOpenFridayPulse={() => {
+          setStrategyMapModalOpen(false);
+          setFridayPulseModalOpen(true);
+        }}
+      />
+      <FridayPulseModal
+        isOpen={fridayPulseModalOpen}
+        onClose={() => setFridayPulseModalOpen(false)}
+        onOpenTocDiagnostic={() => {
+          setFridayPulseModalOpen(false);
+          setTocModalOpen(true);
+        }}
+        onOpenStrategyMap={() => {
+          setFridayPulseModalOpen(false);
+          setStrategyMapModalOpen(true);
+        }}
+      />
+      <FiveLeversModal
+        isOpen={fiveLeversModalOpen}
+        onClose={() => setFiveLeversModalOpen(false)}
+        onHireDepartment={(_deptCode, zoneNumber) => {
+          setFiveLeversModalOpen(false);
+          if (zoneNumber) setHireDialogZone(zoneNumber);
+          setHireDialogOpen(true);
+        }}
       />
       {addingReadyBotId &&
         createPortal(
