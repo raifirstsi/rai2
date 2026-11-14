@@ -34,6 +34,8 @@ import { EmailCard } from "./EmailCard";
 import { PostizCard } from "./PostizCard";
 import { POSTIZ_CATALOG_CARD, POSTIZ_SEARCH } from "@/lib/postiz";
 import { X_CARD_SEARCH, XCard } from "./XCard";
+import { ZaloOACard } from "./ZaloOACard";
+import { ZaloPersonalCard } from "./ZaloPersonalCard";
 import { mergeCompleteConnectorStatus, mergeCurrentConnectorStatus, onlyLatestConnectorResponses } from "@/lib/connector-status-merge";
 import { openBotSettings } from "./bot-panel/panel-link";
 import { openKeySettings } from "./keys/key-focus";
@@ -157,6 +159,8 @@ export function PluginsPanel() {
   const [xConnected, setXConnected] = useState<boolean | null>(null);
   const [postizConnected, setPostizConnected] = useState<boolean | null>(null);
   const [emailConnected, setEmailConnected] = useState<boolean | null>(null);
+  const [zaloOAConnected, setZaloOAConnected] = useState<boolean | null>(null);
+  const [zaloPersonalConnected, setZaloPersonalConnected] = useState<boolean | null>(null);
 
   const polls = useRef(new Map<string, () => void>());
   const statusGenerations = useRef(new Map<string, number>());
@@ -406,12 +410,14 @@ export function PluginsPanel() {
   const showEmail = (!search || `email mail imap smtp mailbox ${t("email.description")}`.toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && emailConnected !== false));
   const showX = (!search || `${X_CARD_SEARCH} ${t("apps.x.description")}`.toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && xConnected !== false));
   const showPostiz = (!search || `${POSTIZ_SEARCH} ${t("postiz.description")}`.toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && postizConnected !== false));
+  const showZaloOA = (!search || "zalo oa official account cskh zns tin nhan".toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && zaloOAConnected !== false));
+  const showZaloPersonal = (!search || "zalo ca nhan personal chat qr tin nhan".toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && zaloPersonalConnected !== false));
   const visible = (filter === "connected" ? matching.filter((card) => isConnected(card.slug)) : matching)
     .map((card, index) => ({ card, index }))
     .sort((a, b) => Number(isConnected(b.card.slug)) - Number(isConnected(a.card.slug)) || a.index - b.index)
     .map(({ card }) => card);
   const connectedHosted = HOSTED_MCP_APPS.filter((app) => hostedConnected?.[app.id]);
-  const connectedCount = Object.values(status).filter(hasActiveConnection).length + connectedHosted.length + Number(emailConnected === true) + Number(xConnected === true) + Number(postizConnected === true);
+  const connectedCount = Object.values(status).filter(hasActiveConnection).length + connectedHosted.length + Number(emailConnected === true) + Number(xConnected === true) + Number(postizConnected === true) + Number(zaloOAConnected === true) + Number(zaloPersonalConnected === true);
   const connectedEmptyCopy = connectedInventoryCopy(inventoryPhase);
   const close = () => dispatch({ type: "togglePlugins", open: false });
   const setupNotice = connectorSetupNotice({ configured, stale, setup, remoteClient });
@@ -433,7 +439,7 @@ export function PluginsPanel() {
   const categoryInMore = category !== null && moreCategories.includes(category);
   const inCategoryView = filter === "all" && category !== null;
   const postizHere = showPostiz && (!inCategoryView || inCategory(POSTIZ_CATALOG_CARD, category));
-  const nativeCardsShown = (!inCategoryView && (shownHosted.size > 0 || showEmail || showX)) || postizHere;
+  const nativeCardsShown = (!inCategoryView && (shownHosted.size > 0 || showEmail || showX || showZaloOA || showZaloPersonal)) || postizHere;
   const categoryCards = inCategoryView ? visible.filter((card) => inCategory(card, category)) : visible;
   const sectioned = filter === "all" && !search && category === null;
   const sections = sectioned ? catalogSections(visible, isConnected, ranked.inline) : [];
@@ -734,6 +740,8 @@ export function PluginsPanel() {
                 <div data-native-card="x" className={showX && !inCategoryView ? "contents" : "hidden"}><XCard refreshKey={cardsRefresh} onConnection={setXConnected} /></div>
                 <div data-native-card="email" className={showEmail && !inCategoryView ? "contents" : "hidden"}><EmailCard refreshKey={cardsRefresh} onConnection={setEmailConnected} /></div>
                 <div data-native-card="postiz" className={postizHere ? "contents" : "hidden"}><PostizCard refreshKey={cardsRefresh} onConnection={setPostizConnected} /></div>
+                <div data-native-card="zalo-oa" className={showZaloOA && !inCategoryView ? "contents" : "hidden"}><ZaloOACard refreshKey={cardsRefresh} onConnection={setZaloOAConnected} /></div>
+                <div data-native-card="zalo-personal" className={showZaloPersonal && !inCategoryView ? "contents" : "hidden"}><ZaloPersonalCard refreshKey={cardsRefresh} onConnection={setZaloPersonalConnected} /></div>
                 {allShown.map((card) => renderTile(card))}
               </AppsSection>
             </div>
