@@ -172,39 +172,44 @@ export function VoiceToSopModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
     >
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-2xl border border-hairline/60 bg-card shadow-2xl overflow-hidden">
+      <div
+        className="flex max-h-[92dvh] sm:max-h-[88dvh] w-full max-w-3xl flex-col rounded-2xl border border-hairline/60 bg-card shadow-2xl overflow-hidden outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-hairline/50 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+        <header className="flex items-center justify-between border-b border-hairline/50 px-4 py-3 sm:px-6 sm:py-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent shrink-0">
               <FileCheck size={20} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-[16px] font-semibold text-ink">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-[15px] sm:text-[16px] font-semibold text-ink truncate">
                   Voice-to-SOP: Đóng Gói Quy Trình 1-Chạm
                 </h3>
                 <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
                   Record First
                 </span>
               </div>
-              <p className="text-[12px] text-ink-secondary">
+              <p className="text-[12px] text-ink-secondary truncate">
                 Biến độc thoại hoặc kinh nghiệm xử lý sự cố của Founder thành quy trình chuẩn 4 phần.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
+            className="rounded-lg p-2 text-ink-secondary hover:bg-raised hover:text-ink transition-colors shrink-0"
+            aria-label="Đóng"
           >
             <X size={18} />
           </button>
         </header>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
           {!extractedSop ? (
             /* Step 1: Input / Recording */
             <div className="space-y-4">
@@ -246,10 +251,10 @@ export function VoiceToSopModal({
                 onChange={(e) => setRawText(e.target.value)}
                 rows={8}
                 placeholder="Ví dụ độc thoại của Founder: 'Khi khách hàng phàn nàn về việc giao hàng trễ, bước 1 kế toán phải kiểm tra mã vận đơn ngay. Sau đó gọi điện xin lỗi khách trong 15 phút và hẹn lịch mới. Lưu ý tuyệt đối không đổ lỗi cho shipper trước mặt khách. Xong việc khi khách đồng ý lịch mới...'"
-                className="w-full rounded-xl border border-hairline/60 bg-control p-4 text-[13px] text-ink placeholder:text-ink-secondary/60 focus:border-accent focus:outline-none leading-relaxed"
+                className="w-full rounded-xl border border-hairline/60 bg-control p-3.5 sm:p-4 text-[13px] text-ink placeholder:text-ink-secondary/60 focus:border-accent focus:outline-none leading-relaxed"
               />
 
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                 <span className="text-[12px] text-ink-secondary">
                   💡 Mẹo: Nói tự nhiên như khi bạn đang chỉ việc cho một trợ lý mới.
                 </span>
@@ -257,10 +262,10 @@ export function VoiceToSopModal({
                   type="button"
                   disabled={!rawText.trim()}
                   onClick={handleExtract}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-accent/90 disabled:opacity-40 transition-opacity"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-accent/90 disabled:opacity-40 transition-opacity w-full sm:w-auto"
                 >
                   <Sparkles size={16} />
-                  Trích Xuất SOP 4 Phần
+                  <span>Trích Xuất SOP 4 Phần</span>
                 </button>
               </div>
             </div>
@@ -393,19 +398,19 @@ export function VoiceToSopModal({
         </div>
 
         {/* Footer Actions */}
-        <footer className="flex items-center justify-between border-t border-hairline/50 px-6 py-4 bg-card">
+        <footer className="flex flex-col-reverse sm:flex-row items-center justify-between border-t border-hairline/50 px-4 py-3 sm:px-6 sm:py-3.5 bg-card gap-2.5 shrink-0">
           {extractedSop ? (
             <>
               <button
                 type="button"
                 onClick={() => setExtractedSop(null)}
-                className="rounded-lg px-4 py-2 text-[13px] font-medium text-ink-secondary hover:bg-raised transition-colors"
+                className="rounded-lg px-4 py-2 text-[13px] font-medium text-ink-secondary hover:bg-raised transition-colors w-full sm:w-auto"
               >
                 Chỉnh Sửa Lại Độc Thoại
               </button>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto justify-end">
                 {saveSuccessMessage && (
-                  <span className="text-[13px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <span className="text-[13px] font-medium text-accent flex items-center gap-1.5">
                     <Check size={15} />
                     {saveSuccessMessage}
                   </span>
@@ -414,10 +419,10 @@ export function VoiceToSopModal({
                   type="button"
                   disabled={isSaving}
                   onClick={handleConfirmAndSave}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-accent/90 disabled:opacity-40 transition-opacity"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-accent/90 disabled:opacity-40 transition-opacity w-full sm:w-auto"
                 >
                   {isSaving ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
-                  Xác Nhận & Nạp Vào Hệ Thống
+                  <span>Xác Nhận & Nạp Vào Hệ Thống</span>
                 </button>
               </div>
             </>
@@ -426,7 +431,7 @@ export function VoiceToSopModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg px-4 py-2 text-[13px] font-medium text-ink-secondary hover:bg-raised transition-colors"
+                className="px-4 py-2 text-[13px] font-medium text-ink-secondary hover:text-ink rounded-lg transition-colors"
               >
                 Đóng
               </button>

@@ -83,35 +83,45 @@ export function TocConstraintModal({
 
   return (
     <div
-      className="ui-scrim fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-sm animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby={dialogTitleId}
       onClick={onClose}
     >
       <div
-        className="ui-modal relative flex h-[min(760px,94dvh)] w-full max-w-[1000px] flex-col overflow-hidden outline-none"
+        className="flex max-h-[92dvh] sm:max-h-[88dvh] w-full max-w-[1000px] flex-col rounded-2xl border border-hairline/60 bg-card shadow-2xl overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-hairline/40 px-5 py-4">
-          <div className="min-w-0">
-            <h2 id={dialogTitleId} className="truncate text-[17px] font-semibold text-ink">
-              Bộ Bắt Điểm Nghẽn TOC
-            </h2>
-            <p className="mt-0.5 hidden truncate text-[13px] text-ink-secondary sm:block">
-              Tìm điểm nghẽn duy nhất và mô phỏng 5 đòn bẩy P&amp;L.
-            </p>
+        {/* Header matching Voice-to-SOP (Image 3) */}
+        <header className="flex items-center justify-between border-b border-hairline/50 px-4 py-3 sm:px-6 sm:py-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent shrink-0">
+              <Sliders size={20} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 id={dialogTitleId} className="text-[15px] sm:text-[16px] font-semibold text-ink truncate">
+                  Bộ Bắt Điểm Nghẽn TOC
+                </h2>
+                <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+                  TOC Detector
+                </span>
+              </div>
+              <p className="text-[12px] text-ink-secondary truncate">
+                Tìm điểm nghẽn duy nhất và mô phỏng 5 đòn bẩy P&amp;L.
+              </p>
+            </div>
           </div>
-
           <button
             type="button"
             onClick={onClose}
-            className="ui-icon-button shrink-0"
+            className="rounded-lg p-2 text-ink-secondary hover:bg-raised hover:text-ink transition-colors shrink-0"
             aria-label="Đóng"
           >
-            <X size={18} className="pointer-events-none" />
+            <X size={18} />
           </button>
-        </div>
+        </header>
 
         {/* Mobile Tab: Khảo Sát vs Kết Quả (Hidden on lg+) */}
         <div className="flex shrink-0 gap-1 border-b border-hairline/40 p-2 lg:hidden">
