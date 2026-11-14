@@ -246,19 +246,40 @@ export function localizeAgentDescription(agentNameOrKey: string | undefined, des
   if (!description) return "";
   if (!isVietnamese(locale)) return description;
   const normKey = (agentNameOrKey ?? "").trim().toLowerCase();
+  const baseKey = normKey.replace(/\s*(\d+|\(copy\)|bản sao.*)$/i, "").trim();
+
+  // Try direct key matching
   for (const team of Object.values(VI_TEAMS)) {
-    if (team.members[normKey]) return team.members[normKey].description;
+    if (baseKey && team.members[baseKey]) return team.members[baseKey].description;
+    if (normKey && team.members[normKey]) return team.members[normKey].description;
   }
-  // Try matching by first few words of known description
+
+  // Try matching by signature phrase from community catalog descriptions
   const normDesc = description.trim().toLowerCase();
-  for (const team of Object.values(VI_TEAMS)) {
-    for (const member of Object.values(team.members)) {
-      if (normDesc.includes("own the search strategy") && normKey.includes("nova")) return member.description;
-      if (normDesc.includes("find useful search opportunities") && normKey.includes("scout")) return member.description;
-      if (normDesc.includes("diagnose crawlability") && normKey.includes("atlas")) return member.description;
-      if (normDesc.includes("turn validated search opportunities") && normKey.includes("quill")) return member.description;
-    }
-  }
+  if (normDesc.includes("own the search strategy") || (normKey.includes("nova") && normDesc.includes("seo"))) return VI_TEAMS["seo-growth"].members.nova.description;
+  if (normDesc.includes("find useful search opportunities") || (normKey.includes("scout") && normDesc.includes("search opportunities"))) return VI_TEAMS["seo-growth"].members.scout.description;
+  if (normDesc.includes("diagnose crawlability") || (normKey.includes("atlas") && normDesc.includes("crawlability"))) return VI_TEAMS["seo-growth"].members.atlas.description;
+  if (normDesc.includes("turn validated search opportunities") || (normKey.includes("quill") && normDesc.includes("search opportunities"))) return VI_TEAMS["seo-growth"].members.quill.description;
+
+  if (normDesc.includes("own technical direction") || (normKey.includes("ada") && normDesc.includes("technical direction"))) return VI_TEAMS["engineering"].members.ada.description;
+  if (normDesc.includes("backend") && normKey.includes("lin")) return VI_TEAMS["engineering"].members.lin.description;
+  if (normDesc.includes("user-facing surface") || (normKey.includes("pixel") && normDesc.includes("interface"))) return VI_TEAMS["engineering"].members.pixel.description;
+  if (normDesc.includes("guard against regressions") || (normKey.includes("rigel") && normDesc.includes("verify correctness"))) return VI_TEAMS["engineering"].members.rigel.description;
+
+  if (normDesc.includes("high-leverage growth priorities") || (normKey.includes("maya") && normDesc.includes("growth"))) return VI_TEAMS["100x-marketing"].members.maya.description;
+  if (normDesc.includes("campaign concepts") || (normKey.includes("echo") && normDesc.includes("messaging"))) return VI_TEAMS["100x-marketing"].members.echo.description;
+  if (normDesc.includes("channel-by-channel distribution") || (normKey.includes("orbit") && normDesc.includes("distribution"))) return VI_TEAMS["100x-marketing"].members.orbit.description;
+  if (normDesc.includes("measure success") && normKey.includes("lens")) return VI_TEAMS["100x-marketing"].members.lens.description;
+
+  if (normDesc.includes("public discussions") && normKey.includes("scout")) return VI_TEAMS["reddit-lead-miner"].members.scout.description;
+  if (normDesc.includes("helpful next step") && normKey.includes("relay")) return VI_TEAMS["reddit-lead-miner"].members.relay.description;
+
+  if (normDesc.includes("observable moves") && normKey.includes("watcher")) return VI_TEAMS["competitor-watch"].members.watcher.description;
+  if (normDesc.includes("competitor moves") && normKey.includes("prism")) return VI_TEAMS["competitor-watch"].members.prism.description;
+
+  if (normDesc.includes("spot threads that need a next step") || normKey.includes("triage")) return VI_TEAMS["inbox-follow-up"].members.triage.description;
+  if (normDesc.includes("draft concise, helpful follow-ups") || normKey.includes("cadence")) return VI_TEAMS["inbox-follow-up"].members.cadence.description;
+
   return description;
 }
 

@@ -34,7 +34,7 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
   // A double click lands before the disabled buttons are drawn.
   const sending = useRef(false);
   // The list on screen changes only when a wait the card showed ends, so a letter key always picks a job on screen.
-  const shown = useRef<{ id: string; choices: string[] } | null>(null);
+  const shown = useRef<{ id: string; choices: string[]; locale: string } | null>(null);
   const showedWait = useRef(false);
   const waitedOnce = useRef(false);
   const waiting = message.setupChoicesPending === true && !waitedOut && Date.now() - message.at < STALE_WAIT_MS;
@@ -62,8 +62,9 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
   const pending = waiting && !settled;
   const updating = rewriting && !settled;
   if (pending || updating) waitedOnce.current = true;
-  if (shown.current?.id !== message.id || (showedWait.current && !pending && !updating)) {
-    shown.current = { id: message.id, choices: localizeSetupChoices(message.setupChoices) };
+  const currentLocale = activeLocale();
+  if (shown.current?.id !== message.id || shown.current?.locale !== currentLocale || (showedWait.current && !pending && !updating)) {
+    shown.current = { id: message.id, choices: localizeSetupChoices(message.setupChoices, currentLocale), locale: currentLocale };
   }
   showedWait.current = pending || updating;
   const quiet = settled || updating;

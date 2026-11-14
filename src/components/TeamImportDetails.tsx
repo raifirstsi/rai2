@@ -4,7 +4,7 @@ import { BookOpen, CalendarClock, Check, Crown, MessageSquare, NotebookPen, Plug
 
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
-import { localizeTeamDescription } from "../../shared/team-templates-localization";
+import { localizeRoleTitle, localizeTeamDescription } from "../../shared/team-templates-localization";
 import type { PendingTeamImport } from "@/lib/team-import";
 
 export const TEAM_GLYPHS = [
@@ -89,7 +89,7 @@ export function TeamImportDetails({ pending, importedNames, org = false }: {
             <div className="min-w-0">
               <div className="truncate text-[14px] font-medium text-ink">{importedNames[index]}</div>
               {importedNames[index] !== member.name && <div className="text-[12px] text-ink-secondary">{t("templates.newCopyOf", { name: member.name })}</div>}
-              <div className="mt-0.5 truncate text-[13px] text-ink-secondary">{member.title || t("templates.generalAssistant")}</div>
+              <div className="mt-0.5 truncate text-[13px] text-ink-secondary">{localizeRoleTitle(member.title, activeLocale()) || t("templates.generalAssistant")}</div>
             </div>
           </div>
         ))}

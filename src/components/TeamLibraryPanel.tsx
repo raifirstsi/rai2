@@ -1,6 +1,7 @@
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
+import { localizeTeamName } from "../../shared/team-templates-localization";
 import { teamImportPreview, type PendingTeamImport } from "@/lib/team-import";
 import { addTemplate } from "@/lib/template-add";
 import { orgCardAction, orgPackagePreview, type OrgLibraryListing, type OrgLibraryPackage } from "@/lib/org-library";
@@ -480,7 +481,7 @@ export function TeamLibraryPanel({
                 </button>
               )}
               <h2 id="team-library-title" className="truncate text-[20px] font-semibold text-ink sm:text-[22px]">
-                {pending ? pending.name : t("templates.title")}
+                {pending ? localizeTeamName(pending.name, activeLocale()) : t("templates.title")}
               </h2>
             </div>
             <p className={cn("mt-1 text-[13px] leading-relaxed text-ink-secondary", pending && "ml-9")}>
@@ -536,7 +537,7 @@ export function TeamLibraryPanel({
                   ? t("teamImport.libraryAdds")
                   : pending.members.length === 0
                   ? ""
-                  : t("teamImport.newSection", { name: pending.teamName ?? pending.name })}
+                  : t("teamImport.newSection", { name: localizeTeamName(pending.teamName ?? pending.name, activeLocale()) })}
               </div>
               {pendingOrg ? (
                 orgCardAction(pendingOrg) === "add" ? (

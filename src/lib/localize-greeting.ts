@@ -1,4 +1,5 @@
 import { activeLocale, t } from "@/lib/i18n";
+import { isVietnamese } from "../../shared/team-templates-localization";
 import type { LocaleKey } from "@/locales";
 import type { Message } from "@/state/store";
 
@@ -43,19 +44,16 @@ export function localizeSetupChoices(
     return FALLBACK_CHOICES.map((key) => t(key));
   }
   if (isDefaultSetupChoiceList(choices)) {
-    if (locale === "vi") {
+    if (isVietnamese(locale)) {
       return FALLBACK_CHOICES.map((key) => t(key));
     }
-    if (locale === "en") {
-      return [
-        "Research and digging into topics",
-        "Keeping an eye on things for me",
-        "Email, calendar and messages",
-        "Bookings, shopping and errands",
-        "Data, spreadsheets and reports",
-      ];
-    }
-    return FALLBACK_CHOICES.map((key) => t(key));
+    return [
+      "Research and digging into topics",
+      "Keeping an eye on things for me",
+      "Email, calendar and messages",
+      "Bookings, shopping and errands",
+      "Data, spreadsheets and reports",
+    ];
   }
   return [...choices];
 }
@@ -71,13 +69,13 @@ export function localizeGreetingMessage(
   const isViGreeting =
     /^Chào(?: [^,]+)?, mình là (.+?)\. Bạn muốn mình giúp gì\?$/i.test(message.text.trim());
 
-  if (locale === "vi" && isEnGreeting) {
+  if (isVietnamese(locale) && isEnGreeting) {
     return {
       ...message,
       text: `Chào bạn, mình là ${botName}. Bạn muốn mình giúp gì?`,
     };
   }
-  if (locale === "en" && isViGreeting) {
+  if (!isVietnamese(locale) && isViGreeting) {
     return {
       ...message,
       text: `Hi, I'm ${botName}. What would you like me to do?`,

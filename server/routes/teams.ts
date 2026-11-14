@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { localizePackageManifest } from "../../shared/team-templates-localization.ts";
 import { MAX_TEAM_BACKUP_BYTES } from "../../shared/team-backup.ts";
 import type { BotVisibility, WireBot, WireGroup } from "../../shared/wire.ts";
 import { validateBotCwd } from "../bot-cwd.ts";
@@ -340,11 +341,13 @@ export function createTeamRoutes(deps: TeamRouteDeps): RouteHandler {
         }
       }
       // Read as a FILE: it cannot claim a publisher, its skills and routines arrive off; only the org library imports with trust "org".
+      const importLang = url.searchParams.get("lang") ?? ((cfg as Record<string, unknown>).language as string | undefined) ?? "vi";
+      const localizedBody = localizePackageManifest(body, importLang);
       let packageDocument: PackageDocument | null = null;
       let manifest: ReturnType<typeof parseTeamManifest> | null = null;
       try {
-        if (isBotPackage(body)) packageDocument = parsePackageDocument(body, { trust: "file" });
-        else manifest = parseTeamManifest(body);
+        if (isBotPackage(localizedBody)) packageDocument = parsePackageDocument(localizedBody, { trust: "file" });
+        else manifest = parseTeamManifest(localizedBody);
       } catch (error) {
         return json(res, 400, { error: error instanceof Error ? error.message : "Invalid bot package" });
       }

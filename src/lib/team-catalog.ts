@@ -1,6 +1,7 @@
 // The community templates catalog (/api/team-library/catalog). Its names and
 // summaries come in English; the built-in teams show in the app's language.
-import { t } from "./i18n";
+import { activeLocale, t } from "./i18n";
+import { localizeTeamDescription, localizeTeamName } from "../../shared/team-templates-localization";
 import type { LocaleKey } from "@/locales";
 
 export interface TeamCatalogEntry {
@@ -35,7 +36,11 @@ const CATALOG_COPY: Record<string, string> = {
 
 export function catalogCopy(entry: TeamCatalogEntry): TeamCatalogEntry {
   const id = CATALOG_COPY[entry.name.trim().toLowerCase()];
-  return id ? { ...entry, name: t(`templates.catalog.${id}.name` as LocaleKey), summary: t(`templates.catalog.${id}.summary` as LocaleKey), outcome: entry.outcome ? t(`templates.catalog.${id}.outcome` as LocaleKey) : undefined } : entry;
+  const baseName = id ? t(`templates.catalog.${id}.name` as LocaleKey) : entry.name;
+  const baseSummary = id ? t(`templates.catalog.${id}.summary` as LocaleKey) : entry.summary;
+  const name = localizeTeamName(baseName, activeLocale());
+  const summary = localizeTeamDescription(entry.slug || entry.name, baseSummary, activeLocale());
+  return { ...entry, name, summary, outcome: entry.outcome ? t(`templates.catalog.${id}.outcome` as LocaleKey) : undefined };
 }
 
 /** Search matches a team by its localized name and summary as well as its English ones, its category, skills and apps. */

@@ -50,11 +50,10 @@ export function announceNewBot(dispatch: (action: Action) => void, bot: Bot, war
  * computer needs the person's own OK, so a bot whose defaults ask for it starts on Ask. */
 async function createNewBot(section: string | undefined, bots: readonly Bot[], team: TeamPeople | null, request: typeof api) {
   if (typeof window !== "undefined" && window.ogb?.remoteClient?.active) {
-    const lang = activeLocale();
-    const languageField = lang && lang !== "en" ? { language: lang } : {};
+    const lang = activeLocale() || "vi";
     const { bot } = await request<{ bot: Bot }>("/api/bots", {
       method: "POST",
-      body: JSON.stringify({ ...(section === undefined ? {} : { section }), ...languageField }),
+      body: JSON.stringify({ ...(section === undefined ? {} : { section }), language: lang }),
     });
     return { bot, warnings: [] as string[], startsOnAsk: false };
   }

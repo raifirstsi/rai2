@@ -42,6 +42,9 @@ describe("team-templates-localization", () => {
   it("localizes member descriptions", () => {
     const novaVi = localizeAgentDescription("nova", "Own the search strategy and turn business goals into a prioritized SEO roadmap.", "vi");
     expect(novaVi).toContain("Chủ trì chiến lược tìm kiếm");
+
+    const nova2Vi = localizeAgentDescription("Nova 2", "Own the search strategy and turn business goals into a prioritized SEO roadmap.", "vi");
+    expect(nova2Vi).toContain("Chủ trì chiến lược tìm kiếm");
   });
 
   it("localizes package manifest completely", () => {
