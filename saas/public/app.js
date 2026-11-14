@@ -178,12 +178,10 @@ const renderAccount = () => {
   setText("account-email", account.email);
   const emailPrefix = account.email ? account.email.split("@")[0] : "";
   const initials = (emailPrefix.slice(0, 2) || "ST").toUpperCase();
-  const avatarEls = document.querySelectorAll("#account-avatar, #sidebar-avatar");
-  avatarEls.forEach((el) => { el.textContent = initials; });
-  const usernameEls = document.querySelectorAll("#account-username, #sidebar-username");
-  usernameEls.forEach((el) => { el.textContent = emailPrefix || "Người dùng"; });
-  const userEmailEls = document.querySelectorAll("#account-email, #sidebar-user-email");
-  userEmailEls.forEach((el) => { el.textContent = account.email; });
+  const avatarEl = byId("account-avatar");
+  if (avatarEl) avatarEl.textContent = initials;
+  const usernameEl = byId("account-username");
+  if (usernameEl) usernameEl.textContent = emailPrefix || "Người dùng";
 
   const now = Date.now();
   const effectivePaidThrough = Math.max(account.paidThrough || 0, billing?.paidThrough || 0);
@@ -209,14 +207,13 @@ const renderAccount = () => {
     : (effectiveTrialThrough > 0 || account.trialThrough) ? "trialExpired" : "unpaid"));
 
   show("workspace-row", active);
+  show("header-workspace-cta", active);
   if (active) {
     const host = new URL(account.workspaceUrl).host;
     byId("workspace-link").href = "/api/workspace/open";
     setText("workspace-address", host);
-    const sidebarHost = byId("sidebar-workspace-label");
-    if (sidebarHost) sidebarHost.textContent = host;
-    const topbarCta = byId("topbar-workspace-cta");
-    if (topbarCta) topbarCta.href = "/api/workspace/open";
+    const headerCta = byId("header-workspace-cta");
+    if (headerCta) headerCta.href = "/api/workspace/open";
     if (!handleEditorOpen) byId("workspace-handle").value = accountHandle();
     updateHandleSave();
   }
@@ -248,6 +245,18 @@ const renderAccount = () => {
       planBadge.classList.add("trial");
       planBadge.hidden = false;
     }
+    show("paid-through", false);
+    show("trial-through", true);
+    setText("trial-through", label);
+  } else {
+    if (planBadge) {
+      planBadge.hidden = true;
+      planBadge.textContent = "";
+    }
+    show("paid-through", false);
+    show("trial-through", false);
+  }
+};
     show("paid-through", false);
     show("trial-through", true);
     setText("trial-through", label);
@@ -340,10 +349,10 @@ const refresh = async () => {
   try {
     account = await request("/api/me");
     markLandingSession(true);
-    const consoleEl = byId("app-console");
+    const appSurface = byId("app-surface");
     const signinEl = byId("signin-container");
-    if (consoleEl) consoleEl.style.display = "flex";
-    if (signinEl) signinEl.style.display = "none";
+    if (appSurface) appSurface.hidden = false;
+    if (signinEl) signinEl.hidden = true;
     show("signin", false);
     show("account", true);
     show("logout", true);
@@ -360,10 +369,10 @@ const refresh = async () => {
     else if (!waiting && readyTimer) { clearInterval(readyTimer); readyTimer = null; }
   } catch (error) {
     account = null;
-    const consoleEl = byId("app-console");
+    const appSurface = byId("app-surface");
     const signinEl = byId("signin-container");
-    if (consoleEl) consoleEl.style.display = "none";
-    if (signinEl) signinEl.style.display = "flex";
+    if (appSurface) appSurface.hidden = true;
+    if (signinEl) signinEl.hidden = false;
     if (error.status !== 401) {
       show("signin", true);
       show("account", false);
@@ -562,63 +571,20 @@ const applyThemeChoice = (choice) => {
     resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
   setTheme(resolved);
-  document.querySelectorAll(".theme-seg-btn").forEach((btn) => {
+  document.querySelectorAll(".theme-segment-btn, .theme-seg-btn").forEach((btn) => {
     const isChosen = btn.dataset.themeChoice === choice;
     btn.classList.toggle("active", isChosen);
     btn.setAttribute("aria-checked", String(isChosen));
   });
 };
 
-document.querySelectorAll(".theme-seg-btn").forEach((btn) => {
+document.querySelectorAll(".theme-segment-btn, .theme-seg-btn").forEach((btn) => {
   btn.addEventListener("click", () => applyThemeChoice(btn.dataset.themeChoice));
 });
 
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
   if (themeChoice === "system") {
     setTheme(e.matches ? "dark" : "light");
-  }
-});
-
-// Mobile Drawer toggle
-const mobileMenuBtn = byId("mobile-menu-btn");
-const sidebarBackdrop = byId("sidebar-backdrop");
-if (mobileMenuBtn) {
-  mobileMenuBtn.addEventListener("click", () => {
-    document.body.classList.toggle("sidebar-open");
-    mobileMenuBtn.setAttribute("aria-expanded", String(document.body.classList.contains("sidebar-open")));
-  });
-}
-if (sidebarBackdrop) {
-  sidebarBackdrop.addEventListener("click", () => {
-    document.body.classList.remove("sidebar-open");
-    if (mobileMenuBtn) mobileMenuBtn.setAttribute("aria-expanded", "false");
-  });
-}
-document.querySelectorAll(".sidebar-menu-item, .sidebar-cloud-item").forEach((el) => {
-  el.addEventListener("click", () => {
-    document.body.classList.remove("sidebar-open");
-  });
-});
-
-// Console Tab Navigation
-document.querySelectorAll(".console-tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".console-tab-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    const target = btn.dataset.tabTarget;
-    if (target) {
-      const el = document.querySelector(target);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  });
-});
-
-// Command palette / Search shortcut (Cmd+K / Ctrl+K)
-window.addEventListener("keydown", (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-    e.preventDefault();
-    const searchInput = byId("console-search-input");
-    if (searchInput) searchInput.focus();
   }
 });
 

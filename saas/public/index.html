@@ -2,13 +2,13 @@
 <html lang="vi" data-theme="light">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f8fafd">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f8fafc">
     <title>Tài khoản RAI²</title>
     <link rel="icon" href="/assets/rai-backend-favicon.png?v=20261113-logo3" type="image/png">
     <link rel="apple-touch-icon" href="/assets/rai-touch-180.png?v=20261112-logo2" sizes="180x180">
-    <link rel="stylesheet" href="/app.css?v=20261114-modern-console1">
-    <script src="/app.js?v=20261114-modern-console1" defer></script>
+    <link rel="stylesheet" href="/app.css?v=20261114-clean-v2">
+    <script src="/app.js?v=20261114-clean-v2" defer></script>
   </head>
   <body class="auth-pending">
     <div id="auth-loading" class="auth-loading" role="status" aria-live="polite">
@@ -16,14 +16,32 @@
       <p>Đang kiểm tra phiên đăng nhập…</p>
     </div>
 
-    <!-- Sign In Shell (Centered when unauthenticated) -->
-    <div id="signin-container" class="signin-container">
-      <a class="signin-brand" href="https://rai2.si/" aria-label="RAI² - Trang chủ">
-        <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
-        <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
-        <span class="brand-tag">Cloud</span>
-      </a>
+    <!-- Header -->
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="https://rai2.si/" aria-label="RAI² - Trang chủ">
+          <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
+          <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
+        </a>
+        <div class="header-actions">
+          <a id="header-workspace-cta" class="header-cta-btn" href="/api/workspace/open" target="_blank" rel="noopener" hidden>
+            <span>Mở workspace</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          </a>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Bật giao diện tối" title="Bật giao diện tối" style="display:none;">
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-15.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+          <select id="language" aria-label="Ngôn ngữ" hidden>
+            <option value="vi">Tiếng Việt</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+    </header>
 
+    <!-- Sign In Flow (Centered Clean Card) -->
+    <main id="signin-container" class="signin-container">
       <section id="signin" class="signin-card" aria-labelledby="signin-title">
         <div class="signin-header">
           <h1 id="signin-title" data-i18n="signinTitle">Bắt Đầu Với RAI²</h1>
@@ -46,327 +64,189 @@
           <button id="change-email" type="button" class="quiet-btn" data-i18n="changeEmail">Đổi email</button>
         </form>
       </section>
-    </div>
+    </main>
 
-    <!-- Authenticated Modern App Console Layout -->
-    <div id="app-console" class="app-console">
-      <!-- Top Navigation Bar -->
-      <header class="console-topbar">
-        <div class="topbar-left">
-          <button id="mobile-menu-btn" class="mobile-menu-btn" type="button" aria-label="Menu" aria-expanded="false">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          </button>
-          <a class="console-brand" href="https://rai2.si/" aria-label="RAI² - Trang chủ">
-            <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
-            <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
-            <span class="console-brand-suffix">Cloud</span>
-          </a>
+    <!-- Authenticated Modern App Surface -->
+    <main id="app-surface" class="app-surface" hidden>
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-heading">
+          <p class="eyebrow" data-i18n="eyebrow">TÀI KHOẢN</p>
+          <h1 class="page-title" data-i18n="heading">Không gian RAI² của bạn</h1>
+          <p class="page-subtitle">Quản lý tài khoản, workspace và gói thanh toán trên nền tảng RAI².</p>
+          <p id="preview-note" class="preview-note" data-i18n="previewNote" hidden>Bản xem trước riêng · Chưa mở thanh toán</p>
         </div>
 
-        <div class="topbar-center">
-          <div class="search-bar" id="search-bar">
-            <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input id="console-search-input" type="text" placeholder="Tìm kiếm tính năng, workspace..." aria-label="Tìm kiếm">
-            <kbd class="search-kbd">⌘K</kbd>
-          </div>
-        </div>
+        <p id="message" class="message" role="status" aria-live="polite" hidden></p>
 
-        <div class="topbar-right">
-          <a class="topbar-link-btn" href="mailto:contact@raifirst.si" title="Trợ giúp" aria-label="Trợ giúp">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            <span class="topbar-btn-text">Trợ giúp</span>
-          </a>
-          <button class="topbar-icon-btn notif-btn" type="button" title="Thông báo" aria-label="Thông báo">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            <span class="notif-badge"></span>
-          </button>
-          <a id="topbar-workspace-cta" class="topbar-primary-btn" href="/api/workspace/open" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-            <span>Mở workspace</span>
-          </a>
-          <!-- Compatibility hooks for existing JS -->
-          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Bật giao diện tối" title="Bật giao diện tối" style="display:none;">
-            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
-            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-15.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-          </button>
-          <select id="language" aria-label="Ngôn ngữ" hidden>
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-      </header>
-
-      <div class="console-body">
-        <!-- Backdrop for mobile drawer -->
-        <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
-
-        <!-- Left Sidebar Navigation -->
-        <aside id="console-sidebar" class="console-sidebar" aria-label="Thanh điều hướng">
-          <nav class="sidebar-nav">
-            <div class="sidebar-menu-section">
-              <a href="#settings" class="sidebar-menu-item active" data-nav="settings">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                <span>Trang chủ</span>
-              </a>
+        <!-- CARD 1: PROFILE & ACCOUNT -->
+        <section id="account" class="modern-card" aria-labelledby="account-title">
+          <div class="profile-card-layout">
+            <div class="profile-left">
+              <div id="account-avatar" class="avatar-circle">ST</div>
+              <div class="profile-meta">
+                <div class="profile-heading-line">
+                  <span id="account-username" class="profile-name">striverle</span>
+                  <span id="account-status" class="status"></span>
+                </div>
+                <p id="account-email" class="profile-email"></p>
+                <p id="account-plan-badge" class="account-plan-badge" hidden></p>
+              </div>
             </div>
-
-            <div class="sidebar-menu-group">
-              <div class="sidebar-group-header">
-                <span>Workspace của bạn</span>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </div>
-              <a href="#workspace" class="sidebar-cloud-item" data-nav="workspace">
-                <span class="cloud-indicator active"></span>
-                <span id="sidebar-workspace-label" class="cloud-label truncate">striverle.rai2.si</span>
-              </a>
-              <a href="#workspace" class="sidebar-menu-item subtle-item" data-nav="workspace">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                <span>Thêm workspace</span>
-              </a>
-            </div>
-
-            <div class="sidebar-menu-group">
-              <div class="sidebar-group-header">
-                <span>Tài khoản</span>
-              </div>
-              <a href="#billing" class="sidebar-menu-item" data-nav="billing">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>
-                <span>Gói &amp; Thanh toán</span>
-              </a>
-              <a href="#usage" class="sidebar-menu-item" data-nav="usage">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
-                <span>Sử dụng</span>
-              </a>
-              <a href="#settings" class="sidebar-menu-item active" data-nav="settings">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                <span>Cài đặt</span>
-              </a>
-            </div>
-          </nav>
-
-          <div class="sidebar-footer">
-            <div class="user-pill-card">
-              <div id="sidebar-avatar" class="avatar-circle">ST</div>
-              <div class="user-meta truncate">
-                <span id="sidebar-username" class="user-name truncate">striverle</span>
-                <span id="sidebar-user-email" class="user-subtext truncate">striverle@gmail.com</span>
-              </div>
-              <div class="user-pill-actions">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 15 12 20 17 15"></polyline><polyline points="7 9 12 4 17 9"></polyline></svg>
-              </div>
+            <div class="profile-right">
+              <button id="logout" class="signout-button" type="button" data-i18n="logout">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Đăng xuất</span>
+              </button>
             </div>
           </div>
-        </aside>
+          <h2 id="account-title" class="sr-only" data-i18n="accountTitle">Tài khoản</h2>
+        </section>
 
-        <!-- Main Content Surface -->
-        <main class="console-main">
-          <div class="main-content-wrapper">
-            <!-- Breadcrumbs -->
-            <nav class="console-breadcrumbs" aria-label="Đường dẫn trang">
-              <span class="bc-item">Cá nhân</span>
-              <span class="bc-sep">›</span>
-              <span class="bc-item">Cài đặt</span>
-              <span class="bc-sep">›</span>
-              <span class="bc-item current">Hồ sơ</span>
-            </nav>
-
-            <!-- Page Title -->
-            <div class="console-heading-row">
-              <div>
-                <h1 class="console-title" data-i18n="heading">Không gian RAI² của bạn</h1>
-                <p class="console-subtitle">Quản lý tài khoản, workspace và gói thanh toán trên nền tảng RAI².</p>
-              </div>
-              <p id="preview-note" class="preview-note" data-i18n="previewNote" hidden>Bản xem trước riêng · Chưa mở thanh toán</p>
-            </div>
-
-            <!-- Navigation Tabs (Profile, Billing, Workspace, Appearance) -->
-            <div class="console-tabs" role="tablist">
-              <button class="console-tab-btn active" type="button" role="tab" data-tab-target="#account">Hồ sơ</button>
-              <button class="console-tab-btn" type="button" role="tab" data-tab-target="#billing">Gói &amp; Thanh toán</button>
-              <button class="console-tab-btn" type="button" role="tab" data-tab-target="#workspace-section">Workspace</button>
-              <button class="console-tab-btn" type="button" role="tab" data-tab-target="#appearance-card">Giao diện</button>
-            </div>
-
-            <p id="message" class="message" role="status" aria-live="polite" hidden></p>
-
-            <!-- SECTION 1: ACCOUNT / PROFILE -->
-            <section id="account" class="modern-card" aria-labelledby="account-title" hidden>
-              <div class="card-lead-text">Địa chỉ email và phiên làm việc kết nối với ứng dụng RAI².</div>
-              
-              <div class="profile-card-inner">
-                <div class="profile-main-info">
-                  <div id="account-avatar" class="avatar-circle large">ST</div>
-                  <div class="profile-text-col">
-                    <div class="profile-name-row">
-                      <span id="account-username" class="profile-display-name">striverle</span>
-                      <span id="account-status" class="status"></span>
-                    </div>
-                    <p id="account-email" class="profile-email-text"></p>
-                    <p id="account-plan-badge" class="account-plan-badge" hidden></p>
-                  </div>
-                </div>
-
-                <div class="profile-actions">
-                  <button id="logout" class="signout-btn" type="button" data-i18n="logout">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                    <span>Đăng xuất</span>
-                  </button>
-                </div>
-              </div>
-              <h2 id="account-title" class="sr-only" data-i18n="accountTitle">Tài khoản</h2>
-            </section>
-
-            <!-- SECTION 2: WORKSPACE -->
-            <section id="workspace-section" class="modern-card" aria-labelledby="workspace-card-title">
-              <div class="card-header-row">
-                <div>
-                  <h2 id="workspace-card-title" class="card-section-title" data-i18n="workspace">Workspace</h2>
-                  <p class="card-section-sub">Không gian làm việc riêng biệt và đường dẫn máy chủ của bạn.</p>
-                </div>
-              </div>
-
-              <div class="workspace-row" id="workspace-row" hidden>
-                <div class="workspace-details">
-                  <div class="workspace-address-line">
-                    <div class="workspace-host-badge">
-                      <span class="active-dot"></span>
-                      <p id="workspace-address" class="workspace-address"></p>
-                    </div>
-                    <button id="workspace-handle-edit" type="button" class="workspace-edit-button"
-                      aria-expanded="false" aria-controls="workspace-handle-form" data-i18n="workspaceHandleEdit">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
-                      <span>Đổi đường dẫn</span>
-                    </button>
-                  </div>
-
-                  <p id="workspace-handle-message" class="field-message" role="status" aria-live="polite" hidden></p>
-
-                  <form id="workspace-handle-form" class="workspace-handle-form" hidden>
-                    <label for="workspace-handle" data-i18n="workspaceHandleLabel">Đường dẫn workspace mới</label>
-                    <div class="workspace-handle-control">
-                      <input id="workspace-handle" type="text" inputmode="url" autocomplete="off" maxlength="30"
-                        placeholder="cong-ty-an-phat"
-                        aria-describedby="workspace-handle-hint workspace-handle-message" data-i18n-placeholder="workspaceHandlePlaceholder">
-                      <span class="workspace-domain">.rai2.si</span>
-                    </div>
-                    <div class="workspace-handle-footer">
-                      <p id="workspace-handle-hint" class="muted" data-i18n="workspaceHandleHint">Dùng 3–30 ký tự: chữ thường, số hoặc dấu gạch ngang.</p>
-                      <div class="workspace-handle-actions">
-                        <button id="workspace-handle-cancel" type="button" class="quiet-btn" data-i18n="workspaceHandleCancel">Hủy</button>
-                        <button id="workspace-handle-save" type="submit" class="workspace-save" data-i18n="workspaceHandleSave" disabled>Lưu thay đổi</button>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-                <div class="workspace-cta-col">
-                  <a id="workspace-link" class="primary link-button primary-pill" href="#" data-i18n="openWorkspace">
-                    <span>Mở workspace</span>
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                  </a>
-                </div>
-              </div>
-              <p id="setup-note" class="muted setup-note-box" hidden></p>
-            </section>
-
-            <!-- SECTION 3: APPEARANCE (EXACTLY AS IN REFERENCE IMAGE) -->
-            <section id="appearance-card" class="modern-card appearance-section" aria-labelledby="appearance-title">
-              <div class="card-header-row">
-                <div>
-                  <h2 id="appearance-title" class="card-section-title">Giao diện</h2>
-                  <p class="card-section-sub">Cách hiển thị giao diện trên thiết bị này.</p>
-                </div>
-              </div>
-
-              <div class="theme-setting-card">
-                <div class="theme-setting-info">
-                  <h3 class="theme-setting-label">Chế độ màu</h3>
-                  <p class="theme-setting-desc">Sáng, tối hoặc đồng bộ tự động theo thiết bị.</p>
-                </div>
-
-                <div class="theme-segmented-group" role="radiogroup" aria-label="Chế độ giao diện">
-                  <button type="button" class="theme-seg-btn" data-theme-choice="system" role="radio" aria-checked="false">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg>
-                    <span>Theo hệ thống</span>
-                  </button>
-                  <button type="button" class="theme-seg-btn" data-theme-choice="light" role="radio" aria-checked="false">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                    <span>Sáng</span>
-                  </button>
-                  <button type="button" class="theme-seg-btn" data-theme-choice="dark" role="radio" aria-checked="false">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path></svg>
-                    <span>Tối</span>
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <!-- SECTION 4: BILLING & TRANSACTIONS -->
-            <section id="billing" class="modern-card" aria-labelledby="billing-title" hidden>
-              <div class="card-header-row billing-header-row">
-                <div>
-                  <h2 id="billing-title" class="card-section-title" data-i18n="billingTitle">Gói &amp; thanh toán</h2>
-                  <p class="card-section-sub">Chi tiết gói dịch vụ, thời hạn và lịch sử đơn hàng.</p>
-                </div>
-                <span id="billing-status" class="status"></span>
-              </div>
-
-              <div class="plan-card-box">
-                <div class="plan-col-left">
-                  <span class="plan-tier-tag">Gói đăng ký</span>
-                  <h3 class="plan-title-name" data-i18n="planName">RAI² Starter</h3>
-                  <p class="muted plan-feature-desc" data-i18n="planDetail">Một workspace riêng · Tự kết nối khóa API AI</p>
-                  <p id="paid-through" class="plan-expiry-badge" hidden></p>
-                  <p id="trial-through" class="plan-expiry-badge" hidden></p>
-                </div>
-                <div class="plan-col-right">
-                  <div class="plan-price-display">
-                    <span id="price-amount" class="price-number" data-i18n="price">299.000đ</span>
-                    <span class="price-unit" data-i18n="perMonth">/ tháng</span>
-                  </div>
-                  <button id="order-button" class="primary primary-btn renew-cta" type="button" data-i18n="firstPayment">Thanh toán tháng đầu</button>
-                </div>
-              </div>
-
-              <!-- Payment QR Modal / Box -->
-              <div id="payment" class="payment-panel" hidden aria-labelledby="payment-title">
-                <div class="payment-panel-header">
-                  <h3 id="payment-title" class="payment-title" data-i18n="paymentTitle">Quét mã để thanh toán</h3>
-                  <p class="payment-subtitle">Mở ứng dụng ngân hàng bất kỳ để quét mã VietQR và xác nhận thanh toán.</p>
-                </div>
-                <div class="payment-layout">
-                  <div class="payment-qr-wrap">
-                    <img id="payment-qr" class="qr" alt="Mã QR chuyển khoản" data-i18n-alt="qrAlt" width="216" height="216">
-                  </div>
-                  <dl class="payment-details">
-                    <div class="payment-detail-row"><dt data-i18n="bank">Ngân hàng</dt><dd id="payment-bank"></dd></div>
-                    <div class="payment-detail-row"><dt data-i18n="bankAccount">Số tài khoản</dt><dd id="payment-account"></dd></div>
-                    <div class="payment-detail-row"><dt data-i18n="amount">Số tiền</dt><dd id="payment-amount" class="amount-bold"></dd></div>
-                    <div class="payment-detail-row"><dt data-i18n="transferMemo">Nội dung</dt><dd id="payment-code" class="mono code-highlight"></dd></div>
-                  </dl>
-                </div>
-                <div class="payment-footer-status">
-                  <div class="payment-spinner"></div>
-                  <p id="payment-status" class="payment-status-text" role="status" aria-live="polite" data-i18n="awaitingPayment">Đang chờ xác nhận thanh toán</p>
-                </div>
-                <p id="payment-expiry" class="payment-expiry-text muted" hidden></p>
-              </div>
-
-              <!-- Transaction History -->
-              <div class="transactions-section">
-                <div class="transaction-heading">
-                  <h3 class="transactions-title" data-i18n="transactionsTitle">Lịch sử giao dịch</h3>
-                  <button id="transactions-refresh" class="quiet-btn refresh-btn" type="button" data-i18n="refreshTransactions">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
-                    <span>Làm mới</span>
-                  </button>
-                </div>
-                <p id="transactions-empty" class="muted transactions-empty-msg" data-i18n="transactionsEmpty">Chưa có giao dịch.</p>
-                <div id="transactions-list" class="transactions-list" aria-live="polite"></div>
-              </div>
-            </section>
+        <!-- CARD 2: WORKSPACE -->
+        <section id="workspace-card" class="modern-card" aria-labelledby="workspace-title">
+          <div class="card-header">
+            <h2 id="workspace-title" class="card-title" data-i18n="workspace">Workspace</h2>
+            <p class="card-subtitle">Không gian làm việc riêng biệt và máy chủ của bạn.</p>
           </div>
-        </main>
+
+          <div class="workspace-row" id="workspace-row" hidden>
+            <div class="workspace-details">
+              <div class="workspace-address-row">
+                <div class="workspace-address-pill">
+                  <span class="active-pulse-dot"></span>
+                  <span id="workspace-address" class="workspace-address"></span>
+                </div>
+                <button id="workspace-handle-edit" type="button" class="workspace-edit-button"
+                  aria-expanded="false" aria-controls="workspace-handle-form" data-i18n="workspaceHandleEdit">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                  <span>Đổi đường dẫn</span>
+                </button>
+              </div>
+
+              <p id="workspace-handle-message" class="field-message" role="status" aria-live="polite" hidden></p>
+
+              <form id="workspace-handle-form" class="workspace-handle-form" hidden>
+                <label for="workspace-handle" data-i18n="workspaceHandleLabel">Đường dẫn workspace mới</label>
+                <div class="workspace-handle-control">
+                  <input id="workspace-handle" type="text" inputmode="url" autocomplete="off" maxlength="30"
+                    placeholder="cong-ty-an-phat"
+                    aria-describedby="workspace-handle-hint workspace-handle-message" data-i18n-placeholder="workspaceHandlePlaceholder">
+                  <span class="workspace-domain">.rai2.si</span>
+                </div>
+                <div class="workspace-handle-footer">
+                  <p id="workspace-handle-hint" class="muted" data-i18n="workspaceHandleHint">Dùng 3–30 ký tự: chữ thường, số hoặc dấu gạch ngang.</p>
+                  <div class="workspace-handle-actions">
+                    <button id="workspace-handle-cancel" type="button" class="quiet-btn cancel-btn" data-i18n="workspaceHandleCancel">Hủy</button>
+                    <button id="workspace-handle-save" type="submit" class="workspace-save" data-i18n="workspaceHandleSave" disabled>Lưu thay đổi</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div class="workspace-cta-wrap">
+              <a id="workspace-link" class="primary primary-pill" href="#" data-i18n="openWorkspace">
+                <span>Mở workspace</span>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
+            </div>
+          </div>
+          <p id="setup-note" class="muted setup-note-box" hidden></p>
+        </section>
+
+        <!-- CARD 3: BILLING & PAYMENT -->
+        <section id="billing" class="modern-card" aria-labelledby="billing-title" hidden>
+          <div class="card-header billing-card-header">
+            <div>
+              <p class="eyebrow" data-i18n="billingEyebrow">THANH TOÁN</p>
+              <h2 id="billing-title" class="card-title" data-i18n="billingTitle">Gói &amp; thanh toán</h2>
+            </div>
+            <span id="billing-status" class="status"></span>
+          </div>
+
+          <div class="plan-card-inner">
+            <div class="plan-left">
+              <h3 class="plan-name" data-i18n="planName">RAI² Starter</h3>
+              <p class="muted plan-desc" data-i18n="planDetail">Một workspace riêng · Tự kết nối khóa API AI</p>
+              <p id="paid-through" class="plan-duration-badge" hidden></p>
+              <p id="trial-through" class="plan-duration-badge" hidden></p>
+            </div>
+            <div class="plan-right">
+              <div class="price-box">
+                <span id="price-amount" class="price-val" data-i18n="price">299.000đ</span>
+                <span class="price-sub" data-i18n="perMonth">/ tháng</span>
+              </div>
+              <button id="order-button" class="primary renew-btn" type="button" data-i18n="firstPayment">Thanh toán tháng đầu</button>
+            </div>
+          </div>
+
+          <!-- Payment QR panel -->
+          <div id="payment" class="payment-panel" hidden aria-labelledby="payment-title">
+            <div class="payment-header">
+              <h3 id="payment-title" class="payment-heading" data-i18n="paymentTitle">Quét mã để thanh toán</h3>
+              <p class="payment-sub">Mở ứng dụng ngân hàng bất kỳ để quét mã VietQR và chuyển khoản.</p>
+            </div>
+            <div class="payment-layout">
+              <div class="payment-qr-wrap">
+                <img id="payment-qr" class="qr" alt="Mã QR chuyển khoản" data-i18n-alt="qrAlt" width="216" height="216">
+              </div>
+              <dl class="payment-details">
+                <div class="payment-item"><dt data-i18n="bank">Ngân hàng</dt><dd id="payment-bank"></dd></div>
+                <div class="payment-item"><dt data-i18n="bankAccount">Số tài khoản</dt><dd id="payment-account"></dd></div>
+                <div class="payment-item"><dt data-i18n="amount">Số tiền</dt><dd id="payment-amount" class="amount-val"></dd></div>
+                <div class="payment-item"><dt data-i18n="transferMemo">Nội dung</dt><dd id="payment-code" class="code-val"></dd></div>
+              </dl>
+            </div>
+            <div class="payment-status-row">
+              <div class="payment-spinner"></div>
+              <p id="payment-status" class="payment-status-text" role="status" aria-live="polite" data-i18n="awaitingPayment">Đang chờ xác nhận thanh toán</p>
+            </div>
+            <p id="payment-expiry" class="payment-expiry-text muted" hidden></p>
+          </div>
+
+          <!-- Transactions list -->
+          <div class="transactions-section">
+            <div class="transaction-heading">
+              <h3 class="transactions-title" data-i18n="transactionsTitle">Lịch sử giao dịch</h3>
+              <button id="transactions-refresh" class="refresh-link" type="button" data-i18n="refreshTransactions">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                <span>Làm mới</span>
+              </button>
+            </div>
+            <p id="transactions-empty" class="muted transactions-empty" data-i18n="transactionsEmpty">Chưa có giao dịch.</p>
+            <div id="transactions-list" class="transactions-list" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <!-- CARD 4: APPEARANCE (EXACTLY AS IN REFERENCE IMAGE) -->
+        <section id="appearance-section" class="modern-card" aria-labelledby="appearance-title">
+          <div class="card-header">
+            <h2 id="appearance-title" class="card-title">Giao diện</h2>
+            <p class="card-subtitle">Cách hiển thị giao diện trên thiết bị này.</p>
+          </div>
+
+          <div class="theme-row-box">
+            <div class="theme-label-col">
+              <h3 class="theme-row-title">Chế độ màu</h3>
+              <p class="theme-row-desc">Sáng, tối hoặc đồng bộ theo thiết bị.</p>
+            </div>
+            <div class="theme-segmented-capsule" role="radiogroup" aria-label="Chế độ giao diện">
+              <button type="button" class="theme-segment-btn" data-theme-choice="system" role="radio" aria-checked="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg>
+                <span>Theo hệ thống</span>
+              </button>
+              <button type="button" class="theme-segment-btn" data-theme-choice="light" role="radio" aria-checked="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <span>Sáng</span>
+              </button>
+              <button type="button" class="theme-segment-btn" data-theme-choice="dark" role="radio" aria-checked="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path></svg>
+                <span>Tối</span>
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   </body>
 </html>
