@@ -2,7 +2,7 @@ name: RAI2 Release
 
 on:
   push:
-    tags: ["v*-rai2.*"]
+    tags: ["v*"]
 
 permissions:
   contents: write
