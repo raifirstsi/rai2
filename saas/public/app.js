@@ -28,8 +28,8 @@ const copy = {
     unpaid: "Chưa thanh toán", trialActive: "Đang dùng thử", trialExpired: "Dùng thử đã hết hạn",
     setupFailed: "Chưa thiết lập được workspace. Liên hệ contact@raifirst.si để được hỗ trợ.",
     setupPending: "Workspace của bạn đang được thiết lập.",
-    paidThrough: (date) => `Đã thanh toán đến ${date}`,
-    trialThrough: (date) => `Dùng thử miễn phí đến ${date}`,
+    paidThrough: (date, days) => `Gói Starter · Hạn dùng đến ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
+    trialThrough: (date, days) => `Gói dùng thử 14 ngày · Hết hạn ngày ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
     requestFailed: "Không thể kết nối. Vui lòng thử lại.", loadAccountFailed: "Không tải được tài khoản. Vui lòng thử lại.",
     codeSent: "Đã gửi mã xác nhận đến email của bạn.",
     codeSentPreview: "Đã gửi mã xác nhận đến email của bạn.",
@@ -71,8 +71,8 @@ const copy = {
     unpaid: "Unpaid", trialActive: "Free trial", trialExpired: "Trial expired",
     setupFailed: "We could not set up your workspace. Contact contact@raifirst.si for help.",
     setupPending: "Your workspace is being set up.",
-    paidThrough: (date) => `Paid through ${date}`,
-    trialThrough: (date) => `Free trial through ${date}`,
+    paidThrough: (date, days) => `Starter Plan · Valid until ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
+    trialThrough: (date, days) => `14-day Free Trial · Expires ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
     requestFailed: "Could not connect. Please try again.", loadAccountFailed: "Could not load your account. Please try again.",
     codeSent: "A verification code was sent to your email.",
     codeSentPreview: "A verification code was sent to your email.",
@@ -176,15 +176,29 @@ const message = (key, error = false) => {
 const renderAccount = () => {
   if (!account) return;
   setText("account-email", account.email);
-  const active = account.workspaceState === "active" && Boolean(account.workspaceUrl);
-  const paid = account.paidThrough > Date.now();
-  const trial = !paid && account.trialThrough > Date.now();
+  const now = Date.now();
+  const effectivePaidThrough = Math.max(account.paidThrough || 0, billing?.paidThrough || 0);
+  const paidOrders = Array.isArray(billing?.orders) ? billing.orders.filter((o) => o.status === "paid") : [];
+  const latestPaidOrder = paidOrders.length > 0 ? paidOrders[0] : null;
+  const hasPaidOrder = paidOrders.length > 0;
+  const isPaidEntitled = billing?.entitlement === "paid" || effectivePaidThrough > now || hasPaidOrder;
+  const paidTimestamp = effectivePaidThrough > 0
+    ? effectivePaidThrough
+    : (latestPaidOrder?.paidAt || latestPaidOrder?.createdAt)
+      ? (latestPaidOrder.paidAt || latestPaidOrder.createdAt) + 30 * 86_400_000
+      : 0;
+  const paid = isPaidEntitled && paidTimestamp > 0;
+  const effectiveTrialThrough = paid ? 0 : Math.max(account.trialThrough || 0, billing?.trialThrough || 0);
+  const trial = !paid && effectiveTrialThrough > now;
   const entitled = paid || trial;
+  const active = account.workspaceState === "active" && Boolean(account.workspaceUrl);
+
   byId("account-status").classList.toggle("unpaid", !entitled);
   setText("account-status", say(account.workspaceState === "error" && entitled ? "needsSupport"
     : active ? trial ? "trialActive" : "active"
     : entitled ? "settingUp"
-    : account.trialThrough ? "trialExpired" : "unpaid"));
+    : (effectiveTrialThrough > 0 || account.trialThrough) ? "trialExpired" : "unpaid"));
+
   show("workspace-row", active);
   if (active) {
     byId("workspace-link").href = "/api/workspace/open";
@@ -192,16 +206,45 @@ const renderAccount = () => {
     if (!handleEditorOpen) byId("workspace-handle").value = accountHandle();
     updateHandleSave();
   }
+
   setText("order-button", say(paid ? "renew" : "firstPayment"));
   show("order-button", paymentsEnabled && (!paid || active));
   show("setup-note", entitled && !active);
   if (entitled && !active) setText("setup-note", say(account.workspaceState === "error" ? "setupFailed" : "setupPending"));
-  show("paid-through", paid);
-  if (paid) setText("paid-through", say("paidThrough")(
-    new Date(account.paidThrough).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-GB")));
-  show("trial-through", trial);
-  if (trial) setText("trial-through", say("trialThrough")(
-    new Date(account.trialThrough).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-GB")));
+
+  const planBadge = byId("account-plan-badge");
+  if (paid) {
+    const daysLeft = Math.max(0, Math.ceil((paidTimestamp - now) / 86_400_000));
+    const formatted = new Date(paidTimestamp).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-GB");
+    const label = say("paidThrough")(formatted, daysLeft);
+    if (planBadge) {
+      planBadge.textContent = label;
+      planBadge.classList.remove("trial");
+      planBadge.hidden = false;
+    }
+    show("paid-through", true);
+    setText("paid-through", label);
+    show("trial-through", false);
+  } else if (trial) {
+    const daysLeft = Math.max(0, Math.ceil((effectiveTrialThrough - now) / 86_400_000));
+    const formatted = new Date(effectiveTrialThrough).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-GB");
+    const label = say("trialThrough")(formatted, daysLeft);
+    if (planBadge) {
+      planBadge.textContent = label;
+      planBadge.classList.add("trial");
+      planBadge.hidden = false;
+    }
+    show("paid-through", false);
+    show("trial-through", true);
+    setText("trial-through", label);
+  } else {
+    if (planBadge) {
+      planBadge.hidden = true;
+      planBadge.textContent = "";
+    }
+    show("paid-through", false);
+    show("trial-through", false);
+  }
 };
 const setLocale = (value) => {
   locale = value;
@@ -276,6 +319,7 @@ const loadBilling = async () => {
   byId("billing-status").classList.toggle("unpaid", billing.entitlement === "inactive");
   show("billing", true);
   renderTransactions();
+  renderAccount();
 };
 
 const refresh = async () => {
@@ -476,6 +520,7 @@ byId("order-button").addEventListener("click", async () => {
         pollTimer = null;
         paymentKey = "paymentReceived";
         setText("payment-status", say(paymentKey));
+        show("payment", false);
         await refresh();
         await loadBilling();
       } catch { message("requestFailed", true); }

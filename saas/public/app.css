@@ -298,6 +298,22 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 }
 .account-heading .status { justify-self: start; }
 .account-heading h2 { margin-bottom: 5px; }
+.account-plan-badge {
+  display: inline-block;
+  margin: 6px 0 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  border: 1px solid currentColor;
+}
+.account-plan-badge.trial {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
 .workspace-row { padding: 0; align-items: start; }
 .plan-row { padding: 0; }
 .workspace-row > div, .plan-row > div { min-width: 0; }

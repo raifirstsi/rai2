@@ -3,7 +3,8 @@
 import { BookOpen, CalendarClock, Check, Crown, MessageSquare, NotebookPen, Plug, Users } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
+import { localizeTeamDescription } from "../../shared/team-templates-localization";
 import type { PendingTeamImport } from "@/lib/team-import";
 
 export const TEAM_GLYPHS = [
@@ -21,7 +22,7 @@ export function TeamImportDetails({ pending, importedNames, org = false }: {
   return (
     <>
       {pending.description && (
-        <p className="max-w-2xl text-[14px] leading-relaxed text-ink-secondary">{pending.description}</p>
+        <p className="max-w-2xl text-[14px] leading-relaxed text-ink-secondary">{localizeTeamDescription(pending.name, pending.description, activeLocale())}</p>
       )}
       {pending.brief && (
         <div className="mt-4 rounded-xl border border-hairline px-4 py-3 text-[13px] text-ink-secondary">

@@ -34,9 +34,12 @@ const provisioner = new WorkspaceProvisioner({
   trialIdleMs: Number(process.env.RAI2_TRIAL_IDLE_MS ?? "86400000"),
   onFailure: (slug, action) => console.error(`workspace reconciliation failed: ${slug} ${action}`),
 });
-const reconcile = () => void provisioner.reconcile().catch(() => {
-  console.error("workspace reconciliation failed");
-});
+const reconcile = () => {
+  try { store.autoReconcileUnmatched(Date.now()); } catch {}
+  void provisioner.reconcile().catch(() => {
+    console.error("workspace reconciliation failed");
+  });
+};
 const server = createSaasServer({
   store,
   paymentsEnabled,

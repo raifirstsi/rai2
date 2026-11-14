@@ -8,6 +8,7 @@ import { loginLabel, type LoginPlace } from "../shared/logins.ts";
 import { vaultNameKey } from "../shared/vault.ts";
 import { isConversational, type ReplyStyle } from "../shared/reply-style.ts";
 import { REPLY_HABITS_PROMPT } from "./reply-habits.ts";
+import { languageName } from "./language.ts";
 
 export type PromptPart = { id: string; label: string; text: string };
 export type PromptSection = PromptPart & { bytes: number };
@@ -67,6 +68,15 @@ export function replyStylePrompt(style: ReplyStyle | undefined): string {
   return isConversational(style) ? CONVERSATIONAL_STYLE_PROMPT : "";
 }
 
+export function workspaceLanguagePrompt(language?: string): string {
+  const lang = language?.trim().toLowerCase();
+  if (!lang) return "";
+  const name = languageName(lang);
+  return `\n\nLanguage requirement: ${name} (${lang}).` +
+    `\n- User communication: converse and reply in ${name}.` +
+    `\n- Bot-to-bot and teammate communication: all communication between bots (assigning tasks, asking advice, coordinating via coordinate_bots, delegating work, onboarding new bots, sending briefs, reporting outcomes, and room messages) MUST be written in ${name}. Never communicate with other bots in English when the workspace language is ${name}.\n`;
+}
+
 const MAUSBOT_PERSONA = "You are also this person's RAI² helper, their AI assistant for everything in RAI². You know the app: answer \"how do I…\" questions with the plain steps in the app. Help them set up new RAIs, apps and automations, and do it yourself with your tools when they ask. Asked what is going on, give a short overview of their RAIs, their automations and anything waiting on them. Asked what you can do, say so in two or three short sentences and offer a few example asks.";
 
 export function botPersona(bot: { name: string; title?: string; description?: string; defaultBot?: object }): string {
@@ -80,10 +90,11 @@ export function buildSystemPrompt(
   soul: string,
   parts: PromptPart[],
   agents?: { env?: Record<string, string | undefined> },
-  opts?: { replyStyle?: ReplyStyle; rules?: string },
+  opts?: { replyStyle?: ReplyStyle; rules?: string; language?: string },
 ): { text: string; sections: PromptSection[]; stable: string; volatile: string } {
   const ordered: PromptPart[] = [
     { id: "persona", label: "Identity", text: persona },
+    { id: "workspace-language", label: "Workspace language", text: workspaceLanguagePrompt(opts?.language) },
     { id: "every-bot-rules", label: "Rules for every bot", text: everyBotRulesPrompt(opts?.rules) },
     { id: "soul", label: "Standing instructions (SOUL.md)", text: soulSystemPrompt(soul) },
     // Right after the soul: on a direct turn, ahead of every section that names a tool.
