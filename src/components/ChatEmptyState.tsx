@@ -1,6 +1,7 @@
 import { api, useStore, type Bot } from "@/state/store";
 import { useAdvancedMode } from "@/lib/interface-mode";
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
+import { localizeAgentDescription } from "../../shared/team-templates-localization";
 import { BotAvatar } from "./Avatar";
 import { RenameTitle } from "./RenameTitle";
 
@@ -26,7 +27,7 @@ export function EmptyChat({ bot }: { bot: Bot }) {
         inputClassName="rounded bg-inset px-1.5 py-0.5 text-center text-[17px] font-semibold"
       />}
       <div className="max-w-[360px] text-[14px] text-ink-secondary">
-        {bot.description || t("chat.emptyPrompt")}
+        {localizeAgentDescription(bot.name, bot.description, activeLocale()) || t("chat.emptyPrompt")}
       </div>
     </div>
   );

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Crown, Pencil } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
+import { localizeRoleTitle } from "../../../shared/team-templates-localization";
 import { imeComposing } from "@/lib/send-key";
 import type { MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
@@ -155,7 +156,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
           onClick={() => label.start(bot.title)}
           className="mt-px max-w-full truncate rounded-md px-1.5 py-px text-[13px] text-ink-secondary hover:bg-ink/[0.04]"
         >
-          {title}
+          {localizeRoleTitle(title, activeLocale())}
         </button>
       )}
     </div>

@@ -32,12 +32,11 @@ export async function createConfiguredBot(
   if (!profile.name?.trim()) throw new Error(t("newBot.nameRequired"));
   const preset = draft.preset;
   const chosenAi = modelSelection?.instanceId && modelSelection.model ? { modelSelection, requireAvailableModel: true } : {};
-  const lang = activeLocale();
-  const languageField = lang && lang !== "en" ? { language: lang } : {};
+  const lang = activeLocale() || "vi";
   const response = await request<{ bot: Bot }>("/api/bots", {
     method: "POST", body: JSON.stringify({ name: profile.name, title: profile.title,
       description: profile.description, ...chosenAi, section: profile.section,
-      ...languageField,
+      language: lang,
       useDefaults: false, ...(visibility !== undefined ? { visibility } : {}), ...(reportsTo ? { reportsTo } : {}),
       ...(Object.hasOwn(template.profile, "toolScope") ? { settings: { toolScope } } : {}),
       ...(preset ? { preset: preset.id } : {}) }),

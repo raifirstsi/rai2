@@ -2,7 +2,8 @@ import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Trash2 } from 
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
+import { localizeTeamName } from "../../shared/team-templates-localization";
 import {
   sidebarAttentionLabel,
   type SidebarSectionAttention,
@@ -57,6 +58,7 @@ export function SidebarSectionHeader({
   const reorderable = canReorder && !naming;
   const Chevron = collapsed ? ChevronRight : ChevronDown;
   const attentionLabel = attention ? sidebarAttentionLabel(attention) : "";
+  const displayName = localizeTeamName(name, activeLocale());
   const onHeaderKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (!reorderable || !event.altKey) return;
     if (event.key === "ArrowUp") {
@@ -106,13 +108,13 @@ export function SidebarSectionHeader({
             title={toggleTitle}
             className="flex min-w-0 flex-1 items-center gap-1.5 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
           >
-            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{displayName}</span>
             {collapsed && <SectionAttention attention={attention} label={attentionLabel} alert={alert} />}
             {tail}
           </button>
         ) : (
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{displayName}</span>
             {attentionLabel && <span className="sr-only">{attentionLabel}</span>}
             {tail}
           </div>

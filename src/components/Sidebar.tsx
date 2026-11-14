@@ -19,6 +19,7 @@ import { useHeldMenuMotion, useMenuMotion } from "./MenuMotion";
 import { lastNonReceipt } from "@/lib/receipts";
 import { botPreview, groupPreview } from "./sidebar-preview";
 import { activeLocale, t } from "@/lib/i18n";
+import { localizeRoleTitle, localizeRoomInfo } from "../../shared/team-templates-localization";
 import { copyText } from "@/lib/copy-text";
 import type { LocaleKey } from "@/locales";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -170,6 +171,7 @@ export function GroupListItem({
     .map((id) => state.bots.find((b) => b.id === id))
     .filter((b): b is Bot => Boolean(b));
   const last = group.messages.at(-1);
+  const groupDisplayName = localizeRoomInfo(group.name, group.name, undefined, activeLocale()).name;
   return (
     <>
     <div className={cn("group relative", railTile && "mx-auto w-[54px]")}>
@@ -194,13 +196,13 @@ export function GroupListItem({
           ? cn("gap-2 rounded-[8px] py-2 pr-2 group-hover:pr-9 group-focus-within:pr-9 max-md:pr-9 touch:pr-9 md:h-[54px] md:py-0", !group.dm && hasThreadList ? "pl-6" : "pl-2") : "gap-2 py-1.5 pl-6 pr-9",
         selected && !expanded ? "bg-raised" : "hover:bg-raised/50",
       )}
-      title={density === "icons" ? group.name : undefined}
-      aria-label={density === "icons" ? group.name : undefined}
+      title={density === "icons" ? groupDisplayName : undefined}
+      aria-label={density === "icons" ? groupDisplayName : undefined}
     >
       <StackedMauses members={members} density={railTile ? "comfortable" : density} large={simpleRow || railTile} />
       <div className={cn("min-w-0 flex-1", density === "icons" && "hidden")}>
         <div className={cn("flex items-baseline justify-between gap-2", simpleRow && "pr-7")}>
-          <span className={cn("truncate text-[14px] text-ink", simpleRow ? "font-medium leading-5" : "font-semibold")}>{group.name}</span>
+          <span className={cn("truncate text-[14px] text-ink", simpleRow ? "font-medium leading-5" : "font-semibold")}>{groupDisplayName}</span>
           {advanced && selected && last && !expanded && <span className="shrink-0 text-[10px] text-ink-secondary">{formatTime(last.at)}</span>}
           {!simpleRow && expanded && group.unread && <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-label={t("task.unreadMany")} />}
           {simpleRow && !expanded && group.unread && <RowDot />}
@@ -719,7 +721,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const tooltip = simpleList ? botTooltip(bot, instances) : undefined;
   const visible = useVisibleMessages(bot);
   const last = lastNonReceipt(visible);
-  const title = bot.title.trim();
+  const title = localizeRoleTitle(bot.title.trim(), activeLocale());
   const details = [title, bot.chiefOfStaff ? t("sidebar.bot.chiefOfStaff") : ""].filter(Boolean);
   const rowClass = cn(
     "flex w-full items-center rounded-xl text-left transition-colors duration-150", SIMPLE_ROW_FOCUS,
@@ -1185,7 +1187,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             <MessageSquarePlus size={16} className="text-ink-secondary" />
             {t("sidebar.newChat.title")}
           </button>}
-          {!advanced && plusBot && <><button role="menuitem" className={plusItem} onClick={() => { setPlusOpen(false); dispatch({ type: "newTask", botId: plusBot.id }); }}><SquarePen size={16} className="text-ink-secondary" />{t("sidebar.newConversationWith", { name: plusBot.name })}</button><div role="separator" className={MENU_ITEM_SEPARATOR} /></>}
+          {!advanced && plusBot && <><button role="menuitem" className={plusItem} onClick={() => { setPlusOpen(false); dispatch({ type: "newTask", botId: plusBot.id }); }}><SquarePen size={16} className="text-ink-secondary" />{t("sidebar.newChat.start")}</button><div role="separator" className={MENU_ITEM_SEPARATOR} /></>}
           {teamSettingsAllowed !== false && <button
             onClick={() => { setPlusOpen(false); dispatch({ type: "newBot" }); }}
             role="menuitem"
