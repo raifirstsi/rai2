@@ -21,3 +21,30 @@ export function intlLocale(language: string | undefined): string {
     return "en-US";
   }
 }
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  vi: "Vietnamese (Tiếng Việt)",
+  en: "English",
+  de: "German (Deutsch)",
+  es: "Spanish (Español)",
+  fr: "French (Français)",
+  hi: "Hindi (हिन्दी)",
+  ja: "Japanese (日本語)",
+  ko: "Korean (한국어)",
+  zh: "Chinese (简体中文)",
+  "zh-tw": "Traditional Chinese (繁體中文)",
+  ru: "Russian (Русский)",
+  pt: "Portuguese (Português)",
+  "pt-br": "Portuguese (Português)",
+  it: "Italian (Italiano)",
+  pl: "Polish (Polski)",
+  tr: "Turkish (Türkçe)",
+  uk: "Ukrainian (Українська)",
+};
+
+/** Human-readable language name for prompt instructions (e.g. "Vietnamese (Tiếng Việt)"). */
+export function languageName(language?: string): string {
+  if (!language) return "English";
+  const code = language.trim().toLowerCase();
+  return LANGUAGE_NAMES[code] ?? LANGUAGE_NAMES[code.split("-")[0]] ?? code;
+}

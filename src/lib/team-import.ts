@@ -1,5 +1,6 @@
 import { parse as parseYaml } from "yaml";
-import { t } from "./i18n";
+import { activeLocale, t } from "./i18n";
+import { localizePackageManifest } from "../../shared/team-templates-localization";
 import { parseTeamBackup, TEAM_BACKUP_CONTENTS } from "../../shared/team-backup";
 import { PACKAGE_VERSION, parsePackageDocument, type PackageDocument } from "../../shared/package-format";
 
@@ -35,6 +36,7 @@ export function teamImportPreview(manifest: unknown): PendingTeamImport {
   if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
     throw new Error(t("teamImport.noTeam"));
   }
+  manifest = localizePackageManifest(manifest as Record<string, unknown>, activeLocale());
   const root = manifest as Record<string, unknown>;
   if (root.format === "openmaus.backup") {
     const backup = parseTeamBackup(manifest);

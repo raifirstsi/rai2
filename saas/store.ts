@@ -52,7 +52,7 @@ type ChallengeRow = { code_hash: string; expires_at: number; attempts: number; s
 
 const accountOf = (row: AccountRow): Account => ({
   id: row.id, email: row.email, slug: row.slug, paidThrough: row.paid_through,
-  workspaceHandle: row.workspace_handle, trialThrough: row.trial_expires_at ?? 0,
+  workspaceHandle: row.workspace_handle, trialThrough: row.paid_through > 0 ? 0 : (row.trial_expires_at ?? 0),
   workspaceState: row.workspace_state,
 });
 const orderOf = (row: OrderRow): Order => ({
@@ -495,6 +495,21 @@ export class SaasStore {
     }
   }
 
+  autoReconcileUnmatched(now: number): number {
+    const rows = this.unmatchedPayments();
+    let reconciled = 0;
+    for (const item of rows) {
+      if (!item.code) continue;
+      const order = this.#db.prepare("SELECT * FROM orders WHERE code = ?").get(item.code) as OrderRow | undefined;
+      if (order && order.status === "pending" && order.amount === item.amount) {
+        if (this.assignUnmatched(item.reference, item.code, now)) {
+          reconciled++;
+        }
+      }
+    }
+    return reconciled;
+  }
+
   #creditOrder(order: OrderRow, reference: string, amount: number, receivedAt: number, appliedAt: number): void {
     const account = this.#db.prepare("SELECT * FROM accounts WHERE id = ?").get(order.account_id) as AccountRow;
     const billingStart = Math.max(appliedAt, account.paid_through, account.trial_expires_at ?? 0);
@@ -503,7 +518,7 @@ export class SaasStore {
     this.#db.prepare("INSERT INTO payments (reference, order_id, amount, received_at) VALUES (?, ?, ?, ?)")
       .run(reference, order.id, amount, receivedAt);
     this.#db.prepare("UPDATE orders SET status = 'paid', paid_at = ? WHERE id = ?").run(appliedAt, order.id);
-    this.#db.prepare("UPDATE accounts SET paid_through = ?, billing_anchor_day = ? WHERE id = ?")
+    this.#db.prepare("UPDATE accounts SET paid_through = ?, billing_anchor_day = ?, trial_expires_at = NULL WHERE id = ?")
       .run(paidThrough, anchorDay, account.id);
   }
 
