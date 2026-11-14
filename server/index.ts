@@ -12616,14 +12616,14 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       res.end(answer.text);
       return;
     }
-    if (process.env.OMB_RAI2_TENANT === "1" && method === "GET" && path === "/" &&
-      !sessions.authenticate(parseCookies(req.headers.cookie).get(SESSION_COOKIE))) {
+    if (process.env.OMB_RAI2_TENANT === "1" && method === "GET" &&
+      (path === "/" || (!sessions.authenticate(parseCookies(req.headers.cookie).get(SESSION_COOKIE)) && (path === "/app" || path === "/pair")))) {
       let portal: URL;
       try { portal = new URL(process.env.OMB_SIGNIN_TENANT_URL ?? ""); }
       catch { return json(res, 503, { error: "workspace sign-in unavailable" }); }
       if (portal.protocol !== "https:" || portal.origin !== process.env.OMB_SIGNIN_TENANT_URL ||
         portal.username || portal.password) return json(res, 503, { error: "workspace sign-in unavailable" });
-      res.writeHead(302, { location: `${portal.origin}/?open=1`, "cache-control": "no-store", "referrer-policy": "no-referrer" });
+      res.writeHead(302, { location: `${portal.origin}/`, "cache-control": "no-store", "referrer-policy": "no-referrer" });
       res.end();
       return;
     }

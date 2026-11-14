@@ -115,7 +115,7 @@ for (const [index, slug] of slugs.entries()) {
   assert.equal(run("systemctl", ["is-active", `openmausbot@${slug}.service`]), "active");
   const direct = await fetch(`http://127.0.0.1:${ownPort}/`, { headers: { host: `${slug}.fixture.test` }, redirect: "manual" });
   assert.equal(direct.status, 302);
-  assert.equal(direct.headers.get("location"), "https://app.fixture.test/?open=1");
+  assert.equal(direct.headers.get("location"), "https://app.fixture.test/");
   const claim = run("curl", ["-sS", "-o", "/dev/null", "-w", "%{http_code}",
     "-H", `Host: ${slug}.fixture.test`, `http://127.0.0.1:${ownPort}/api/auth/rai2/claim`]);
   assert.equal(claim, "200");
