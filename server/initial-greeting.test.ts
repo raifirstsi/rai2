@@ -7,6 +7,7 @@ describe("the line after Set me up", () => {
     expect(setupRequestLine("en")).toBe(
       "Great. Tell me what you'd like help with, in your own words, and I'll set myself up for it. For example: \"sort my inbox every morning\" or \"research our competitors every week\".",
     );
+    expect(setupRequestLine("vi")).toMatch(/^Tuyệt vời\. Hãy cho mình biết/);
     expect(setupRequestLine("es-MX")).toMatch(/^Genial\. Cuéntame/);
     expect(setupRequestLine("pt-BR")).toMatch(/^Ótimo\. Me conte/);
     expect(setupRequestLine("fr")).toBe(setupRequestLine("en"));
@@ -21,6 +22,7 @@ describe("the line after Set me up", () => {
 describe("a new bot's greeting", () => {
   it("names the person by their first name, in the app's language", () => {
     expect(initialGreeting("Scout", "en", "Milind Soni")).toBe("Hi Milind, I'm Scout. What would you like me to do?");
+    expect(initialGreeting("Scout", "vi", "Huy Trần")).toBe("Chào Huy, mình là Scout. Bạn muốn mình giúp gì?");
     expect(initialGreeting("Scout", "es-MX", "  Ana  María ")).toBe("Hola Ana, soy Scout. ¿Qué te gustaría que hiciera?");
     expect(initialGreeting("Scout", "pt-BR", "João")).toBe("Oi João, eu sou Scout. O que você gostaria que eu fizesse?");
     expect(initialGreeting("Scout", "zh-TW", "王小明")).toBe("嗨 王小明，我是 Scout。你想要我幫你做什麼？");
