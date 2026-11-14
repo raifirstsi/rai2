@@ -344,9 +344,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .card-header {
-  margin-inline: -24px;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 24px 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -469,8 +467,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 22px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 0 8px;
 }
 
 .workspace-details {
@@ -670,8 +667,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 22px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 0;
 }
 
 .plan-info {
@@ -1077,8 +1073,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   }
 
   .card-header {
-    margin-inline: -16px;
-    padding: 16px;
+    padding: 16px 0 8px;
   }
 
   .account-heading, .billing-heading {
