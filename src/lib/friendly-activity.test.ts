@@ -40,4 +40,19 @@ describe("Simple mode's working line", () => {
     expect(toolService("Bash")).toBeNull();
     expect(friendlyNowPhrases(null, running("mcp__notion__search")).phrases).toEqual(["Working in Notion"]);
   });
+
+  it("translates generic and tool activities into natural Vietnamese when locale is vi", async () => {
+    const { loadLocale, setLocale } = await import("./i18n");
+    await loadLocale("vi");
+    expect(friendlyNowPhrases(null).phrases).toEqual([
+      "Đang suy nghĩ",
+      "Đang cân nhắc",
+      "Đang xử lý",
+      "Đang từng bước xử lý",
+    ]);
+    expect(friendlyNowPhrases({ activity: "command", itemId: "x" }).phrases).toEqual(["Đang chạy lệnh"]);
+    expect(friendlyNowPhrases({ activity: "read", file: "notes.md", itemId: "r" }).phrases).toEqual(["Đang tìm kiếm thông tin"]);
+    expect(friendlyNowPhrases(null, running("delegate_bot")).phrases).toEqual(["Đang trao đổi với nhóm"]);
+    setLocale("en");
+  });
 });
