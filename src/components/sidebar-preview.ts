@@ -11,6 +11,7 @@ import { plainPreviewText } from "@/lib/plain-preview";
 import { isClientCancellation, isStoppedTurnName } from "../../shared/client-cancel";
 import { roomWorkingPreview } from "@/lib/room-threads";
 import { localizedCard } from "@/lib/widget-text";
+import { localizeGreetingMessage } from "@/lib/localize-greeting";
 import { widgetToText } from "../../shared/widget";
 
 /** The newest message a preview can show. A receipt or a screen frame says nothing about the conversation on its own. */
@@ -57,7 +58,8 @@ export function lastLine(bot: Bot, visible: Message[], instances: InstanceInfo[]
   const peer = peerLine(last);
   if (peer) return `${peer.name}: ${plainPreviewText(peer.body)}`;
   if (last.role !== "user" && isClientCancellation(last.text ?? "")) return t("chat.turnStopped");
-  return plainPreviewText(citationPreviewText(serverCardText(last) ?? last.text ?? ""));
+  const localized = last.setupOffer ? localizeGreetingMessage(last, bot.name) : last;
+  return plainPreviewText(citationPreviewText(serverCardText(localized) ?? localized.text ?? ""));
 }
 
 export function serverCardText(message: Pick<Message, "kind" | "widget">): string | undefined {
