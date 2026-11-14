@@ -8,42 +8,26 @@ import {
   Layers,
   Route,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useStore } from "@/state/store";
+import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
+import { buildBotMemoryBundle, mergeMemoryWithCustomNotes } from "@/lib/role-context-router";
+import { saveMemoryDoc, fetchMemoryDoc } from "@/lib/memory";
 import {
   CONTEXT_PILLARS,
   distillUnscriptedKnowledge,
   routeContextForTask,
   scoreContextSharpness,
+  loadSavedContextVault,
+  saveContextVaultToStorage,
   type ContextPillarId,
   type TaskType,
 } from "../lib/context-vault.ts";
 
-const STORAGE_KEY = "rai2_context_vault_v1";
+export { loadSavedContextVault, saveContextVaultToStorage };
 
-export function loadSavedContextVault(): Record<ContextPillarId, string> | null {
-  if (typeof window !== "undefined" && window.localStorage) {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // fallback
-    }
-  }
-  return null;
-}
-
-export function saveContextVaultToStorage(
-  contents: Record<ContextPillarId, string>
-): void {
-  if (typeof window !== "undefined" && window.localStorage) {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(contents));
-    } catch {
-      // ignore
-    }
-  }
-}
 
 interface ContextVaultModalProps {
   isOpen: boolean;
@@ -101,6 +85,45 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   );
 
   if (!isOpen) return null;
+
+  const { state } = useStore();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
+  const handleSyncAllBots = async () => {
+    setIsSyncing(true);
+    setSyncStatus(null);
+    try {
+      saveContextVaultToStorage(contents);
+      const toc = loadSavedTocDiagnosis();
+      let count = 0;
+      if (state.bots && state.bots.length > 0) {
+        for (const b of state.bots) {
+          const bundle = buildBotMemoryBundle(b.section || b.id, contents, toc);
+          for (const [filePath, fileContent] of Object.entries(bundle)) {
+            const relPath = filePath.replace(/^memory\//, "");
+            try {
+              const existing = await fetchMemoryDoc(b.id, relPath).catch(() => null);
+              const merged = mergeMemoryWithCustomNotes(existing?.text, fileContent);
+              await saveMemoryDoc(b.id, relPath, merged, undefined).catch(() => {});
+            } catch {
+              await saveMemoryDoc(b.id, relPath, fileContent, undefined).catch(() => {});
+            }
+          }
+          count++;
+        }
+      }
+      setSyncStatus(`Đã đồng bộ thông minh cho ${count} bot`);
+      if (onSyncComplete) onSyncComplete();
+      setTimeout(() => {
+        onClose();
+      }, 600);
+    } catch (e) {
+      console.error("Context sync error:", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleContentChange = (val: string) => {
     setContents((prev) => ({ ...prev, [activeTab]: val }));
@@ -526,26 +549,34 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
         {/* Sticky Action Footer CTA */}
         <div className="sticky bottom-0 left-0 right-0 z-20 flex flex-col gap-2.5 border-t border-hairline/40 bg-panel p-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:p-4">
           <div className="text-[12px] text-center sm:text-left text-ink-tertiary">
-            Mã hóa và lưu trữ cục bộ trong Két Sắt Doanh Nghiệp.
+            {syncStatus || "Mã hóa và lưu trữ cục bộ trong Két Sắt Doanh Nghiệp."}
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={onClose}
+              disabled={isSyncing}
               className="ui-button hidden sm:inline-flex"
             >
               Đóng
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (onSyncComplete) onSyncComplete();
-                onClose();
-              }}
+              onClick={handleSyncAllBots}
+              disabled={isSyncing}
               className="ui-button ui-button-primary ui-button-lg w-full sm:w-auto"
             >
-              <Check size={15} />
-              <span>Lưu & Đồng Bộ Toàn Bộ RAIs</span>
+              {isSyncing ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Đang Đồng Bộ...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={15} />
+                  <span>Lưu & Đồng Bộ Toàn Bộ RAIs</span>
+                </>
+              )}
             </button>
           </div>
         </div>

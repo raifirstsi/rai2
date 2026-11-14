@@ -4,6 +4,9 @@ import type { MausColor } from "../../shared/wire";
 import { t, tFromServer } from "@/lib/i18n";
 import { getBotMascotUrl } from "@/lib/mascot-mapping";
 import { RAI_READY_BOTS } from "./rai-ready-bots";
+import { loadSavedContextVault } from "./context-vault";
+import { loadSavedTocDiagnosis } from "./toc-detector";
+import { buildBotMemoryBundle } from "./role-context-router";
 
 export type ReadyBotCategory = "everyday" | "work" | "writing" | "design" | "sales" | "personal";
 
@@ -348,6 +351,12 @@ export function readyBotTemplate(defaults: NewBotDefaults, bot: ReadyBot): NewBo
   for (const [path, text] of Object.entries(bot.notes ?? {})) {
     const own = template.memory[path]?.trimEnd();
     template.memory[path] = own ? `${own}\n${text}` : text;
+  }
+  const vault = loadSavedContextVault();
+  const toc = loadSavedTocDiagnosis();
+  const contextualMemory = buildBotMemoryBundle(bot.id, vault, toc);
+  for (const [path, text] of Object.entries(contextualMemory)) {
+    template.memory[path] = text;
   }
   template.routines = [...template.routines, ...(bot.routines ?? []).map((routine) => ({ ...routine, ...(bot.id === "social" ? { name: t("readyBots.routine.socialWeekly") } : {}), enabled: false }))];
   return template;

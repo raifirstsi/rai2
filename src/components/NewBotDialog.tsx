@@ -33,6 +33,9 @@ import { SharePresetDialog } from "./SharePresetDialog";
 import { SettingRow } from "./SettingsPrimitives";
 import { NewBotDefaultsRow } from "./AppSettingsRows";
 import { Select } from "./Select";
+import { RAI2_DEPARTMENT_ZONES, buildBotMemoryBundle } from "@/lib/role-context-router";
+import { loadSavedContextVault } from "@/lib/context-vault";
+import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
 
 const SECTIONS = ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Model", "Permissions", "Voice & alerts"] as const;
 type Section = typeof SECTIONS[number];
@@ -229,14 +232,35 @@ function DraftSection({ active, draft, defaultsMode, owner }: { active: Section;
   const { state } = useStore();
   const team = useTeamPeople();
   const derived = useBotSettingsDerived(bot);
+  const handleSectionOrZoneChange = (chosenSection: string) => {
+    draft.patch({ section: chosenSection });
+    if (chosenSection) {
+      const vault = loadSavedContextVault();
+      const toc = loadSavedTocDiagnosis();
+      const bundle = buildBotMemoryBundle(chosenSection, vault, toc);
+      for (const [filePath, content] of Object.entries(bundle)) {
+        draft.setMemory(filePath, content);
+      }
+    }
+  };
+
   if (active === "Identity") return <div className="space-y-4">
     <StartingRole draft={draft} defaultsMode={defaultsMode} />
     <IdentitySection bot={bot} patch={derived.patch} activeState={derived.activeState} mascotMotion={null}
       namePlaceholder={defaultsMode ? t("newBot.randomName") : undefined} />
-    <label className="block text-[13px] text-ink-secondary">{t("newBot.team")}
-      <Select size="lg" className="mt-1.5 w-full" value={bot.section ?? ""} onChange={event => draft.patch({ section: event.target.value })}>
-        <option value="">{t("teamSettings.general")}</option>{[...new Set([...(state.sections ?? []), ...state.bots.map(bot => bot.section ?? "")])].filter(Boolean).map(name => <option key={name}>{name}</option>)}
+    <label className="block text-[13px] text-ink-secondary">Vùng Nghiệp Vụ / Phòng Ban (7 Vùng TOC)
+      <Select size="lg" className="mt-1.5 w-full" value={bot.section ?? ""} onChange={event => handleSectionOrZoneChange(event.target.value)}>
+        <option value="">{t("teamSettings.general")}</option>
+        <optgroup label="7 Vùng Nghiệp Vụ Chuẩn Sách RAI² OS">
+          {RAI2_DEPARTMENT_ZONES.map(z => (
+            <option key={z.code} value={z.name}>{z.shortName} · {z.name}</option>
+          ))}
+        </optgroup>
+        {[...new Set([...(state.sections ?? []), ...state.bots.map(b => b.section ?? "")])].filter(s => !RAI2_DEPARTMENT_ZONES.some(z => z.name === s)).map(name => <option key={name}>{name}</option>)}
       </Select>
+      <span className="mt-1 block text-[11px] text-ink-tertiary">
+        Chọn Vùng nghiệp vụ để tự động nạp tri thức tương ứng từ Két Sắt & TOC.
+      </span>
     </label>
     {owner && team && <label className="block text-[13px] text-ink-secondary" data-new-bot-reports-to>{t("lookedAfter.newBot")}
       <Select size="lg" className="mt-1.5 w-full" value={owner.value ?? ""} onChange={event => owner.choose(event.target.value)}>

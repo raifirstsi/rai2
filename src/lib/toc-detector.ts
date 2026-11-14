@@ -181,3 +181,28 @@ export function diagnoseBusinessConstraint(input: TocDiagnosticInput): TocDiagno
     },
   };
 }
+
+export const TOC_STORAGE_KEY = "rai2_toc_diagnosis_v1";
+
+export function saveTocDiagnosis(diagnosis: TocDiagnosisResult): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      window.localStorage.setItem(TOC_STORAGE_KEY, JSON.stringify(diagnosis));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export function loadSavedTocDiagnosis(): TocDiagnosisResult | null {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      const data = window.localStorage.getItem(TOC_STORAGE_KEY);
+      if (data) return JSON.parse(data);
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
