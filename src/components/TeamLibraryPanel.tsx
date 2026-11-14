@@ -1022,69 +1022,83 @@ export function TeamLibraryPanel({
         )}
       </div>
       {sharing !== null && <ShareTeamDialog team={sharing} onClose={() => setSharing(null)} />}
-      <HireAgentDialog
-        open={hireDialogOpen}
-        onClose={() => setHireDialogOpen(false)}
-        initialZone={hireDialogZone}
-        onSelectAgent={(agent) => {
-          setHireDialogOpen(false);
-          setAddingReadyBotId(agent.key);
-        }}
-      />
-      <CompanyFingerprintModal
-        isOpen={fingerprintModalOpen}
-        onClose={() => setFingerprintModalOpen(false)}
-      />
-      <TocConstraintModal
-        isOpen={tocModalOpen}
-        onClose={() => setTocModalOpen(false)}
-        onSelectAgentKey={(key) => {
-          setTocModalOpen(false);
-          setAddingReadyBotId(key);
-        }}
-      />
-      <ContextVaultModal
-        isOpen={vaultModalOpen}
-        onClose={() => setVaultModalOpen(false)}
-      />
-      <StrategyMapModal
-        isOpen={strategyMapModalOpen}
-        onClose={() => setStrategyMapModalOpen(false)}
-        onHireDepartment={(_deptCode, zoneNumber) => {
-          setStrategyMapModalOpen(false);
-          if (zoneNumber) setHireDialogZone(zoneNumber);
-          setHireDialogOpen(true);
-        }}
-        onOpenTocDiagnostic={() => {
-          setStrategyMapModalOpen(false);
-          setTocModalOpen(true);
-        }}
-        onOpenFridayPulse={() => {
-          setStrategyMapModalOpen(false);
-          setFridayPulseModalOpen(true);
-        }}
-      />
-      <FridayPulseModal
-        isOpen={fridayPulseModalOpen}
-        onClose={() => setFridayPulseModalOpen(false)}
-        onOpenTocDiagnostic={() => {
-          setFridayPulseModalOpen(false);
-          setTocModalOpen(true);
-        }}
-        onOpenStrategyMap={() => {
-          setFridayPulseModalOpen(false);
-          setStrategyMapModalOpen(true);
-        }}
-      />
-      <FiveLeversModal
-        isOpen={fiveLeversModalOpen}
-        onClose={() => setFiveLeversModalOpen(false)}
-        onHireDepartment={(_deptCode, zoneNumber) => {
-          setFiveLeversModalOpen(false);
-          if (zoneNumber) setHireDialogZone(zoneNumber);
-          setHireDialogOpen(true);
-        }}
-      />
+      {hireDialogOpen && (
+        <HireAgentDialog
+          open={hireDialogOpen}
+          onClose={() => setHireDialogOpen(false)}
+          initialZone={hireDialogZone}
+          onSelectAgent={(agent) => {
+            setHireDialogOpen(false);
+            setAddingReadyBotId(agent.key);
+          }}
+        />
+      )}
+      {fingerprintModalOpen && (
+        <CompanyFingerprintModal
+          isOpen={fingerprintModalOpen}
+          onClose={() => setFingerprintModalOpen(false)}
+        />
+      )}
+      {tocModalOpen && (
+        <TocConstraintModal
+          isOpen={tocModalOpen}
+          onClose={() => setTocModalOpen(false)}
+          onSelectAgentKey={(key) => {
+            setTocModalOpen(false);
+            setAddingReadyBotId(key);
+          }}
+        />
+      )}
+      {vaultModalOpen && (
+        <ContextVaultModal
+          isOpen={vaultModalOpen}
+          onClose={() => setVaultModalOpen(false)}
+        />
+      )}
+      {strategyMapModalOpen && (
+        <StrategyMapModal
+          isOpen={strategyMapModalOpen}
+          onClose={() => setStrategyMapModalOpen(false)}
+          onHireDepartment={(_deptCode, zoneNumber) => {
+            setStrategyMapModalOpen(false);
+            if (zoneNumber) setHireDialogZone(zoneNumber);
+            setHireDialogOpen(true);
+          }}
+          onOpenTocDiagnostic={() => {
+            setStrategyMapModalOpen(false);
+            setTocModalOpen(true);
+          }}
+          onOpenFridayPulse={() => {
+            setStrategyMapModalOpen(false);
+            setFridayPulseModalOpen(true);
+          }}
+        />
+      )}
+      {fridayPulseModalOpen && (
+        <FridayPulseModal
+          isOpen={fridayPulseModalOpen}
+          onClose={() => setFridayPulseModalOpen(false)}
+          onOpenTocDiagnostic={() => {
+            setFridayPulseModalOpen(false);
+            setTocModalOpen(true);
+          }}
+          onOpenStrategyMap={() => {
+            setFridayPulseModalOpen(false);
+            setStrategyMapModalOpen(true);
+          }}
+        />
+      )}
+      {fiveLeversModalOpen && (
+        <FiveLeversModal
+          isOpen={fiveLeversModalOpen}
+          onClose={() => setFiveLeversModalOpen(false)}
+          onHireDepartment={(_deptCode, zoneNumber) => {
+            setFiveLeversModalOpen(false);
+            if (zoneNumber) setHireDialogZone(zoneNumber);
+            setHireDialogOpen(true);
+          }}
+        />
+      )}
       {addingReadyBotId &&
         createPortal(
           <NewBotDialog

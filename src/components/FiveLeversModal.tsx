@@ -79,29 +79,30 @@ export function FiveLeversModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200"
     >
       <div className="flex max-h-[94vh] w-full max-w-4xl flex-col rounded-2xl border border-hairline/60 bg-card shadow-2xl overflow-hidden">
-        {/* Header */}
-        <header className="flex items-center justify-between border-b border-hairline/50 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-              <TrendingUp size={22} />
+        {/* Header matching Voice-to-SOP (Image 3) */}
+        <header className="flex items-center justify-between border-b border-hairline/50 px-4 py-3 sm:px-6 sm:py-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent shrink-0">
+              <TrendingUp size={20} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 id={dialogTitleId} className="text-[16px] font-bold text-ink">
-                  Mô Phỏng 5 Đòn Bẩy P&L (5-Lever Compounding Engine)
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 id={dialogTitleId} className="text-[15px] sm:text-[16px] font-semibold text-ink truncate">
+                  Mô Phỏng 5 Đòn Bẩy P&L
                 </h2>
-                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
                   x{result.growth.netProfitMultiplier} Lợi Nhuận
                 </span>
               </div>
-              <p className="text-[12px] text-ink-secondary">
-                Công thức tăng trưởng kép nhân đôi lợi nhuận ròng không tăng nhân sự (The AI-First Company)
+              <p className="text-[12px] text-ink-secondary truncate">
+                Mô phỏng đòn bẩy tài chính kép tăng trưởng lợi nhuận không tăng nhân sự.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
+            className="rounded-lg p-2 text-ink-secondary hover:bg-raised hover:text-ink transition-colors shrink-0"
             aria-label="Đóng"
           >
             <X size={18} />
@@ -422,21 +423,21 @@ export function FiveLeversModal({
           </details>
         </div>
 
-        {/* Footer */}
-        <footer className="flex items-center justify-between border-t border-hairline/50 px-6 py-4 bg-card">
+        {/* Footer matching Image 3 */}
+        <footer className="flex flex-col-reverse sm:flex-row items-center justify-between border-t border-hairline/50 px-4 py-3 sm:px-6 sm:py-3.5 bg-card gap-2.5 shrink-0">
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium text-ink-secondary hover:bg-raised transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-ink-secondary hover:text-ink transition-colors w-full sm:w-auto justify-center sm:justify-start"
           >
-            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+            {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
             {copied ? "Đã sao chép Kế hoạch P&L!" : "Sao chép Kế hoạch P&L"}
           </button>
 
           <button
             type="button"
             onClick={onClose}
-            className="ui-button ui-button-secondary text-xs"
+            className="px-4 py-2 text-[13px] font-medium text-ink-secondary hover:text-ink rounded-lg transition-colors w-full sm:w-auto text-center"
           >
             Đóng
           </button>
