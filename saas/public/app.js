@@ -176,6 +176,15 @@ const message = (key, error = false) => {
 const renderAccount = () => {
   if (!account) return;
   setText("account-email", account.email);
+  const emailPrefix = account.email ? account.email.split("@")[0] : "";
+  const initials = (emailPrefix.slice(0, 2) || "ST").toUpperCase();
+  const avatarEls = document.querySelectorAll("#account-avatar, #sidebar-avatar");
+  avatarEls.forEach((el) => { el.textContent = initials; });
+  const usernameEls = document.querySelectorAll("#account-username, #sidebar-username");
+  usernameEls.forEach((el) => { el.textContent = emailPrefix || "Người dùng"; });
+  const userEmailEls = document.querySelectorAll("#account-email, #sidebar-user-email");
+  userEmailEls.forEach((el) => { el.textContent = account.email; });
+
   const now = Date.now();
   const effectivePaidThrough = Math.max(account.paidThrough || 0, billing?.paidThrough || 0);
   const paidOrders = Array.isArray(billing?.orders) ? billing.orders.filter((o) => o.status === "paid") : [];
@@ -201,8 +210,13 @@ const renderAccount = () => {
 
   show("workspace-row", active);
   if (active) {
+    const host = new URL(account.workspaceUrl).host;
     byId("workspace-link").href = "/api/workspace/open";
-    setText("workspace-address", new URL(account.workspaceUrl).host);
+    setText("workspace-address", host);
+    const sidebarHost = byId("sidebar-workspace-label");
+    if (sidebarHost) sidebarHost.textContent = host;
+    const topbarCta = byId("topbar-workspace-cta");
+    if (topbarCta) topbarCta.href = "/api/workspace/open";
     if (!handleEditorOpen) byId("workspace-handle").value = accountHandle();
     updateHandleSave();
   }
@@ -326,6 +340,10 @@ const refresh = async () => {
   try {
     account = await request("/api/me");
     markLandingSession(true);
+    const consoleEl = byId("app-console");
+    const signinEl = byId("signin-container");
+    if (consoleEl) consoleEl.style.display = "flex";
+    if (signinEl) signinEl.style.display = "none";
     show("signin", false);
     show("account", true);
     show("logout", true);
@@ -341,8 +359,12 @@ const refresh = async () => {
     if (waiting && !readyTimer) readyTimer = setInterval(() => void refresh(), 3000);
     else if (!waiting && readyTimer) { clearInterval(readyTimer); readyTimer = null; }
   } catch (error) {
+    account = null;
+    const consoleEl = byId("app-console");
+    const signinEl = byId("signin-container");
+    if (consoleEl) consoleEl.style.display = "none";
+    if (signinEl) signinEl.style.display = "flex";
     if (error.status !== 401) {
-      account = null;
       show("signin", true);
       show("account", false);
       show("billing", false);
@@ -351,7 +373,6 @@ const refresh = async () => {
       message("loadAccountFailed", true);
       return;
     }
-    account = null;
     markLandingSession(false);
     show("signin", true);
     show("account", false);
@@ -531,6 +552,76 @@ byId("order-button").addEventListener("click", async () => {
 
 byId("transactions-refresh").addEventListener("click", () => void loadBilling());
 
-setTheme(theme);
+// Theme choice handling: system, light, dark
+let themeChoice = localStorage.getItem("rai2_theme_choice") || "system";
+const applyThemeChoice = (choice) => {
+  themeChoice = choice;
+  localStorage.setItem("rai2_theme_choice", choice);
+  let resolved = choice;
+  if (choice === "system") {
+    resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  setTheme(resolved);
+  document.querySelectorAll(".theme-seg-btn").forEach((btn) => {
+    const isChosen = btn.dataset.themeChoice === choice;
+    btn.classList.toggle("active", isChosen);
+    btn.setAttribute("aria-checked", String(isChosen));
+  });
+};
+
+document.querySelectorAll(".theme-seg-btn").forEach((btn) => {
+  btn.addEventListener("click", () => applyThemeChoice(btn.dataset.themeChoice));
+});
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (themeChoice === "system") {
+    setTheme(e.matches ? "dark" : "light");
+  }
+});
+
+// Mobile Drawer toggle
+const mobileMenuBtn = byId("mobile-menu-btn");
+const sidebarBackdrop = byId("sidebar-backdrop");
+if (mobileMenuBtn) {
+  mobileMenuBtn.addEventListener("click", () => {
+    document.body.classList.toggle("sidebar-open");
+    mobileMenuBtn.setAttribute("aria-expanded", String(document.body.classList.contains("sidebar-open")));
+  });
+}
+if (sidebarBackdrop) {
+  sidebarBackdrop.addEventListener("click", () => {
+    document.body.classList.remove("sidebar-open");
+    if (mobileMenuBtn) mobileMenuBtn.setAttribute("aria-expanded", "false");
+  });
+}
+document.querySelectorAll(".sidebar-menu-item, .sidebar-cloud-item").forEach((el) => {
+  el.addEventListener("click", () => {
+    document.body.classList.remove("sidebar-open");
+  });
+});
+
+// Console Tab Navigation
+document.querySelectorAll(".console-tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".console-tab-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    const target = btn.dataset.tabTarget;
+    if (target) {
+      const el = document.querySelector(target);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+});
+
+// Command palette / Search shortcut (Cmd+K / Ctrl+K)
+window.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    const searchInput = byId("console-search-input");
+    if (searchInput) searchInput.focus();
+  }
+});
+
+applyThemeChoice(themeChoice);
 setLocale(locale);
 void Promise.all([loadStatus(), refresh()]);
