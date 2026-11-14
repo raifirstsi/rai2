@@ -493,7 +493,7 @@ release and verification gates were checked.
   workspace consumes it through the existing tenant-authenticated backchannel.
   A workspace-local, host-only, HttpOnly session is issued only after its own
   allow-list confirms the owner. Portal and workspace cookies remain separate.
-- An unsigned-in direct workspace visit returns to `app.rai2.si/?open=1`.
+- An unsigned-in direct workspace visit returns to `app.rai2.si/`.
   After portal OTP, the same account automatically opens its workspace without
   a second email OTP. Local workspace OTP remains as a recovery route.
 - Isolated API fixtures passed 13 tests: one-use exchange, wrong workspace,
