@@ -8,8 +8,20 @@
     <title>RAI² First OS | Artificial Intelligence + Actual Intelligence</title>
     <link rel="icon" href="/assets/rai-backend-favicon.png?v=20261112-logo2" type="image/png">
     <link rel="apple-touch-icon" href="/assets/rai-touch-180.png?v=20261112-logo2" sizes="180x180">
-    <link rel="stylesheet" href="/landing.css?v=0218bbed1666">
-    <script src="/landing.js?v=20261113-session-labels1" defer></script>
+    <script>
+      (function() {
+        try {
+          var c = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie);
+          var t = (c && c[1]) || localStorage.getItem("rai2_theme_choice") || localStorage.getItem("rai2_landing_theme");
+          if (t === "system" || !t) {
+            t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/landing.css?v=20261114-theme-sync1">
+    <script src="/landing.js?v=20261114-theme-sync1" defer></script>
   </head>
   <body>
     <header class="site-header">

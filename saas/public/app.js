@@ -157,7 +157,8 @@ const setTheme = (value) => {
   const themeLabel = say(theme === "light" ? "themeDark" : "themeLight");
   byId("theme-toggle").setAttribute("aria-label", themeLabel);
   byId("theme-toggle").title = themeLabel;
-  document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f8f9fa" : "#080808";
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.content = theme === "light" ? "#f8fafd" : "#000000";
   localStorage.setItem("rai2_landing_theme", theme);
   if (location.hostname === "rai2.si" || location.hostname.endsWith(".rai2.si")) {
     document.cookie = `rai2_theme=${theme}; Domain=rai2.si; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
@@ -176,6 +177,13 @@ const message = (key, error = false) => {
 const renderAccount = () => {
   if (!account) return;
   setText("account-email", account.email);
+  const emailPrefix = account.email ? account.email.split("@")[0] : "";
+  const initials = (emailPrefix.slice(0, 2) || "ST").toUpperCase();
+  const avatarEl = byId("account-avatar");
+  if (avatarEl) avatarEl.textContent = initials;
+  const usernameEl = byId("account-username");
+  if (usernameEl) usernameEl.textContent = emailPrefix || "Người dùng";
+
   const now = Date.now();
   const effectivePaidThrough = Math.max(account.paidThrough || 0, billing?.paidThrough || 0);
   const paidOrders = Array.isArray(billing?.orders) ? billing.orders.filter((o) => o.status === "paid") : [];
@@ -200,9 +208,13 @@ const renderAccount = () => {
     : (effectiveTrialThrough > 0 || account.trialThrough) ? "trialExpired" : "unpaid"));
 
   show("workspace-row", active);
+  show("header-workspace-cta", active);
   if (active) {
+    const host = new URL(account.workspaceUrl).host;
     byId("workspace-link").href = "/api/workspace/open";
-    setText("workspace-address", new URL(account.workspaceUrl).host);
+    setText("workspace-address", host);
+    const headerCta = byId("header-workspace-cta");
+    if (headerCta) headerCta.href = "/api/workspace/open";
     if (!handleEditorOpen) byId("workspace-handle").value = accountHandle();
     updateHandleSave();
   }
@@ -326,6 +338,10 @@ const refresh = async () => {
   try {
     account = await request("/api/me");
     markLandingSession(true);
+    const appSurface = byId("app-surface");
+    const signinEl = byId("signin-container");
+    if (appSurface) appSurface.hidden = false;
+    if (signinEl) signinEl.hidden = true;
     show("signin", false);
     show("account", true);
     show("logout", true);
@@ -341,8 +357,12 @@ const refresh = async () => {
     if (waiting && !readyTimer) readyTimer = setInterval(() => void refresh(), 3000);
     else if (!waiting && readyTimer) { clearInterval(readyTimer); readyTimer = null; }
   } catch (error) {
+    account = null;
+    const appSurface = byId("app-surface");
+    const signinEl = byId("signin-container");
+    if (appSurface) appSurface.hidden = true;
+    if (signinEl) signinEl.hidden = false;
     if (error.status !== 401) {
-      account = null;
       show("signin", true);
       show("account", false);
       show("billing", false);
@@ -351,7 +371,6 @@ const refresh = async () => {
       message("loadAccountFailed", true);
       return;
     }
-    account = null;
     markLandingSession(false);
     show("signin", true);
     show("account", false);
@@ -364,7 +383,7 @@ const refresh = async () => {
 };
 
 byId("language").addEventListener("change", (event) => setLocale(event.target.value));
-byId("theme-toggle").addEventListener("click", () => setTheme(theme === "light" ? "dark" : "light"));
+byId("theme-toggle").addEventListener("click", () => applyThemeChoice(theme === "light" ? "dark" : "light"));
 
 byId("email-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -531,6 +550,33 @@ byId("order-button").addEventListener("click", async () => {
 
 byId("transactions-refresh").addEventListener("click", () => void loadBilling());
 
-setTheme(theme);
+// Theme choice handling: system, light, dark
+let themeChoice = localStorage.getItem("rai2_theme_choice") || themeCookie || localStorage.getItem("rai2_landing_theme") || "system";
+const applyThemeChoice = (choice) => {
+  themeChoice = choice;
+  localStorage.setItem("rai2_theme_choice", choice);
+  let resolved = choice;
+  if (choice === "system") {
+    resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  setTheme(resolved);
+  document.querySelectorAll(".theme-segment-btn, .theme-seg-btn").forEach((btn) => {
+    const isChosen = btn.dataset.themeChoice === choice;
+    btn.classList.toggle("active", isChosen);
+    btn.setAttribute("aria-checked", String(isChosen));
+  });
+};
+
+document.querySelectorAll(".theme-segment-btn, .theme-seg-btn").forEach((btn) => {
+  btn.addEventListener("click", () => applyThemeChoice(btn.dataset.themeChoice));
+});
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (themeChoice === "system") {
+    setTheme(e.matches ? "dark" : "light");
+  }
+});
+
+applyThemeChoice(themeChoice);
 setLocale(locale);
 void Promise.all([loadStatus(), refresh()]);
