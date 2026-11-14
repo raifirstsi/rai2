@@ -1,5 +1,6 @@
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
   --bg-page: #f8fafd;
   --bg-surface: #ffffff;
   --bg-surface-subtle: #f1f5f9;
@@ -9,6 +10,7 @@
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
+  --header-bg: rgb(255 255 255 / 0.85);
   --brand-primary: #0099ff;
   --brand-primary-hover: #0088ee;
   --brand-primary-light: #e0f2fe;
@@ -29,27 +31,31 @@
 }
 
 :root[data-theme="dark"] {
-  --bg-page: #0b0f17;
-  --bg-surface: #111726;
-  --bg-surface-subtle: #182234;
-  --bg-card: #111726;
-  --border-subtle: #1e293b;
-  --border-strong: #334155;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
+  color-scheme: dark;
+  background: #000000;
+  color: #ffffff;
+  --bg-page: #000000;
+  --bg-surface: #111111;
+  --bg-surface-subtle: #161616;
+  --bg-card: #111111;
+  --border-subtle: #242424;
+  --border-strong: #333333;
+  --text-main: #ffffff;
+  --text-muted: #999999;
+  --text-subtle: #666666;
+  --header-bg: rgb(0 0 0 / 0.85);
   --brand-primary: #0099ff;
-  --brand-primary-hover: #38bdf8;
-  --brand-primary-light: #082f49;
-  --success: #34d399;
-  --success-bg: #064e3b;
-  --success-border: #065f46;
-  --warning: #fbbf24;
-  --warning-bg: #451a03;
-  --danger: #f87171;
-  --danger-bg: #450a0a;
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
-  --portal-card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.2);
+  --brand-primary-hover: #0088ee;
+  --brand-primary-light: #0d1a25;
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --success-border: rgba(16, 185, 129, 0.28);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.6);
+  --portal-card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.8), 0 8px 24px rgb(0 0 0 / 0.5);
 }
 
 * {
@@ -150,10 +156,10 @@ body:not(.auth-pending) #auth-loading {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  background: var(--header-bg);
   border-bottom: 1px solid var(--border-subtle);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .shell {
@@ -222,6 +228,11 @@ body:not(.auth-pending) #auth-loading {
 .theme-toggle:hover {
   color: var(--text-main);
   background: var(--bg-surface-subtle);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
 }
 
 .theme-icon-moon { display: block; }
@@ -951,6 +962,12 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   color: var(--text-main);
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .theme-segment-btn.active {
+  background: #222222;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 /* Sign In Card */

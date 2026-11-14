@@ -157,7 +157,8 @@ const setTheme = (value) => {
   const themeLabel = say(theme === "light" ? "themeDark" : "themeLight");
   byId("theme-toggle").setAttribute("aria-label", themeLabel);
   byId("theme-toggle").title = themeLabel;
-  document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f8f9fa" : "#080808";
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.content = theme === "light" ? "#f8fafd" : "#000000";
   localStorage.setItem("rai2_landing_theme", theme);
   if (location.hostname === "rai2.si" || location.hostname.endsWith(".rai2.si")) {
     document.cookie = `rai2_theme=${theme}; Domain=rai2.si; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
@@ -382,7 +383,7 @@ const refresh = async () => {
 };
 
 byId("language").addEventListener("change", (event) => setLocale(event.target.value));
-byId("theme-toggle").addEventListener("click", () => setTheme(theme === "light" ? "dark" : "light"));
+byId("theme-toggle").addEventListener("click", () => applyThemeChoice(theme === "light" ? "dark" : "light"));
 
 byId("email-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -550,7 +551,7 @@ byId("order-button").addEventListener("click", async () => {
 byId("transactions-refresh").addEventListener("click", () => void loadBilling());
 
 // Theme choice handling: system, light, dark
-let themeChoice = localStorage.getItem("rai2_theme_choice") || "system";
+let themeChoice = localStorage.getItem("rai2_theme_choice") || themeCookie || localStorage.getItem("rai2_landing_theme") || "system";
 const applyThemeChoice = (choice) => {
   themeChoice = choice;
   localStorage.setItem("rai2_theme_choice", choice);
