@@ -8,16 +8,13 @@ import { Sparkles, X } from "lucide-react";
 
 import { currentReactor, useReactor } from "@/lib/cloud-guest";
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n";
-import type { LocaleKey } from "@/locales";
+import { activeLocale, t } from "@/lib/i18n";
+import { localizeSetupChoices } from "@/lib/localize-greeting";
 import { api, useStore, type Bot, type Message } from "@/state/store";
 import { moveChoiceFocus, returnFocusToComposer } from "./AskCard";
 
 const blank = (bot: Pick<Bot, "soul" | "description">): boolean => !bot.soul?.trim() && !bot.description?.trim();
 const LETTERS = "ABCDEFGH";
-const FALLBACK_CHOICES: LocaleKey[] = [
-  "chat.setupCard.research", "chat.setupCard.watch", "chat.setupCard.inbox", "chat.setupCard.errands", "chat.setupCard.data",
-];
 /** How long the card waits for answers being written after it first sees the wait, and how old a wait can be before it
  * is one a restart left behind: the server ends a wait within 7 s. */
 const PENDING_GRACE_MS = 8_000;
@@ -66,7 +63,7 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
   const updating = rewriting && !settled;
   if (pending || updating) waitedOnce.current = true;
   if (shown.current?.id !== message.id || (showedWait.current && !pending && !updating)) {
-    shown.current = { id: message.id, choices: message.setupChoices?.length ? message.setupChoices : FALLBACK_CHOICES.map((key) => t(key)) };
+    shown.current = { id: message.id, choices: localizeSetupChoices(message.setupChoices) };
   }
   showedWait.current = pending || updating;
   const quiet = settled || updating;
@@ -78,7 +75,9 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
     sending.current = true;
     setBusy(true);
     setError(null);
-    void api<{ message?: Message }>(`/api/bots/${botId}/setup-request`, { method: "POST", body: JSON.stringify({ threadId, ...(text ? { text } : {}) }) })
+    const lang = activeLocale();
+    const languageField = lang && lang !== "en" ? { language: lang } : {};
+    void api<{ message?: Message }>(`/api/bots/${botId}/setup-request`, { method: "POST", body: JSON.stringify({ threadId, ...languageField, ...(text ? { text } : {}) }) })
       .then((reply) => {
         // The live update brings the same line; this one stands in if that update is lost.
         if (reply?.message) dispatch({ type: "messageAdded", threadId, message: reply.message });

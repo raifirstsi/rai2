@@ -7,7 +7,7 @@ import type { BotSource } from "./analytics-allowlist";
 import { BotCreationDraft } from "./bot-creation-draft";
 import { isBotLimitRefusal } from "./bot-limit";
 import { createConfiguredBot } from "./create-configured-bot";
-import { t } from "./i18n";
+import { activeLocale, t } from "./i18n";
 import { botCreated } from "./product-events";
 
 export interface BotDefaultsAnswer { defaults: NewBotDefaults; modelSelection: ModelSelection; suggestedName: string }
@@ -50,7 +50,12 @@ export function announceNewBot(dispatch: (action: Action) => void, bot: Bot, war
  * computer needs the person's own OK, so a bot whose defaults ask for it starts on Ask. */
 async function createNewBot(section: string | undefined, bots: readonly Bot[], team: TeamPeople | null, request: typeof api) {
   if (typeof window !== "undefined" && window.ogb?.remoteClient?.active) {
-    const { bot } = await request<{ bot: Bot }>("/api/bots", { method: "POST", body: JSON.stringify(section === undefined ? {} : { section }) });
+    const lang = activeLocale();
+    const languageField = lang && lang !== "en" ? { language: lang } : {};
+    const { bot } = await request<{ bot: Bot }>("/api/bots", {
+      method: "POST",
+      body: JSON.stringify({ ...(section === undefined ? {} : { section }), ...languageField }),
+    });
     return { bot, warnings: [] as string[], startsOnAsk: false };
   }
   const template = startingTemplate(await request<BotDefaultsAnswer>("/api/bot-defaults"), true);

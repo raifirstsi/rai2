@@ -29,18 +29,25 @@ const LIGHT_SKINS = new Set([
 export function RaiLogo({
   className = "h-6 sm:h-7 w-auto object-contain",
   alt = "RAI²",
+  variant = "auto",
 }: {
   className?: string;
   alt?: string;
+  variant?: "black" | "white" | "auto";
 }) {
   const skin = useSyncExternalStore(subscribeSkin, readSkin, readSkin);
-  const isDark = LIGHT_SKINS.has(skin)
-    ? false
-    : DARK_SKINS.has(skin) ||
-      (typeof document !== "undefined" &&
-        !LIGHT_SKINS.has(document.documentElement.getAttribute("data-skin") || "") &&
-        (document.documentElement.classList.contains("dark") ||
-          document.documentElement.getAttribute("data-theme") === "dark"));
+  const isDark =
+    variant === "white"
+      ? true
+      : variant === "black"
+        ? false
+        : LIGHT_SKINS.has(skin)
+          ? false
+          : DARK_SKINS.has(skin) ||
+            (typeof document !== "undefined" &&
+              !LIGHT_SKINS.has(document.documentElement.getAttribute("data-skin") || "") &&
+              (document.documentElement.classList.contains("dark") ||
+                document.documentElement.getAttribute("data-theme") === "dark"));
 
   return (
     <span className={cn("inline-flex items-center select-none shrink-0", className)}>

@@ -53,7 +53,8 @@ export function createSetupRequestRoutes(deps: SetupRequestRouteDeps): RouteHand
     if (deps.store.taskByThread(botId, threadId) && !deps.canSetUp(botId, threadId)) return json(res, 409, userError("serverError.setup.noTools"));
     const key = `${botId}:${threadId}`;
     if (picking.has(key)) return json(res, 409, { ...userError("serverError.chat.answerSent") });
-    const asked = askForSetup(deps.store, botId, threadId, deps.language(), deps.presser(auth), picked !== undefined);
+    const spokenLanguage = (typeof body?.language === "string" && body.language.trim()) ? body.language.trim() : deps.language();
+    const asked = askForSetup(deps.store, botId, threadId, spokenLanguage, deps.presser(auth), picked !== undefined);
     if (!asked.ok) return json(res, asked.status, refusalBody(asked));
     if (picked === undefined) return json(res, 200, asked);
     picking.add(key);

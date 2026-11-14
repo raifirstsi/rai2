@@ -77,6 +77,7 @@ import { ThreadRefText } from "./ThreadRefs"; import { WatchScreenButton } from 
 import { optionsCardRow } from "./OptionsCardRow";
 import { MessageBoundary } from "./MessageBoundary";
 import { RichMessageRow, UserLineNote, richRowKind } from "./RichMessageRow"; import { SetupOffer } from "./SetupOffer"; import { SavedStepsChip } from "./SavedStepsChip";
+import { localizeGreetingMessage } from "@/lib/localize-greeting";
 import { Composer } from "./Composer";
 import { ChatErrorBanner, ChatNotice } from "./ChatErrorBanner";
 import { ThreadContextWarning } from "./ContextWarning";
@@ -774,7 +775,7 @@ const MessagesList = memo(function MessagesList({
               if (!user && isPureLeakedSystemHarnessMessage(m.text) && !m.attachments?.length) return null;
               return (
                 <Bubble
-                  message={m}
+                  message={m.setupOffer ? localizeGreetingMessage(m, botName) : m}
                   emerging={m.id === emergingId}
                   eagerAttachments={m.id === newestMessageId || m.id === newestUserMessageId}
                   joinAbove={joins?.[i]?.above}

@@ -78,7 +78,7 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
         {t("onboarding.meet.title", { app: productName() })}
       </h1>
       <span className="absolute left-1/2 top-[calc(50%-75px)] flex -translate-x-1/2 -translate-y-1/2 items-center justify-center" style={{ width: MASCOT_SIZE, height: MASCOT_SIZE }}>
-        <RaiLogo className="h-16 w-auto object-contain" />
+        <RaiLogo variant="black" className="h-16 w-auto object-contain" />
       </span>
       <DemoComposer reduced={reduced} onTyping={setTyping} />
       {hosted && (
