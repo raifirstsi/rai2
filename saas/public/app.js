@@ -257,18 +257,6 @@ const renderAccount = () => {
     show("trial-through", false);
   }
 };
-    show("paid-through", false);
-    show("trial-through", true);
-    setText("trial-through", label);
-  } else {
-    if (planBadge) {
-      planBadge.hidden = true;
-      planBadge.textContent = "";
-    }
-    show("paid-through", false);
-    show("trial-through", false);
-  }
-};
 const setLocale = (value) => {
   locale = value;
   localStorage.setItem("rai2_locale", value);
