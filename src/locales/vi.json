@@ -1613,7 +1613,7 @@
   "chat.copyMessageId": "Sao chép ID tin nhắn",
   "chat.copyMessageDone": "Đã sao chép",
   "chat.copyMessageFailed": "Sao chép không thành công",
-  "chat.showRawMarkdown": "Hiển thị markdown thô",
+  "chat.showRawMarkdown": "Hiển thị markdown",
   "chat.showRenderedMarkdown": "Hiển thị Markdown có định dạng",
   "chat.retry": "Thử lại",
   "chat.turnStopped": "Đã dừng",
