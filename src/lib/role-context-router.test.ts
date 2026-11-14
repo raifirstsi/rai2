@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  BOT_ROLE_CONTEXT_MAP,
   buildBotMemoryBundle,
   resolveBotContextAllocation,
   mergeMemoryWithCustomNotes,
