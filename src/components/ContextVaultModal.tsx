@@ -10,12 +10,14 @@ import {
   RotateCcw,
   Loader2,
   FileCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
 import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
 import { buildBotMemoryBundle, mergeMemoryWithCustomNotes } from "@/lib/role-context-router";
 import { saveMemoryDoc, fetchMemoryDoc } from "@/lib/memory";
+import { evaluateDataReadiness } from "@/lib/data-readiness";
 import { VoiceToSopModal } from "./VoiceToSopModal";
 import { DataReadinessGauge } from "./DataReadinessGauge";
 import {
@@ -75,6 +77,17 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   const { state } = useStore();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [isHardGateLocked, setIsHardGateLocked] = useState<boolean>(() => {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return true;
+      const saved = window.localStorage.getItem("rai2_quote_hard_gate_interlock");
+      return saved !== null ? saved === "true" : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const readiness = useMemo(() => evaluateDataReadiness(contents), [contents]);
 
   useEffect(() => {
     if (isOpen) {
@@ -105,6 +118,21 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
       if (state.bots && state.bots.length > 0) {
         for (const b of state.bots) {
           const bundle = buildBotMemoryBundle(b.section || b.id, contents, toc);
+
+          // If fuel score < 8 and hard gate is locked, inject interlock constraint
+          if (readiness.totalScore < 8 && isHardGateLocked) {
+            const interlockConstraint =
+              "\n\n### [CẦU DAO AN TOÀN - HARD GATE INTERLOCK]\n" +
+              "ĐIỂM NHIÊN LIỆU HIỆN TẠI DƯỚI 8/20. TẠM DỪNG CHẾ ĐỘ BOT TỰ ĐỘNG GỬI BÁO GIÁ. " +
+              "Mọi kịch bản báo giá phải soạn bản thảo và chuyển cho Người Chủ duyệt trước khi gửi khách hàng.";
+
+            for (const [k, v] of Object.entries(bundle)) {
+              if (k.includes("rules") || k.includes("constraints") || k.includes("sops")) {
+                bundle[k] = `${v}${interlockConstraint}`;
+              }
+            }
+          }
+
           for (const [filePath, fileContent] of Object.entries(bundle)) {
             const relPath = filePath.replace(/^memory\//, "");
             try {
@@ -279,6 +307,70 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
             }}
           />
         </div>
+
+        {/* Hard Gate Interlock (Active when fuelScore < 8/20) */}
+        {readiness.totalScore < 8 && (
+          <div
+            data-testid="hard-gate-interlock"
+            className="mx-3 mt-2.5 sm:mx-5 rounded-xl border border-hairline/60 bg-card p-3 sm:p-3.5 space-y-2.5 shadow-xs shrink-0"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent shrink-0">
+                  <ShieldAlert size={15} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[12px] sm:text-[13px] font-semibold text-ink truncate block">
+                    Cầu Dao An Toàn (Hard Gate Interlock)
+                  </span>
+                  <span className="text-[11px] text-ink-secondary">
+                    Bảo vệ doanh nghiệp khỏi AI báo giá ảo giác
+                  </span>
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-medium border shrink-0",
+                  isHardGateLocked
+                    ? "bg-accent/10 text-accent border-accent/20"
+                    : "bg-control text-ink-secondary border-hairline"
+                )}
+              >
+                {isHardGateLocked ? "Đang Khóa An Toàn" : "Mở Khóa Cưỡng Bức"}
+              </span>
+            </div>
+
+            <p className="text-[12px] text-ink leading-relaxed">
+              Tạm dừng chế độ bot tự động gửi báo giá cho đến khi bổ sung đủ dữ liệu sàn (Điểm nhiên liệu: {readiness.totalScore}/20, dưới ngưỡng an toàn 8/20).
+            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-hairline/40">
+              <span className="text-[11px] text-ink-tertiary">
+                Trạng thái: {isHardGateLocked ? "Mọi báo giá bắt buộc phải có Founder duyệt" : "Cảnh báo: Bot có nguy cơ báo giá sai biên lợi nhuận sàn"}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isHardGateLocked;
+                  setIsHardGateLocked(next);
+                  try {
+                    if (typeof window !== "undefined" && window.localStorage) {
+                      window.localStorage.setItem("rai2_quote_hard_gate_interlock", String(next));
+                    }
+                  } catch {}
+                }}
+                className={cn(
+                  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors border shrink-0",
+                  isHardGateLocked
+                    ? "bg-accent text-white border-transparent hover:bg-accent/90"
+                    : "bg-control text-ink border-hairline hover:bg-control/80"
+                )}
+              >
+                {isHardGateLocked ? "Bật Khóa (Khuyến nghị)" : "Mở Khóa Tự Động"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content Body: Edit Mode */}
         {viewMode === "edit" && (

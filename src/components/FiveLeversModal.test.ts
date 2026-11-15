@@ -33,4 +33,25 @@ describe("FiveLeversModal - Component Rendering & Presets", () => {
     expect(html).toContain("RAI Quote");
     expect(html).toContain("Sao chép Kế hoạch P&amp;L");
   });
+
+  it("renders variable cost advisory, purchase cycle selector, and 1-click sync button", () => {
+    const html = renderToString(
+      React.createElement(FiveLeversModal, {
+        isOpen: true,
+        onClose: () => {},
+      })
+    );
+
+    // Variable cost financial advisory
+    expect(html).toContain("Lưu ý tài chính &amp; Chi phí biến đổi:");
+    expect(html).toContain("Mô hình giả định chi phí cố định (OPEX) không tăng");
+    expect(html).toContain("khuyến nghị trích lập thêm 5-10% chi phí biến đổi");
+
+    // Purchase cycle selector
+    expect(html).toContain("Dự Án/B2B (Chu kỳ năm/Referral)");
+    expect(html).toContain("F&amp;B/Bán Lẻ (Chu kỳ tháng)");
+
+    // 1-Click Apply Target Margin to Vault
+    expect(html).toContain("Đồng bộ giá sàn &amp; biên LN vào Két Sắt");
+  });
 });

@@ -1,3 +1,5 @@
+export type PurchaseCycleType = "b2b_annual" | "fmcg_monthly";
+
 export interface FiveLeversInput {
   monthlyLeads: number; // L
   conversionRatePct: number; // CR (0-100)
@@ -5,6 +7,7 @@ export interface FiveLeversInput {
   annualPurchaseFrequency: number; // F (>= 1)
   grossMarginPct: number; // M (0-100)
   fixedMonthlyOpex?: number; // Fixed operating expenses (VND)
+  purchaseCycle?: PurchaseCycleType; // "b2b_annual" or "fmcg_monthly"
 }
 
 export interface LeverImprovementPct {
@@ -68,6 +71,7 @@ export const DEFAULT_FIVE_LEVERS_INPUT: FiveLeversInput = {
   annualPurchaseFrequency: 1.2, // 1.2 lần / năm
   grossMarginPct: 35, // 35% biên lợi nhuận gộp chuẩn P&L
   fixedMonthlyOpex: 45000000, // 45 triệu VNĐ chi phí cố định (mặt bằng, lương cơ bản...)
+  purchaseCycle: "b2b_annual",
 };
 
 export const LEVER_PRESETS: Record<string, { label: string; description: string; improvements: LeverImprovementPct }> = {
