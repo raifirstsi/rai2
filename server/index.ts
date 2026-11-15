@@ -12189,7 +12189,19 @@ ROUTES.push(createBotLifecycleRoutes({
 }));
 ROUTES.push(createBotSkillsRoutes({ store, cfg, listBotSkills, readBotSkillFile, stagedSkillListing }));
 ROUTES.push(createEmailRoutes({ service: emailService }));
-ROUTES.push(createZaloRoutes());
+ROUTES.push(createZaloRoutes({
+  dataDir: DATA_DIR,
+  onPersonalMessage: async (botId, senderId, text, senderName) => {
+    const targetBot = store.bot(botId);
+    if (!targetBot) return;
+    const author = senderName ? `${senderName} (${senderId})` : senderId;
+    store.appendMessage(targetBot.threadId, {
+      role: "user",
+      kind: "text",
+      text: `[Tin nhắn từ Zalo - ${author}]: ${text}`,
+    });
+  },
+}));
 ROUTES.push(phones.routes);
 ROUTES.push(createSkillShareRoutes({ enabled: () => skillsHost.mode() !== "off", botExists: (id) => Boolean(store.bot(id)),
   cardRefusal: (auth, threadId, requestId) => cardAnswerRefusal(auth, threadId, requestId, "allow"), shareFromReceipt: skillsHost.shareFromReceipt, shareFromBot: skillsHost.shareFromBot }));

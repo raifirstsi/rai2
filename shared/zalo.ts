@@ -29,6 +29,7 @@ export interface ZaloPersonalConfig {
   sessionCookie?: string;
   secretKey?: string;
   gatewayUrl?: string;
+  assignedBotId?: string;
   configuredAt?: number;
 }
 
@@ -38,6 +39,7 @@ export interface ZaloPersonalStatus {
   displayName?: string;
   avatarUrl?: string;
   qrCode?: string | null;
+  assignedBotId?: string;
   lastConnectedAt?: number | null;
   gatewayConnected: boolean;
   error?: string | null;
