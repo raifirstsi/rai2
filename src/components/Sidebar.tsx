@@ -38,6 +38,7 @@ import { VoiceToSopModal } from "./VoiceToSopModal";
 import { MarginGuardModal } from "./MarginGuardModal";
 import { StrategyMapModal } from "./StrategyMapModal";
 import { FridayPulseModal } from "./FridayPulseModal";
+import { isFridayPulseDue, dismissFridayPulseDue } from "@/lib/friday-pulse";
 import { FiveLeversModal } from "./FiveLeversModal";
 import { ArchitectureAssessmentModal } from "./ArchitectureAssessmentModal";
 import { AutonomyGraduationModal } from "./AutonomyGraduationModal";
@@ -1002,6 +1003,21 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const [marginGuardModalOpen, setMarginGuardModalOpen] = useState(false);
   const [strategyMapModalOpen, setStrategyMapModalOpen] = useState(false);
   const [fridayPulseModalOpen, setFridayPulseModalOpen] = useState(false);
+  const [fridayPulseDue, setFridayPulseDue] = useState(() => isFridayPulseDue());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setFridayPulseDue(isFridayPulseDue());
+    };
+    window.addEventListener("rai2:friday-pulse-reviewed", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+    return () => {
+      window.removeEventListener("rai2:friday-pulse-reviewed", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+    };
+  }, []);
   const [fiveLeversModalOpen, setFiveLeversModalOpen] = useState(false);
   const [architectureModalOpen, setArchitectureModalOpen] = useState(false);
   const [autonomyModalOpen, setAutonomyModalOpen] = useState(false);
@@ -1481,6 +1497,45 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <div className={cn("px-3 pb-2 pt-1", density === "icons" && "px-1 pb-1 pt-0")}>
         <Rai2ModeSwitcher compact={density === "icons"} />
       </div>
+      {fridayPulseDue && density !== "icons" && (
+        <div className="px-3 pb-2 pt-0.5">
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/10 p-2.5 text-ink shadow-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent text-white shrink-0 text-[10px] font-bold">
+                17h
+              </span>
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-ink truncate">Nhịp Thở Thứ Sáu</p>
+                <p className="text-[10px] text-ink-secondary truncate">Kiểm tra P&amp;L &amp; ARI tuần này</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setFridayPulseModalOpen(true);
+                  dismissFridayPulseDue();
+                  setFridayPulseDue(false);
+                }}
+                className="rounded-lg bg-accent px-2 py-1 text-[11px] font-medium text-white hover:bg-accent/90 transition-colors cursor-pointer"
+              >
+                Xem
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  dismissFridayPulseDue();
+                  setFridayPulseDue(false);
+                }}
+                aria-label="Đóng nhắc nhở"
+                className="rounded-lg p-1 text-ink-secondary hover:bg-raised hover:text-ink transition-colors cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {phone ? null : simple ? searchShown && <SidebarSearchPill query={query} onQuery={setQuery} onClose={closeSearch} /> : <div className={cn("pt-1 pb-3", density === "icons" ? "hidden" : "px-3")}>
         <div className={cn("flex h-8 items-center gap-2 rounded-full px-3 focus-within:ring-focus", ELEVATED_CONTROL)}>
           <Search size={15} className="shrink-0 text-ink-secondary" />

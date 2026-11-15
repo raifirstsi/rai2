@@ -149,3 +149,160 @@ export function formatFridayPulseMarkdown(report: FridayPulseReport): string {
 
   return lines.join("\n");
 }
+
+export function getCurrentWeekDisplay(d = new Date()): string {
+  return `Tuần ${getWeekNumber(d)} - Tháng ${d.getMonth() + 1}/${d.getFullYear()}`;
+}
+
+export const STORAGE_KEY_PULSE_WEBHOOK = "rai2_friday_pulse_webhook";
+export const STORAGE_KEY_PULSE_LAST_SENT = "rai2_friday_pulse_last_sent";
+export const STORAGE_KEY_PULSE_REVIEWED = "rai2_friday_pulse_reviewed_week";
+
+function getLocalStorage(): Storage | undefined {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) return window.localStorage;
+    if (typeof globalThis !== "undefined" && globalThis.localStorage) return globalThis.localStorage;
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+export function getFridayPulseWebhookUrl(): string {
+  const storage = getLocalStorage();
+  if (!storage) return "";
+  try {
+    return storage.getItem(STORAGE_KEY_PULSE_WEBHOOK) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveFridayPulseWebhookUrl(url: string): void {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(STORAGE_KEY_PULSE_WEBHOOK, url.trim());
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("rai2:friday-pulse-webhook-updated", { detail: { url: url.trim() } }));
+    }
+  } catch (e) {
+    console.warn("Could not save Friday pulse webhook URL:", e);
+  }
+}
+
+export function getLastSentFridayPulse(): { at: string; week: string } | null {
+  const storage = getLocalStorage();
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(STORAGE_KEY_PULSE_LAST_SENT);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function isFridayPulseDue(now = new Date()): boolean {
+  const day = now.getDay();
+  const hours = now.getHours();
+
+  // Due from Friday 17:00 through Sunday end of week
+  const isWeekendOrFridayEve =
+    (day === 5 && hours >= 17) || day === 6 || day === 0;
+
+  if (!isWeekendOrFridayEve) return false;
+
+  const storage = getLocalStorage();
+  if (!storage) return false;
+  try {
+    const reviewedWeek = storage.getItem(STORAGE_KEY_PULSE_REVIEWED);
+    const currentWeek = getCurrentWeekDisplay(now);
+    return reviewedWeek !== currentWeek;
+  } catch {
+    return false;
+  }
+}
+
+export function markFridayPulseReviewed(week?: string): void {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    const targetWeek = week || getCurrentWeekDisplay();
+    storage.setItem(STORAGE_KEY_PULSE_REVIEWED, targetWeek);
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(
+        new CustomEvent("rai2:friday-pulse-reviewed", { detail: { week: targetWeek } })
+      );
+    }
+  } catch (e) {
+    console.warn("Could not mark Friday pulse reviewed:", e);
+  }
+}
+
+export function dismissFridayPulseDue(week?: string): void {
+  markFridayPulseReviewed(week);
+}
+
+export async function sendFridayPulseWebhook(
+  url: string,
+  report: FridayPulseReport
+): Promise<{ ok: boolean; error?: string }> {
+  if (!url || !url.trim()) {
+    return { ok: false, error: "Chưa cung cấp địa chỉ URL Webhook." };
+  }
+
+  const cleanUrl = url.trim();
+  const text = formatFridayPulseMarkdown(report);
+
+  try {
+    let payload: Record<string, unknown>;
+    if (cleanUrl.includes("api.telegram.org")) {
+      let chatId: string | undefined;
+      try {
+        const parsed = new URL(cleanUrl);
+        chatId = parsed.searchParams.get("chat_id") || parsed.searchParams.get("to") || undefined;
+      } catch {}
+      payload = {
+        chat_id: chatId,
+        text,
+        parse_mode: "Markdown",
+      };
+    } else {
+      payload = {
+        event: "friday_pulse",
+        week: report.weekDisplay,
+        score: report.absenceReadinessScore,
+        level: report.absenceLevel.title,
+        singlePriority: report.singlePriorityForNextWeek,
+        text,
+        report,
+      };
+    }
+
+    const res = await fetch(cleanUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      return { ok: false, error: `Webhook phản hồi lỗi HTTP ${res.status}` };
+    }
+
+    const storage = getLocalStorage();
+    if (storage) {
+      storage.setItem(
+        STORAGE_KEY_PULSE_LAST_SENT,
+        JSON.stringify({ at: new Date().toISOString(), week: report.weekDisplay })
+      );
+    }
+
+    return { ok: true };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: errorMsg };
+  }
+}
