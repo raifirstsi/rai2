@@ -136,13 +136,13 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           }
 
           for (const [filePath, fileContent] of Object.entries(bundle)) {
-            const relPath = filePath.replace(/^memory\//, "");
+            // Keep full path (MEMORY.md or memory/<topic>.md) for OpenMausBot memory-store allowlist
             try {
-              const existing = await fetchMemoryDoc(b.id, relPath).catch(() => null);
+              const existing = await fetchMemoryDoc(b.id, filePath).catch(() => null);
               const merged = mergeMemoryWithCustomNotes(existing?.text, fileContent);
-              await saveMemoryDoc(b.id, relPath, merged, undefined).catch(() => {});
+              await saveMemoryDoc(b.id, filePath, merged, undefined).catch(() => {});
             } catch {
-              await saveMemoryDoc(b.id, relPath, fileContent, undefined).catch(() => {});
+              await saveMemoryDoc(b.id, filePath, fileContent, undefined).catch(() => {});
             }
           }
           count++;

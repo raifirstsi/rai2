@@ -9,6 +9,7 @@ import { isBotLimitRefusal } from "./bot-limit";
 import { createConfiguredBot } from "./create-configured-bot";
 import { activeLocale, t } from "./i18n";
 import { botCreated } from "./product-events";
+import { RAI2_DEPARTMENT_ZONES } from "./role-context-router";
 
 export interface BotDefaultsAnswer { defaults: NewBotDefaults; modelSelection: ModelSelection; suggestedName: string }
 
@@ -59,7 +60,15 @@ async function createNewBot(section: string | undefined, bots: readonly Bot[], t
   }
   const template = startingTemplate(await request<BotDefaultsAnswer>("/api/bot-defaults"), true);
   template.profile.name = freeName(template.profile.name!, bots);
-  if (section !== undefined) template.profile.section = section;
+  if (section !== undefined) {
+    template.profile.section = section;
+    const matchedZone = RAI2_DEPARTMENT_ZONES.find(
+      (z) => z.name === section || z.shortName === section || z.code === section
+    );
+    if (matchedZone) {
+      template.profile.zone = matchedZone.zone;
+    }
+  }
   const draft = new BotCreationDraft(template, () => {}, request);
   const startsOnAsk = draft.bot.approvalMode === "auto" && draft.bot.computer === "local";
   if (startsOnAsk) draft.patch({ approvalMode: "ask" });
