@@ -137,6 +137,50 @@ flowchart TD
 
 ---
 
+## IIIB. KIẾN TRÚC VẬN HÀNH DUAL-MODE & SAAS ONBOARDING GATEWAY (CREATOR VS ENTERPRISE)
+
+Để nền tảng `rai2.si` phục vụ hoàn hảo cả 2 nhóm khách hàng mà không gây xung đột UX hay rò rỉ dữ liệu, kiến trúc runtime được phân tầng thành 2 chế độ độc lập và được quản trị bởi bộ điều hướng `useRai2Mode()`:
+
+```mermaid
+graph TD
+    User["Khách hàng truy cập rai2.si / app.rai2.si"] --> Auth["Cổng Xác Thực OTP 8 Số & Handoff Token"]
+    Auth --> Workspace["Không Gian Làm Việc Riêng Biệt (Tenant Subdomain)"]
+    Workspace --> ModeSwitcher{"Bộ Chuyển Chế Độ (useRai2Mode)"}
+    
+    ModeSwitcher -->|"Chế độ Cá Nhân (Creator Mode)"| CreatorFlow["CREATOR MODE: TẠO BOT TỰ DO"]
+    CreatorFlow --> C1["Tạo Bot Trắng (From Scratch)"]
+    CreatorFlow --> C2["Tùy Biến Prompt / Model / Mascot"]
+    CreatorFlow --> C3["Chat Tự Do · Không Ép Quy Tắc Doanh Nghiệp"]
+    CreatorFlow --> C4["Cách Ly Triệt Để: Ẩn T1-T3, Ẩn Két Sắt, Ẩn P&L"]
+    
+    ModeSwitcher -->|"Chế độ Doanh Nghiệp (Enterprise Mode)"| EntFlow["ENTERPRISE OS: DOANH NGHIỆP 5-20 NHÂN SỰ"]
+    EntFlow --> E1["12 Bot Chuyên Trách 7 Vùng (Nạp Sẵn 80% DNA)"]
+    EntFlow --> E2["Két Sắt Context Vault 8 Trụ Cột Tri Thức"]
+    EntFlow --> E3["Chốt Chặn Margin Guard >= 35% & 5 Đòn Bẩy P&L"]
+    EntFlow --> E4["Báo Cáo Nhịp Đập 17:00 Thứ Sáu & Đo Lường $ARI$"]
+    EntFlow --> E5["Sát Hạch Kiến Trúc 21 Tiêu Chí & Tốt Nghiệp Tự Trị 95%"]
+```
+
+### 1. Ranh Giới Cách Ly Cho Chế Độ Khách Cá Nhân (Creator Mode)
+* **Nguyên tắc cốt tử:** Khách hàng cá nhân cần sự tự do, sáng tạo và tốc độ. Họ không được bị quấy rầy bởi các thuật ngữ quản trị doanh nghiệp.
+* **Quy chuẩn kỹ thuật:**
+  * **Ẩn huy hiệu tự trị (`AutonomyTierBadge`):** Chỉ hiển thị huy hiệu T1/T2/T3 khi bot là `isEnterpriseBot(bot)` HOẶC khi đang ở chế độ `enterprise`. Bot cá nhân tạo tự do hoàn toàn sạch sẽ.
+  * **Tooltip sạch sẽ:** `botTooltip()` không tự ý chèn chuỗi `T1 (50% Tự trị)` vào bot của người dùng tự tạo.
+  * **Menu `+` Tinh gọn:** Hiển thị trực quan hai lựa chọn trọng tâm: `"Tạo Bot Tự Do (From Scratch)"` và `"Thư viện Mẫu Bot"`. Ẩn toàn bộ 10 modal quản trị doanh nghiệp khỏi TopBar.
+
+### 2. Quy Chuẩn Vận Hành Chế Độ VIP Enterprise (Doanh Nghiệp 5–20 Nhân Sự)
+* **Nguyên tắc cốt tử:** Doanh nghiệp nhỏ không có thời gian setup phức tạp. Hệ thống phải sẵn sàng chạy ngay trong 30 giây:
+  * **Đội ngũ 12 Bot 7 Vùng:** Sẵn sàng 80% nghiệp vụ (RAI Lead, RAI Copy, RAI Sales, RAI Ops, RAI CSKH, RAI Finance, RAI HR, CAIO).
+  * **Context Vault 8 Trụ Cột:** Trung tâm ngữ cảnh duy nhất, liên thông 1-click sang Margin Guard và Five Levers.
+  * **Chốt chặn an toàn P&L:** Tự động chặn mọi đề xuất chiết khấu làm tỷ suất lợi nhuận gộp $< 35\%$.
+  * **Cơ chế phân quyền nhóm (RBAC):** Chủ doanh nghiệp (Owner/Admin) toàn quyền cấu hình Két sắt và Margin Guard; nhân viên (Member) tập trung tương tác tác vụ và phối hợp đội ngũ.
+
+### 3. Quy Trình Xác Thực & Đánh Thức Workspace (Workspace Lifecycle & Auto-Wakeup Gateway)
+* **Luồng đăng nhập chuẩn:** `POST /api/auth/start` (OTP 8 số) ➔ `POST /api/auth/verify` (Tạo Cookie `rai2_token`) ➔ `GET /api/workspace/open` (Resume workspace qua fleet socket và tạo mã claim) ➔ `POST /api/auth/rai2/claim` ➔ Chuyển hướng vào `/app`.
+* **Xử lý rủi ro Workspace Idle Suspend:** Workspace tự động ngủ đông sau 15 phút idle để tiết kiệm RAM. Khi người dùng truy cập lại qua link trực tiếp hoặc bookmark, hệ thống tự động nhận diện và chuyển hướng về cổng đánh thức thay vì hiển thị màn hình lỗi 503 thô kệch.
+
+---
+
 
 
 ## IV. CHI TIẾT CÁC TÍNH NĂNG TÍCH HỢP QUA 15 CHẶNG (CHƯƠNG 1 ĐẾN 35)
