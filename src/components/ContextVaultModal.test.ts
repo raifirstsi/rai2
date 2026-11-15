@@ -108,6 +108,18 @@ describe("ContextVaultModal - Storage & Logic", () => {
     expect(html).toContain("Context Vault");
   });
 
+  it("renders with a unified scrollable body container preventing scroll trap", () => {
+    const html = renderToString(
+      React.createElement(ContextVaultModal, {
+        isOpen: true,
+        onClose: () => {},
+      })
+    );
+
+    expect(html).toContain("overflow-y-auto");
+    expect(html).toContain("8 Trụ Cột");
+  });
+
   it("enforces read-only mode and hides sync CTA when user is a non-admin Member", () => {
     mockOwnerOrAdmin = false;
     const html = renderToString(

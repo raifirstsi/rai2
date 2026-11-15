@@ -61,4 +61,18 @@ describe("DataReadinessGauge - Component Rendering", () => {
     expect(html).toContain("data-readiness-gauge");
     expect(html).toContain("Sẵn Sàng Ra Trận");
   });
+
+  it("renders collapsed view with compact bar when defaultExpanded is false", () => {
+    const html = renderToString(
+      React.createElement(DataReadinessGauge, {
+        vaultData: {},
+        collapsible: true,
+        defaultExpanded: false,
+      })
+    );
+
+    expect(html).toContain("Bình Nhiên Liệu Dữ Liệu");
+    expect(html).toContain("Chi tiết");
+    expect(html).not.toContain("Hành động đề xuất nâng điểm:");
+  });
 });
