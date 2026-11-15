@@ -734,6 +734,25 @@
       .principles-synthesis p {
         margin: 0 !important;
       }
+      .os-core-definition {
+        max-width: 860px !important;
+        margin: 24px auto !important;
+        padding: 18px 24px !important;
+        background: var(--bg) !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--line) !important;
+        text-align: left !important;
+        font-size: 14.5px !important;
+        line-height: 1.65 !important;
+        color: var(--ink) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+      }
+      .os-core-definition p {
+        margin: 0 !important;
+        font-weight: 400 !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+      }
 
       @media (max-width: 860px) {
         .hiring-zones-sidebar {
@@ -879,6 +898,12 @@
         }
         .principles-synthesis p {
           text-align: left !important;
+        }
+        .os-core-definition {
+          margin: 18px auto !important;
+          padding: 14px 16px !important;
+          font-size: 13.5px !important;
+          line-height: 1.6 !important;
         }
       }
 
@@ -921,6 +946,25 @@
       .principles-synthesis p {
         margin: 0 !important;
       }
+      .os-core-definition {
+        max-width: 860px !important;
+        margin: 24px auto !important;
+        padding: 18px 24px !important;
+        background: var(--bg) !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--line) !important;
+        text-align: left !important;
+        font-size: 14.5px !important;
+        line-height: 1.65 !important;
+        color: var(--ink) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+      }
+      .os-core-definition p {
+        margin: 0 !important;
+        font-weight: 400 !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+      }
 
       @media (max-width: 860px) {
         .hiring-zones-sidebar {
@@ -1067,6 +1111,12 @@
         .principles-synthesis p {
           text-align: left !important;
         }
+        .os-core-definition {
+          margin: 18px auto !important;
+          padding: 14px 16px !important;
+          font-size: 13.5px !important;
+          line-height: 1.6 !important;
+        }
       }
 
     
@@ -1078,14 +1128,33 @@
       }
       .site-footer .footer-row {
         display: flex !important;
+        flex-direction: column !important;
         align-items: center !important;
-        justify-content: space-between !important;
-        gap: 24px !important;
+        justify-content: center !important;
+        text-align: center !important;
+        gap: 14px !important;
         min-height: 38px !important;
       }
+      .site-footer .footer-brand {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 auto !important;
+      }
       .site-footer .footer-brand img {
-        width: 72px !important;
+        width: 68px !important;
         height: auto !important;
+      }
+      .site-footer .footer-brand img.logo-light {
+        display: block !important;
+      }
+      .site-footer .footer-brand img.logo-dark {
+        display: none !important;
+      }
+      [data-theme="dark"] .site-footer .footer-brand img.logo-light {
+        display: none !important;
+      }
+      [data-theme="dark"] .site-footer .footer-brand img.logo-dark {
         display: block !important;
       }
       .site-footer p {
@@ -1093,6 +1162,7 @@
         color: var(--muted) !important;
         font-size: 13px !important;
         line-height: 1.5 !important;
+        text-align: center !important;
       }
 
       @media (max-width: 768px) {
@@ -1101,17 +1171,13 @@
           overflow: hidden !important;
         }
         .site-footer .footer-row {
-          flex-direction: column !important;
           gap: 10px !important;
-          text-align: center !important;
           padding-inline: 16px !important;
           width: 100% !important;
           box-sizing: border-box !important;
         }
         .site-footer .footer-brand img {
-          width: 64px !important;
-          height: auto !important;
-          margin: 0 auto !important;
+          width: 60px !important;
         }
         .site-footer p {
           white-space: normal !important;
@@ -1906,8 +1972,6 @@
             <div class="synthesis-badge">✦ BẢN CHẤT CỐT LÕI CỦA HỆ THỐNG RAI²</div>
             <p>Khi nhắc đến <strong>RAI²</strong>, bạn hiểu rằng đó là <strong>sự hợp nhất giữa Người và Máy là các hệ thống AI</strong>, bắt buộc phải có <strong>MỘT NGƯỜI chịu trách nhiệm chính (RESPONSIBILITY AI)</strong> đứng ở giữa gỡ bỏ các chắp vá AI <strong>(RETROFIT AI)</strong>, sau đó tái thiết kế lại các quy trình cũ <strong>(RE-ENGINEERED AI)</strong> để xây dựng nên các quy trình AI đáng tin cậy <strong>(RELIABLE AI)</strong> khiến cả đội ngũ tin tưởng phối hợp cùng AI hướng đến mục tiêu tạo ra kết quả <strong>(RESULTS-DRIVEN AI)</strong>, đặc biệt là kết quả doanh thu <strong>(REVENUE AI)</strong>. Quan trọng nhất, hệ thống này có khả năng thích ứng cao <strong>(RESILIENT AI)</strong> bất biến trước sự thay đổi của công nghệ.</p>
           </div>
-            <p>Khi nhắc đến <strong>RAI²</strong>, bạn hiểu rằng đó là <strong>sự hợp nhất giữa Người và Máy là các hệ thống AI</strong>, bắt buộc phải có <strong>MỘT NGƯỜI chịu trách nhiệm chính (RESPONSIBILITY AI)</strong> đứng ở giữa gỡ bỏ các chắp vá AI <strong>(RETROFIT AI)</strong>, sau đó tái thiết kế lại các quy trình cũ <strong>(RE-ENGINEERED AI)</strong> để xây dựng nên các quy trình AI đáng tin cậy <strong>(RELIABLE AI)</strong> khiến cả đội ngũ tin tưởng phối hợp cùng AI hướng đến mục tiêu tạo ra kết quả <strong>(RESULTS-DRIVEN AI)</strong>, đặc biệt là kết quả doanh thu <strong>(REVENUE AI)</strong>. Quan trọng nhất, hệ thống này có khả năng thích ứng cao <strong>(RESILIENT AI)</strong> bất biến trước sự thay đổi của công nghệ.</p>
-          </div>
         </div>
       </section>
 
@@ -1920,9 +1984,8 @@
             <p>Bản thiết kế giúp chuyển giao tri thức từ cái đầu của người chủ thành quy trình thực chiến chuẩn hóa cho nhân sự số tự động vận hành.</p>
           </div>
 
-          <div class="os-core-definition" style="max-width: 860px; margin: 28px auto; padding: 22px 28px; background: var(--bg); border-radius: 12px; border: 1px solid var(--line); text-align: left; font-size: 15.5px; line-height: 1.7; color: var(--ink); box-shadow: 0 4px 16px rgba(0,0,0,0.03);">
-            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink); text-transform: uppercase; margin-bottom: 8px; opacity: 0.75;">✦ ĐỊNH NGHĨA CHUẨN MỰC HỆ ĐIỀU HÀNH DOANH NGHIỆP</div>
-            <p style="margin: 0; font-weight: 500;"><strong>RAI² First OS</strong> là hệ điều hành doanh nghiệp được xây dựng trên <strong>7 nguyên tắc cốt tử RAI²</strong> và nền tảng <strong>Trí tuệ Nhân tạo (Artificial Intelligence)</strong> hợp nhất với <strong>Trí tuệ Thật Sự Của Con Người (Actual Intelligence)</strong> cùng tạo nên <em>“nguồn sự thật - ngôn ngữ chung”</em> đó là bộ não và thư viện ngữ cảnh doanh nghiệp, giúp mọi thành phần từ con người đến AI giao tiếp và làm việc nhất quán với nhau thông qua <em>“các quy trình nghiệp vụ mới được tái thiết kế lại - các thuật toán”</em> với mục tiêu kiến tạo <em>“kết quả đột phá - đầu ra mong muốn”</em> cho doanh nghiệp.</p>
+          <div class="os-core-definition">
+            <p><strong>RAI² First OS</strong> là hệ điều hành doanh nghiệp được xây dựng trên <strong>7 nguyên tắc cốt tử RAI²</strong> và nền tảng <strong>Trí tuệ Nhân tạo (Artificial Intelligence)</strong> hợp nhất với <strong>Trí tuệ Thật Sự Của Con Người (Actual Intelligence)</strong> cùng tạo nên <em>“nguồn sự thật - ngôn ngữ chung”</em> đó là bộ não và thư viện ngữ cảnh doanh nghiệp, giúp mọi thành phần từ con người đến AI giao tiếp và làm việc nhất quán với nhau thông qua <em>“các quy trình nghiệp vụ mới được tái thiết kế lại - các thuật toán”</em> với mục tiêu kiến tạo <em>“kết quả đột phá - đầu ra mong muốn”</em> cho doanh nghiệp.</p>
           </div>
 
           <figure class="method-image-wrap" style="max-width: 480px; width: 100%; margin: 24px auto; text-align: center;">
@@ -2620,8 +2683,8 @@
     <footer class="site-footer">
       <div class="site-shell footer-row">
         <div class="footer-brand">
-          <img class="logo-dark" src="/assets/rai-core-white.png" alt="RAI²">
           <img class="logo-light" src="/assets/rai-core-black.png" alt="RAI²">
+          <img class="logo-dark" src="/assets/rai-core-white.png" alt="RAI²">
         </div>
         <nav class="footer-nav" aria-label="Liên kết cuối trang" style="display: none !important;" hidden>
           <a href="#phuong-phap-luan">Phương pháp luận</a>

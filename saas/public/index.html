@@ -30,6 +30,9 @@
           <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
         </a>
         <div class="header-actions">
+          <button id="header-upgrade-btn" class="header-upgrade-btn" type="button" hidden>
+            <span>Nâng cấp</span>
+          </button>
           <a id="header-workspace-cta" class="header-workspace-btn" href="/api/workspace/open" target="_blank" rel="noopener" hidden>
             <span>Mở workspace</span>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
@@ -184,7 +187,10 @@
             </div>
             <div class="plan-price-action">
               <p class="price"><span id="price-amount" data-i18n="price">299.000đ</span> <span data-i18n="perMonth">/ tháng</span></p>
-              <button id="order-button" class="primary ui-button renew-button" type="button" data-i18n="firstPayment">Thanh toán tháng đầu</button>
+              <div class="plan-btn-group">
+                <button id="upgrade-button" class="upgrade-action-btn ui-button" type="button">Nâng cấp</button>
+                <button id="order-button" class="primary ui-button renew-button" type="button" data-i18n="firstPayment">Thanh toán tháng đầu</button>
+              </div>
             </div>
           </div>
 
@@ -226,6 +232,90 @@
           </div>
         </div>
       </section>
+
+      <!-- Upgrade Modal (Top SaaS Standard: Minimalist, Neutral, No colorful gimmicks, Desktop & Mobile Optimized) -->
+      <div id="upgrade-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
+        <div class="modal-card upgrade-dialog" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <div class="modal-title-group">
+              <h2 id="upgrade-modal-title" class="modal-title">Nâng Cấp Gói RAI² First OS</h2>
+              <p class="modal-subtitle">Mở khóa hạ tầng AI tự hành và các tính năng quản trị tối ưu cho doanh nghiệp.</p>
+            </div>
+            <button id="upgrade-modal-close" class="modal-close-btn" type="button" aria-label="Đóng">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div class="upgrade-plans-grid">
+            <!-- STARTER -->
+            <div class="upgrade-plan-card" data-plan="starter">
+              <div class="upgrade-plan-head">
+                <span class="upgrade-plan-tier">STARTER</span>
+                <div class="upgrade-price-wrap">
+                  <span class="upgrade-price-val">299.000đ</span>
+                  <span class="upgrade-price-period">/ tháng</span>
+                </div>
+                <p class="upgrade-plan-desc">Dành cho cá nhân &amp; chuyên gia tự do bắt đầu tự động hóa.</p>
+              </div>
+              <ul class="upgrade-features-list">
+                <li>01 Workspace Linux riêng biệt</li>
+                <li>Không giới hạn số lượng bot &amp; hội thoại</li>
+                <li>Tự động hóa routines 24/7</li>
+                <li>Trình duyệt Browser Sandbox</li>
+                <li>Tự kết nối API Key AI (100% BYOK)</li>
+              </ul>
+              <div class="upgrade-card-footer">
+                <button class="ui-button upgrade-action-select" type="button" data-plan-target="starter">Đăng ký</button>
+              </div>
+            </div>
+
+            <!-- PRO (Featured) -->
+            <div class="upgrade-plan-card featured" data-plan="pro">
+              <div class="upgrade-plan-badge">PHỔ BIẾN NHẤT</div>
+              <div class="upgrade-plan-head">
+                <span class="upgrade-plan-tier">PRO - TĂNG TỐC</span>
+                <div class="upgrade-price-wrap">
+                  <span class="upgrade-price-val">799.000đ</span>
+                  <span class="upgrade-price-period">/ tháng</span>
+                </div>
+                <p class="upgrade-plan-desc">Dành cho doanh nghiệp 5–20 nhân sự cần bộ máy vận hành tự hành.</p>
+              </div>
+              <ul class="upgrade-features-list">
+                <li>Tất cả tính năng của gói Starter</li>
+                <li>Két Sắt Ngữ Cảnh 8 Trụ Cột &amp; Voice-to-SOP</li>
+                <li>Cầu dao Margin Guard &ge; 35% &amp; Thẻ duyệt HITL</li>
+                <li>Báo cáo nhịp thở 17:00 thứ Sáu &amp; 5 Đòn bẩy P&amp;L</li>
+                <li>Ưu tiên tài nguyên CPU/RAM &amp; Hỗ trợ 1-1</li>
+              </ul>
+              <div class="upgrade-card-footer">
+                <button class="primary ui-button upgrade-action-select" type="button" data-plan-target="pro">Đăng ký</button>
+              </div>
+            </div>
+
+            <!-- TEAM -->
+            <div class="upgrade-plan-card" data-plan="team">
+              <div class="upgrade-plan-head">
+                <span class="upgrade-plan-tier">TEAM - DOANH NGHIỆP</span>
+                <div class="upgrade-price-wrap">
+                  <span class="upgrade-price-val">1.990.000đ</span>
+                  <span class="upgrade-price-period">/ tháng</span>
+                </div>
+                <p class="upgrade-plan-desc">Dành cho công ty nhiều phòng ban cần phân quyền điều phối chuyên sâu.</p>
+              </div>
+              <ul class="upgrade-features-list">
+                <li>Đa Workspace cho các phòng ban (Sales, Ops, MKT)</li>
+                <li>Phân quyền quản trị (Owner, Manager, Operator)</li>
+                <li>Đóng gói SOP nội bộ thành DNA nhân sự số</li>
+                <li>Kỹ sư AI đồng hành trực tiếp kiểm toán quy trình</li>
+                <li>Hỗ trợ xuất hóa đơn VAT &amp; Hợp đồng doanh nghiệp</li>
+              </ul>
+              <div class="upgrade-card-footer">
+                <button class="ui-button upgrade-action-select" type="button" data-plan-target="team">Đăng ký</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </body>
 </html>

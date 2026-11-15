@@ -108,7 +108,7 @@ describe("ContextVaultModal - Storage & Logic", () => {
     expect(html).toContain("Context Vault");
   });
 
-  it("renders with a unified scrollable body container preventing scroll trap", () => {
+  it("renders with unclipped 3-column split layout on desktop and responsive tab bar on mobile", () => {
     const html = renderToString(
       React.createElement(ContextVaultModal, {
         isOpen: true,
@@ -117,7 +117,11 @@ describe("ContextVaultModal - Storage & Logic", () => {
     );
 
     expect(html).toContain("overflow-y-auto");
-    expect(html).toContain("8 Trụ Cột");
+    expect(html).toContain("8 Trụ Cột Tri Thức");
+    // Verify responsive mobile pills and desktop sidebar
+    expect(html).toContain("md:hidden");
+    expect(html).toContain("hidden md:flex");
+    expect(html).toContain("Độ Sắc Nét");
   });
 
   it("enforces read-only mode and hides sync CTA when user is a non-admin Member", () => {

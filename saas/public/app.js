@@ -28,7 +28,7 @@ const copy = {
     unpaid: "Chưa thanh toán", trialActive: "Đang dùng thử", trialExpired: "Dùng thử đã hết hạn",
     setupFailed: "Chưa thiết lập được workspace. Liên hệ contact@raifirst.si để được hỗ trợ.",
     setupPending: "Workspace của bạn đang được thiết lập.",
-    paidThrough: (date, days) => `Gói Starter · Hạn dùng đến ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
+    paidThrough: (date, days, planName = "Starter") => `Gói ${planName} · Hạn dùng đến ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
     trialThrough: (date, days) => `Gói dùng thử 14 ngày · Hết hạn ngày ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
     requestFailed: "Không thể kết nối. Vui lòng thử lại.", loadAccountFailed: "Không tải được tài khoản. Vui lòng thử lại.",
     codeSent: "Đã gửi mã xác nhận đến email của bạn.",
@@ -71,7 +71,7 @@ const copy = {
     unpaid: "Unpaid", trialActive: "Free trial", trialExpired: "Trial expired",
     setupFailed: "We could not set up your workspace. Contact contact@raifirst.si for help.",
     setupPending: "Your workspace is being set up.",
-    paidThrough: (date, days) => `Starter Plan · Valid until ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
+    paidThrough: (date, days, planName = "Starter") => `${planName} Plan · Valid until ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
     trialThrough: (date, days) => `14-day Free Trial · Expires ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
     requestFailed: "Could not connect. Please try again.", loadAccountFailed: "Could not load your account. Please try again.",
     codeSent: "A verification code was sent to your email.",
@@ -146,7 +146,7 @@ let paymentExpiryAt = null;
 let paymentsEnabled = false;
 let privatePreview = false;
 const openWhenReady = new URLSearchParams(location.search).get("open") === "1";
-const requestedPlan = new URLSearchParams(location.search).get("plan") === "starter" ? "starter" : null;
+const requestedPlan = ["starter", "pro", "team"].includes(new URLSearchParams(location.search).get("plan")) ? new URLSearchParams(location.search).get("plan") : null;
 const requestedCheckout = new URLSearchParams(location.search).get("checkout") === "1";
 const requestedBilling = new URLSearchParams(location.search).get("billing") === "1";
 const themeCookie = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie)?.[1];
@@ -219,8 +219,16 @@ const renderAccount = () => {
     updateHandleSave();
   }
 
+  const currentPlan = billing?.plan || { id: "starter", name: "RAI² Starter", amount: 299000 };
+  const currentPlanShort = currentPlan.name.replace(/^RAI²\s*/, "");
+  setText("plan-name", currentPlan.name);
+  const formattedPrice = new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US").format(currentPlan.amount);
+  setText("price-amount", formattedPrice);
+
   setText("order-button", say(paid ? "renew" : "firstPayment"));
   show("order-button", paymentsEnabled && (!paid || active));
+  show("upgrade-button", paymentsEnabled);
+  show("header-upgrade-btn", paymentsEnabled && entitled);
   show("setup-note", entitled && !active);
   if (entitled && !active) setText("setup-note", say(account.workspaceState === "error" ? "setupFailed" : "setupPending"));
 
@@ -228,7 +236,7 @@ const renderAccount = () => {
   if (paid) {
     const daysLeft = Math.max(0, Math.ceil((paidTimestamp - now) / 86_400_000));
     const formatted = new Date(paidTimestamp).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-GB");
-    const label = say("paidThrough")(formatted, daysLeft);
+    const label = say("paidThrough")(formatted, daysLeft, currentPlanShort);
     if (planBadge) {
       planBadge.textContent = label;
       planBadge.classList.remove("trial");
@@ -409,7 +417,10 @@ byId("code-form").addEventListener("submit", async (event) => {
   try {
     await request("/api/auth/verify", "POST", { email, code: byId("code").value.trim(), ...(requestedPlan ? { planId: requestedPlan } : {}) });
     await refresh();
-    if (requestedCheckout) { byId("billing").scrollIntoView({ behavior: "smooth" }); byId("order-button").click(); }
+    if (requestedCheckout) {
+      byId("billing").scrollIntoView({ behavior: "smooth" });
+      startOrder(requestedPlan || "starter");
+    }
     message("");
   } catch (error) {
     if (error.status === 409) {
@@ -495,12 +506,13 @@ byId("workspace-handle-form").addEventListener("submit", async (event) => {
   }
 });
 
-byId("order-button").addEventListener("click", async () => {
+const startOrder = async (targetPlan = "starter") => {
+  const planToOrder = ["starter", "pro", "team"].includes(targetPlan) ? targetPlan : "starter";
   const button = byId("order-button");
-  button.disabled = true;
+  if (button) button.disabled = true;
   message("");
   try {
-    const order = await request("/api/orders", "POST", { planId: "starter" });
+    const order = await request("/api/orders", "POST", { planId: planToOrder });
     orderId = order.id;
     byId("payment-qr").src = order.qrUrl;
     byId("payment-qr").onerror = () => {
@@ -545,7 +557,60 @@ byId("order-button").addEventListener("click", async () => {
       } catch { message("requestFailed", true); }
     }, 4000);
   } catch (error) { message(error.status === 409 ? "soldOut" : "requestFailed", true); }
-  finally { button.disabled = false; }
+  finally { if (button) button.disabled = false; }
+};
+
+byId("order-button").addEventListener("click", () => {
+  const currentPlanId = billing?.plan?.id || "starter";
+  startOrder(currentPlanId);
+});
+
+// Upgrade Modal Handling
+const openUpgradeModal = () => {
+  const currentPlanId = (billing?.entitlement === "paid" ? billing?.plan?.id : null) || null;
+  document.querySelectorAll("[data-plan-target]").forEach((btn) => {
+    const target = btn.dataset.planTarget;
+    if (currentPlanId && target === currentPlanId) {
+      btn.textContent = locale === "vi" ? "Gói hiện tại" : "Current Plan";
+      btn.disabled = true;
+      btn.classList.add("current");
+      btn.classList.remove("primary");
+    } else {
+      btn.textContent = locale === "vi" ? (currentPlanId ? "Nâng cấp" : "Đăng ký") : (currentPlanId ? "Upgrade" : "Subscribe");
+      btn.disabled = false;
+      btn.classList.remove("current");
+      if (target === "pro") btn.classList.add("primary");
+    }
+  });
+  show("upgrade-modal", true);
+};
+
+const closeUpgradeModal = () => {
+  show("upgrade-modal", false);
+};
+
+const headerUpgradeBtn = byId("header-upgrade-btn");
+if (headerUpgradeBtn) headerUpgradeBtn.addEventListener("click", openUpgradeModal);
+
+const upgradeBtn = byId("upgrade-button");
+if (upgradeBtn) upgradeBtn.addEventListener("click", openUpgradeModal);
+
+const upgradeCloseBtn = byId("upgrade-modal-close");
+if (upgradeCloseBtn) upgradeCloseBtn.addEventListener("click", closeUpgradeModal);
+
+const upgradeModal = byId("upgrade-modal");
+if (upgradeModal) {
+  upgradeModal.addEventListener("click", (e) => {
+    if (e.target === upgradeModal) closeUpgradeModal();
+  });
+}
+
+document.querySelectorAll("[data-plan-target]").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    const targetPlan = e.currentTarget.dataset.planTarget;
+    closeUpgradeModal();
+    startOrder(targetPlan);
+  });
 });
 
 byId("transactions-refresh").addEventListener("click", () => void loadBilling());

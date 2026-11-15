@@ -421,7 +421,7 @@ describe("RAI2 SaaS control plane", () => {
     expect((await f.call("/api/landing-session", "GET", undefined, alice,
       { origin: "https://rai2.si" })).body).toEqual({ signedIn: true, workspaceReady: false });
     expect((await f.call("/api/me", "GET", undefined, alice)).body).toMatchObject({ email: "a@example.test", paidThrough: 0, workspaceUrl: null });
-    expect((await f.call("/api/orders", "POST", { planId: "pro", amount: 1 }, alice)).status).toBe(400);
+    expect((await f.call("/api/orders", "POST", { planId: "enterprise", amount: 1 }, alice)).status).toBe(400);
     const order = await f.call("/api/orders", "POST", { planId: "starter" }, alice);
     expect(order.status).toBe(201);
     expect(order.body).toMatchObject({ amount: 299000, bankAccount: "1234567890" });
@@ -430,9 +430,19 @@ describe("RAI2 SaaS control plane", () => {
     expect((await f.call(order.body.qrUrl, "GET", undefined, alice, {}, true)).status).toBe(200);
     expect(f.qrRequests).toHaveLength(1);
     expect((await f.call("/api/orders", "POST", { planId: "starter" }, alice)).body.id).toBe(order.body.id);
+    const proOrder = await f.call("/api/orders", "POST", { planId: "pro" }, alice);
+    expect(proOrder.status).toBe(201);
+    expect(proOrder.body).toMatchObject({ planId: "pro", amount: 799000 });
+    const teamOrder = await f.call("/api/orders", "POST", { planId: "team" }, alice);
+    expect(teamOrder.status).toBe(201);
+    expect(teamOrder.body).toMatchObject({ planId: "team", amount: 1990000 });
     expect((await f.call("/api/billing", "GET", undefined, alice)).body).toMatchObject({
       plan: { id: "starter", amount: 299000, interval: "month" }, entitlement: "inactive",
-      orders: [{ id: order.body.id, planId: "starter", amount: 299000, status: "pending" }],
+      orders: expect.arrayContaining([
+        expect.objectContaining({ id: order.body.id, planId: "starter", amount: 299000, status: "pending" }),
+        expect.objectContaining({ id: proOrder.body.id, planId: "pro", amount: 799000, status: "pending" }),
+        expect.objectContaining({ id: teamOrder.body.id, planId: "team", amount: 1990000, status: "pending" }),
+      ]),
     });
     const bob = await signIn(f, "b@example.test");
     expect((await f.call("/api/billing", "GET", undefined, bob)).body.orders).toEqual([]);
@@ -448,7 +458,7 @@ describe("RAI2 SaaS control plane", () => {
     expect((await f.call("/api/auth/start", "POST", { email: "buyer@example.test" })).status).toBe(200);
     const code = f.messages.at(-1)!.code;
     expect((await f.call("/api/auth/verify", "POST", {
-      email: "buyer@example.test", code, planId: "pro",
+      email: "buyer@example.test", code, planId: "enterprise",
     })).status).toBe(400);
     expect((await f.call("/api/auth/start", "POST", { email: "buyer@example.test" })).status).toBe(200);
     const verified = await f.call("/api/auth/verify", "POST", {
