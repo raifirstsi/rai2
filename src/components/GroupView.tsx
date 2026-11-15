@@ -37,6 +37,9 @@ import { ReplyBlocks } from "./ReplyBlocks";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { CopyButton, ExtractSopAction, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction } from "./MessageActions";
 import { VoiceToSopModal } from "./VoiceToSopModal";
+import { isMarginGuardAlert } from "@/lib/margin-guard";
+import { MarginGuardChatCard } from "./MarginGuardChatCard";
+import { MarginGuardModal } from "./MarginGuardModal";
 import { ReactAction, ReactionChips, useCanReact } from "./Reactions";
 import { ClusterLabel } from "./RoomClusterLabel";
 import { roomPin, useBotMessageMenu, userMessageMenu } from "./message-menu";
@@ -84,7 +87,7 @@ import { useTranscriptViewport } from "@/hooks/use-transcript-viewport";
 import { useUnreadDivider } from "@/hooks/use-unread-divider";
 import { unreadMessageIds } from "@/lib/unread-divider";
 import { NewMessagesDivider } from "./NewMessagesDivider";
-import { appendDraftAttachments, useReplyDraft } from "@/lib/drafts";
+import { appendComposerDraft, appendDraftAttachments, useReplyDraft } from "@/lib/drafts";
 import { citationPreviewText, splitTranscriptCitations, type CitationAttachment } from "@/lib/citations";
 import { highlightCitationSource } from "@/lib/citations-dom";
 import { latestFailure, latestReply, type TranscriptSnapshot } from "@/lib/transcript-announcer";
@@ -170,6 +173,7 @@ function RoomTextMessage({
   useEffect(() => { if (focusedSearch && collapsible) setExpanded(true); }, [focusedSearch, collapsible, focus?.nonce]);
   const simple = !useAdvancedMode();
   const [sopSourceText, setSopSourceText] = useState<string | null>(null);
+  const [marginGuardModalData, setMarginGuardModalData] = useState<{ isOpen: boolean; price?: number; costs?: number } | null>(null);
   const speakerBot = members.find((member) => member.id === m.from?.botId);
   const botText = rawText; const teammates = useTeammates(); const peers = useMemo(() => [...members, ...teammates.peers], [members, teammates]);
   const pin = roomPin(group, m, dispatch);
@@ -296,6 +300,16 @@ function RoomTextMessage({
               {replyGroup && <AttachmentGallery images={replyGroup.images} files={replyGroup.files} originals={replyGroup.originals} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} beneath />}
             </MessageBoundary>
           )}
+          {!user && botText && isMarginGuardAlert(botText) && (
+            <MarginGuardChatCard
+              messageId={m.id}
+              text={botText}
+              onOpenMarginGuard={(metrics) => setMarginGuardModalData({ isOpen: true, price: metrics.price, costs: metrics.costs })}
+              onApproveException={() => {
+                appendComposerDraft(`group:${group.id}:${group.threadId}`, "✅ FOUNDER ĐÃ DUYỆT NGOẠI LỆ: Tôi chấp thuận mức giá/chiết khấu này.");
+              }}
+            />
+          )}
         </div>
         {!tabled && botActions}
         <span className="self-end pb-1 text-[11px] tabular-nums text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100">
@@ -309,6 +323,21 @@ function RoomTextMessage({
           isOpen={sopSourceText !== null}
           initialText={sopSourceText}
           onClose={() => setSopSourceText(null)}
+        />
+      )}
+      {marginGuardModalData?.isOpen && (
+        <MarginGuardModal
+          isOpen={marginGuardModalData.isOpen}
+          initialPrice={marginGuardModalData.price}
+          initialCosts={marginGuardModalData.costs}
+          onClose={() => setMarginGuardModalData(null)}
+          onApplyPrice={(approvedPrice) => {
+            setMarginGuardModalData(null);
+            appendComposerDraft(
+              `group:${group.id}:${group.threadId}`,
+              `✅ FOUNDER ĐIỀU CHỈNH GIÁ SÀN: Áp dụng mức giá tối thiểu ${approvedPrice.toLocaleString("vi-VN")} đ để đảm bảo biên lợi nhuận an toàn.`,
+            );
+          }}
         />
       )}
     </div>

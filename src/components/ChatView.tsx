@@ -7,6 +7,9 @@ import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Rep
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { ACTION_ICON, ChatBusyContext, CopyButton, ExtractSopAction, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
 import { VoiceToSopModal } from "./VoiceToSopModal";
+import { isMarginGuardAlert } from "@/lib/margin-guard";
+import { MarginGuardChatCard } from "./MarginGuardChatCard";
+import { MarginGuardModal } from "./MarginGuardModal";
 import { copyText } from "@/lib/copy-text";
 import { ReactAction, ReactionChips } from "@/components/Reactions";
 import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
@@ -156,6 +159,8 @@ interface ChatRows {
   dispatch: Dispatch<Action>;
   onBranch: (messageId: string) => boolean;
   onExtractSop?: (text: string) => void;
+  onOpenMarginGuard?: (metrics: { price?: number; costs?: number }) => void;
+  onApproveMarginException?: (messageId: string) => void;
   conversational: boolean; simple?: boolean; canReact: boolean;
   openedAt: number;
 }
@@ -344,7 +349,7 @@ const Bubble = memo(function Bubble({
   replyTarget?: Message;
   onReply: (message: Message) => void;
 }) {
-  const { botId, threadId, botName, voiceId, tts, localVoice, bots, mentionPeers, mentionPerson, focus, dispatch, onBranch, bubbleStyle, conversational, simple, canReact, openedAt, speakerViewer, onExtractSop } = useChatRows(), busy = onRegenerate || versions ? use(ChatBusyContext) : false;
+  const { botId, threadId, botName, voiceId, tts, localVoice, bots, mentionPeers, mentionPerson, focus, dispatch, onBranch, bubbleStyle, conversational, simple, canReact, openedAt, speakerViewer, onExtractSop, onOpenMarginGuard, onApproveMarginException } = useChatRows(), busy = onRegenerate || versions ? use(ChatBusyContext) : false;
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const peer = peerLine(message) ?? peerRequest(message, botId);
   const user = message.role === "user" && !peer;
@@ -567,6 +572,14 @@ const Bubble = memo(function Bubble({
               ) : null}
               {group && <AttachmentGallery images={group.images} files={group.files} originals={group.originals} message={{ threadId, messageId: message.id }} eager={eagerAttachments} beneath />}
             </MessageBoundary>
+          )}
+          {!user && isMarginGuardAlert(text) && (
+            <MarginGuardChatCard
+              messageId={message.id}
+              text={text}
+              onOpenMarginGuard={onOpenMarginGuard}
+              onApproveException={onApproveMarginException}
+            />
           )}
         </div>
         {!tabled && botActions}
@@ -917,8 +930,38 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const reactor = useReactor();
   const speakerViewer = state.config?.team && reactor !== "user" ? reactor : null;
   const [sopSourceText, setSopSourceText] = useState<string | null>(null);
+  const [marginGuardModalData, setMarginGuardModalData] = useState<{ isOpen: boolean; price?: number; costs?: number } | null>(null);
   const rows = useMemo<ChatRows>(
-    () => ({ botId: bot.id, threadId: bot.threadId, botName: bot.name, botColor: bot.color, voiceId: bot.voice, tts, localVoice, hasMore, bots, mentionPeers, mentionPerson: { profileName: state.config?.profile?.name }, focus, showToolCalls, locale, dispatch, onBranch, bubbleStyle, conversational: isConversational(bot.replyStyle), simple: !advanced, canReact: canWrite !== false, openedAt, speakerViewer, onExtractSop: (sourceText: string) => setSopSourceText(sourceText) }),
+    () => ({
+      botId: bot.id,
+      threadId: bot.threadId,
+      botName: bot.name,
+      botColor: bot.color,
+      voiceId: bot.voice,
+      tts,
+      localVoice,
+      hasMore,
+      bots,
+      mentionPeers,
+      mentionPerson: { profileName: state.config?.profile?.name },
+      focus,
+      showToolCalls,
+      locale,
+      dispatch,
+      onBranch,
+      bubbleStyle,
+      conversational: isConversational(bot.replyStyle),
+      simple: !advanced,
+      canReact: canWrite !== false,
+      openedAt,
+      speakerViewer,
+      onExtractSop: (sourceText: string) => setSopSourceText(sourceText),
+      onOpenMarginGuard: (metrics: { price?: number; costs?: number }) =>
+        setMarginGuardModalData({ isOpen: true, price: metrics.price, costs: metrics.costs }),
+      onApproveMarginException: () => {
+        appendComposerDraft(`bot:${bot.id}:${bot.threadId}`, "✅ FOUNDER ĐÃ DUYỆT NGOẠI LỆ: Tôi chấp thuận mức giá/chiết khấu này.");
+      },
+    }),
     [bot.id, bot.threadId, bot.name, bot.color, bot.voice, tts, localVoice, hasMore, bots, mentionPeers, state.config?.profile?.name, focus, showToolCalls, locale, dispatch, onBranch, bubbleStyle, bot.replyStyle, advanced, canWrite, openedAt, speakerViewer],
   );
   const currentTask = bot.tasks?.find((task) => task.threadId === bot.threadId), place = effectivePlace(bot, currentTask), team = state.config?.team, privateChat = Boolean(team) && currentTask?.private === true, ownHelper = Boolean(team) && !privateChat && Boolean(bot.defaultBot?.person), sharedChat = Boolean(team) && !privateChat && !ownHelper;
@@ -1313,6 +1356,22 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           isOpen={sopSourceText !== null}
           initialText={sopSourceText}
           onClose={() => setSopSourceText(null)}
+        />
+      )}
+
+      {marginGuardModalData?.isOpen && (
+        <MarginGuardModal
+          isOpen={marginGuardModalData.isOpen}
+          initialPrice={marginGuardModalData.price}
+          initialCosts={marginGuardModalData.costs}
+          onClose={() => setMarginGuardModalData(null)}
+          onApplyPrice={(approvedPrice) => {
+            setMarginGuardModalData(null);
+            appendComposerDraft(
+              `bot:${bot.id}:${bot.threadId}`,
+              `✅ FOUNDER ĐIỀU CHỈNH GIÁ SÀN: Áp dụng mức giá tối thiểu ${approvedPrice.toLocaleString("vi-VN")} đ để đảm bảo biên lợi nhuận an toàn.`,
+            );
+          }}
         />
       )}
     </main>

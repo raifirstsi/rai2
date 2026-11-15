@@ -198,3 +198,64 @@ ${
 }
 `.trim();
 }
+
+export function isMarginGuardAlert(text: string): boolean {
+  if (!text) return false;
+  const upper = text.toUpperCase();
+  return (
+    upper.includes("MARGIN GUARD") &&
+    (upper.includes("🛑") ||
+      upper.includes("CẢNH BÁO") ||
+      upper.includes("CHẶN") ||
+      upper.includes("BLOCKED") ||
+      upper.includes("CRITICAL") ||
+      upper.includes("HITL") ||
+      upper.includes("DƯỚI NGƯỠNG") ||
+      upper.includes("VI PHẠM") ||
+      upper.includes("DUYỆT NGOẠI LỆ") ||
+      upper.includes("VƯỢT THẨM QUYỀN") ||
+      upper.includes("NGUY CƠ LỖ"))
+  );
+}
+
+const STORAGE_KEY_MARGIN_APPROVALS = "rai2_margin_guard_approvals";
+
+function getLocalStorage(): Storage | undefined {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) return window.localStorage;
+    if (typeof globalThis !== "undefined" && globalThis.localStorage) return globalThis.localStorage;
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+export function loadMarginApprovals(): Record<string, { approvedAt: string; note?: string }> {
+  const storage = getLocalStorage();
+  if (!storage) return {};
+  try {
+    const raw = storage.getItem(STORAGE_KEY_MARGIN_APPROVALS);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+export function saveMarginApproval(messageId: string, note?: string): void {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    const current = loadMarginApprovals();
+    current[messageId] = {
+      approvedAt: new Date().toISOString(),
+      note: note || "Duyệt ngoại lệ bởi Người Sáng Lập",
+    };
+    storage.setItem(STORAGE_KEY_MARGIN_APPROVALS, JSON.stringify(current));
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("rai2:margin-approval-updated", { detail: { messageId } }));
+    }
+  } catch (e) {
+    console.warn("Could not save margin approval:", e);
+  }
+}
