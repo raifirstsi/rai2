@@ -99,8 +99,10 @@ flowchart LR
     5. **Một hành động ưu tiên duy nhất cho tuần tới (The Single Priority).**
   * **Kênh gửi:** Hiển thị dạng thẻ Báo cáo nhịp thở ngay tại màn hình Dashboard và hỗ trợ webhook gửi thông báo về Zalo/Telegram của Founder.
 * **Định nghĩa hoàn thành (DoD):**
-  - Logic tính toán $ARI$ động từ dữ liệu thực tế.
-  - Thẻ giao diện Báo cáo Nhịp thở Thứ Sáu tinh gọn, hiển thị rõ 4 chỉ số trên.
+  - [x] Logic tính toán $ARI$ động từ dữ liệu thực tế (7-Zone coverage, TOC resolution, Backlog > 48h).
+  - [x] Thẻ giao diện Báo cáo Nhịp thở Thứ Sáu tinh gọn (`FridayPulseModal`), hiển thị rõ 4 chỉ số, gauge tiến trình và mục tiêu duy nhất.
+  - [x] Kênh gửi Webhook Di Động (Zalo / Telegram) hỗ trợ gửi 1-chạm bản tin Markdown và lưu cấu hình tự động.
+  - [x] Banner nhắc nhở tự động lúc 17:00 chiều thứ Sáu hiển thị trên Sidebar khi tuần hiện tại chưa được xem báo cáo.
 
 ---
 

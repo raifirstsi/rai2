@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   X,
   Copy,
@@ -6,11 +6,20 @@ import {
   Calendar,
   ArrowRight,
   TrendingUp,
+  Send,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useStore } from "@/state/store";
 import {
   computeFridayPulseReport,
   formatFridayPulseMarkdown,
+  getFridayPulseWebhookUrl,
+  saveFridayPulseWebhookUrl,
+  sendFridayPulseWebhook,
+  getLastSentFridayPulse,
+  markFridayPulseReviewed,
 } from "@/lib/friday-pulse";
 import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
 import { loadSavedFingerprint } from "./CompanyFingerprintModal";
@@ -30,6 +39,10 @@ export function FridayPulseModal({
 }: FridayPulseModalProps) {
   const { state } = useStore();
   const [copied, setCopied] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState(() => getFridayPulseWebhookUrl());
+  const [webhookStatus, setWebhookStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [webhookFeedback, setWebhookFeedback] = useState<string | null>(null);
+  const [lastSent, setLastSent] = useState(() => getLastSentFridayPulse());
 
   const activeBotIds = useMemo(() => {
     return (state.bots || []).flatMap((b) => [
@@ -73,6 +86,33 @@ export function FridayPulseModal({
       customMarginScore: targetMargin,
     });
   }, [activeBotIds, tocDiagnosis, backlogCount, targetMargin]);
+
+  useEffect(() => {
+    if (isOpen) {
+      markFridayPulseReviewed(report.weekDisplay);
+    }
+  }, [isOpen, report.weekDisplay]);
+
+  const handleSendWebhook = async () => {
+    if (!webhookUrl.trim()) {
+      setWebhookStatus("error");
+      setWebhookFeedback("Vui lòng nhập địa chỉ URL Webhook (Zalo hoặc Telegram).");
+      return;
+    }
+    saveFridayPulseWebhookUrl(webhookUrl);
+    setWebhookStatus("sending");
+    setWebhookFeedback(null);
+    const result = await sendFridayPulseWebhook(webhookUrl, report);
+    if (result.ok) {
+      setWebhookStatus("success");
+      setWebhookFeedback("Đã gửi báo cáo thành công tới Webhook!");
+      setLastSent(getLastSentFridayPulse());
+      setTimeout(() => setWebhookStatus("idle"), 4000);
+    } else {
+      setWebhookStatus("error");
+      setWebhookFeedback(result.error || "Gửi webhook thất bại");
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -253,6 +293,70 @@ export function FridayPulseModal({
                 );
               })}
             </div>
+          </div>
+
+          {/* 5. Webhook Notification Channel (Zalo / Telegram) */}
+          <div className="rounded-xl border border-hairline/60 bg-control/20 p-4 sm:p-5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+              <div className="flex items-center gap-2">
+                <Send size={15} className="text-accent" />
+                <span className="text-[13px] font-semibold text-ink">
+                  Kênh Gửi Webhook Di Động (Zalo / Telegram)
+                </span>
+              </div>
+              {lastSent && (
+                <span className="text-[11px] text-ink-secondary">
+                  Lần gửi gần nhất: {new Date(lastSent.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} ({lastSent.week})
+                </span>
+              )}
+            </div>
+
+            <p className="text-[12px] text-ink-secondary leading-relaxed">
+              Bắn toàn bộ bản tin P&amp;L và chỉ số sẵn sàng vắng mặt (ARI) 17:00 về kênh di động của Người Sáng Lập.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="url"
+                value={webhookUrl}
+                onChange={(e) => {
+                  setWebhookUrl(e.target.value);
+                  saveFridayPulseWebhookUrl(e.target.value);
+                }}
+                placeholder="https://chat.zalo.me/... hoặc https://api.telegram.org/bot<token>/sendMessage?chat_id=<id>"
+                className="flex-1 rounded-lg border border-hairline/60 bg-card px-3 py-2 text-[12px] text-ink placeholder:text-ink-tertiary focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <button
+                type="button"
+                onClick={handleSendWebhook}
+                disabled={webhookStatus === "sending"}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-[12px] font-medium text-white hover:bg-accent/90 disabled:opacity-50 transition-colors shadow-sm cursor-pointer shrink-0"
+              >
+                {webhookStatus === "sending" ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Send size={14} />
+                )}
+                <span>{webhookStatus === "sending" ? "Đang gửi..." : "Gửi Ngay (1-Chạm)"}</span>
+              </button>
+            </div>
+
+            {webhookFeedback && (
+              <div
+                className={`flex items-center gap-1.5 text-[12px] ${
+                  webhookStatus === "success"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-rose-500"
+                }`}
+              >
+                {webhookStatus === "success" ? (
+                  <CheckCircle2 size={14} />
+                ) : (
+                  <AlertCircle size={14} />
+                )}
+                <span>{webhookFeedback}</span>
+              </div>
+            )}
           </div>
         </div>
 

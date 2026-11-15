@@ -1,8 +1,34 @@
-import { describe, it, expect } from "vitest";
-import { computeFridayPulseReport, formatFridayPulseMarkdown } from "./friday-pulse";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  computeFridayPulseReport,
+  formatFridayPulseMarkdown,
+  getFridayPulseWebhookUrl,
+  saveFridayPulseWebhookUrl,
+  sendFridayPulseWebhook,
+  isFridayPulseDue,
+  markFridayPulseReviewed,
+} from "./friday-pulse";
 import type { TocDiagnosisResult } from "./toc-detector";
 
+const store = new Map<string, string>();
+const storage = {
+  getItem: (key: string) => store.get(key) ?? null,
+  setItem: (key: string, value: string) => store.set(key, value),
+  removeItem: (key: string) => store.delete(key),
+  clear: () => store.clear(),
+};
+
+vi.stubGlobal("localStorage", storage);
+if (typeof window !== "undefined") {
+  (window as unknown as { localStorage: typeof storage }).localStorage = storage;
+}
+
 describe("friday-pulse - Friday 17:00 Pulse & Dynamic Absence Readiness", () => {
+  beforeEach(() => {
+    store.clear();
+    vi.restoreAllMocks();
+  });
+
   const mockToc: TocDiagnosisResult = {
     constraintType: "DELIVERY_BOTTLENECK",
     primaryZone: "ZONE_4_OPERATIONS",
@@ -81,5 +107,74 @@ describe("friday-pulse - Friday 17:00 Pulse & Dynamic Absence Readiness", () => 
     expect(md).toContain("Thước Đo Sẵn Sàng Vắng Mặt ($ARI$)");
     expect(md).toContain("MỤC TIÊU ƯU TIÊN DUY NHẤT TUẦN TỚI");
     expect(md).toContain("Chỉ Số Vận Hành Cốt Lõi");
+  });
+
+  it("saves and retrieves webhook URL correctly", () => {
+    expect(getFridayPulseWebhookUrl()).toBe("");
+    saveFridayPulseWebhookUrl("https://chat.zalo.me/api/webhook/12345");
+    expect(getFridayPulseWebhookUrl()).toBe("https://chat.zalo.me/api/webhook/12345");
+  });
+
+  it("sends Friday pulse webhook payload successfully", async () => {
+    const report = computeFridayPulseReport({
+      activeBotIds: ["rai-lead"],
+      backlogCount: 0,
+    });
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await sendFridayPulseWebhook("https://hooks.zalo.me/pulse", report);
+    expect(result.ok).toBe(true);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    const callArgs = mockFetch.mock.calls[0];
+    expect(callArgs[0]).toBe("https://hooks.zalo.me/pulse");
+    const sentBody = JSON.parse(callArgs[1].body);
+    expect(sentBody.event).toBe("friday_pulse");
+    expect(sentBody.text).toContain("BÁO CÁO NHỊP THỞ THỨ SÁU 17:00");
+  });
+
+  it("sends Telegram formatted payload when URL points to telegram API", async () => {
+    const report = computeFridayPulseReport({
+      activeBotIds: ["rai-lead"],
+      backlogCount: 0,
+    });
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await sendFridayPulseWebhook(
+      "https://api.telegram.org/bot12345/sendMessage?chat_id=98765",
+      report
+    );
+    expect(result.ok).toBe(true);
+    const sentBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(sentBody.chat_id).toBe("98765");
+    expect(sentBody.parse_mode).toBe("Markdown");
+  });
+
+  it("evaluates isFridayPulseDue correctly based on day, time, and reviewed state", () => {
+    // Wednesday 10:00 -> false
+    const wednesday = new Date(2026, 10, 11, 10, 0, 0); // 11 Nov 2026 is Wed
+    expect(isFridayPulseDue(wednesday)).toBe(false);
+
+    // Friday 14:00 -> false
+    const fridayEarly = new Date(2026, 10, 13, 14, 0, 0);
+    expect(isFridayPulseDue(fridayEarly)).toBe(false);
+
+    // Friday 17:30 -> true (unreviewed)
+    const fridayLate = new Date(2026, 10, 13, 17, 30, 0);
+    expect(isFridayPulseDue(fridayLate)).toBe(true);
+
+    // After marking reviewed for that week -> false
+    markFridayPulseReviewed();
+    expect(isFridayPulseDue(fridayLate)).toBe(false);
   });
 });
