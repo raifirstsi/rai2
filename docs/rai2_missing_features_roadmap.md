@@ -197,7 +197,7 @@ flowchart LR
 | **GIAI ĐOẠN 1** | **1. Voice-to-SOP (Record First, Write Never)**<br/>**2. Margin Guard (Chốt chặn Biên Lợi Nhuận)** | - Nút ghi âm & bóc tách SOP vào `memory/sops.md`.<br/>- Cầu dao chặn báo giá margin < 35% trên `rai-closer`. | **ƯU TIÊN SỐ 1**<br/>(Tuần 1 - 2) |
 | **GIAI ĐOẠN 2** | **1. Bản đồ Tương tác 7 Vùng Chiến lược**<br/>**2. Báo cáo Nhịp thở Thứ Sáu 17:00 & $ARI$** | - UI tương tác 7 phòng ban liên kết bot & điểm nghẽn TOC.<br/>- Dashboard tổng hợp tuần & công thức $ARI$ vắng mặt động. | **ƯU TIÊN SỐ 2**<br/>(Tuần 3 - 4) |
 | **GIAI ĐOẠN 3** | **1. Mô phỏng 5 Đòn bẩy P&L**<br/>**2. Bình Nhiên liệu Dữ liệu (Data Readiness /20)** | - Bộ thanh trượt tương tác 5 đòn bẩy P&L.<br/>- Thước đo chất lượng 5 ngăn dữ liệu trong Context Vault. | **ƯU TIÊN SỐ 3**<br/>(Tuần 5 - 6) |
-| **GIAI ĐOẠN 4** | **1. Target Architecture Worksheet**<br/>**2. The AI Maturity Assessment (/21)**<br/>**3. Cổng Tốt nghiệp Tự trị 95%** | - Form phân loại Keep/Eliminate/Redesign.<br/>- Trắc nghiệm 7 vùng đo độ trưởng thành AI.<br/>- Cơ chế thăng hạng/hạ hạng bot theo lịch sử duyệt. | **ƯU TIÊN SỐ 4**<br/>(Tuần 7 - 8) |
+| **GIAI ĐOẠN 4** | **1. Target Architecture Worksheet**<br/>**2. The AI Maturity Assessment (/21)**<br/>**3. Cổng Tốt nghiệp Tự trị 95%** | - Form phân loại Keep/Eliminate/Redesign & bắt lỗi gãy quy trình.<br/>- Trắc nghiệm 7 vùng đo độ trưởng thành AI & Lộ trình 90 ngày.<br/>- Thang 3 cấp độ (T1-T3), chuỗi 50 tác vụ sạch & Cầu dao hạ hạng. | **✅ ĐÃ HOÀN TẤT & DEPLOY LIVE** |
 
 ---
 
