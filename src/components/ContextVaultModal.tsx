@@ -308,337 +308,340 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           </button>
         </div>
 
-        {/* Data Readiness Fuel Gauge /20 */}
-        <div className="px-3 pt-3 shrink-0 sm:px-5">
-          <DataReadinessGauge
-            vaultData={contents}
-            onSelectPillar={(pillarId) => {
-              setViewMode("edit");
-              setActiveTab(pillarId as ContextPillarId);
-            }}
-          />
-        </div>
-
-        {/* Hard Gate Interlock (Active when fuelScore < 8/20) */}
-        {readiness.totalScore < 8 && (
-          <div
-            data-testid="hard-gate-interlock"
-            className="mx-3 mt-2.5 sm:mx-5 rounded-xl border border-hairline/60 bg-card p-3 sm:p-3.5 space-y-2.5 shadow-xs shrink-0"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent shrink-0">
-                  <ShieldAlert size={15} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[12px] sm:text-[13px] font-semibold text-ink truncate block">
-                    Cầu Dao An Toàn (Hard Gate Interlock)
-                  </span>
-                  <span className="text-[11px] text-ink-secondary">
-                    Bảo vệ doanh nghiệp khỏi AI báo giá ảo giác
-                  </span>
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-medium border shrink-0",
-                  isHardGateLocked
-                    ? "bg-accent/10 text-accent border-accent/20"
-                    : "bg-control text-ink-secondary border-hairline"
-                )}
-              >
-                {isHardGateLocked ? "Đang Khóa An Toàn" : "Mở Khóa Cưỡng Bức"}
-              </span>
-            </div>
-
-            <p className="text-[12px] text-ink leading-relaxed">
-              Tạm dừng chế độ bot tự động gửi báo giá cho đến khi bổ sung đủ dữ liệu sàn (Điểm nhiên liệu: {readiness.totalScore}/20, dưới ngưỡng an toàn 8/20).
-            </p>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-hairline/40">
-              <span className="text-[11px] text-ink-tertiary">
-                Trạng thái: {isHardGateLocked ? "Mọi báo giá bắt buộc phải có Founder duyệt" : "Cảnh báo: Bot có nguy cơ báo giá sai biên lợi nhuận sàn"}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !isHardGateLocked;
-                  setIsHardGateLocked(next);
-                  try {
-                    if (typeof window !== "undefined" && window.localStorage) {
-                      window.localStorage.setItem("rai2_quote_hard_gate_interlock", String(next));
-                    }
-                  } catch {}
-                }}
-                className={cn(
-                  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors border shrink-0",
-                  isHardGateLocked
-                    ? "bg-accent text-white border-transparent hover:bg-accent/90"
-                    : "bg-control text-ink border-hairline hover:bg-control/80"
-                )}
-              >
-                {isHardGateLocked ? "Bật Khóa (Khuyến nghị)" : "Mở Khóa Tự Động"}
-              </button>
-            </div>
+        {/* Scrollable Body: Smooth, unclipped scrolling on Desktop & Mobile */}
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+          {/* Data Readiness Fuel Gauge /20 */}
+          <div className="px-3 pt-3 sm:px-5 shrink-0">
+            <DataReadinessGauge
+              vaultData={contents}
+              onSelectPillar={(pillarId) => {
+                setViewMode("edit");
+                setActiveTab(pillarId as ContextPillarId);
+              }}
+            />
           </div>
-        )}
 
-        {!canEdit && (
-          <div className="mx-4 sm:mx-6 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-[12px] text-amber-300 flex items-center gap-2">
-            <span className="font-semibold shrink-0">🔒 Chế độ Xem:</span>
-            <span>Chỉ Quản trị viên (Owner/Admin) mới có quyền chỉnh sửa và đồng bộ Két Sắt Context Vault cho toàn tổ chức.</span>
-          </div>
-        )}
-
-        {/* Content Body: Edit Mode */}
-        {viewMode === "edit" && (
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-            {/* Horizontal Pillar Tabs (Mobile) / Sidebar Tabs (Desktop) */}
-            <div className="flex w-full shrink-0 snap-x gap-1 overflow-x-auto border-b border-hairline/40 p-2 scrollbar-none md:w-[200px] md:flex-col md:overflow-y-auto md:border-b-0 md:border-r md:p-3">
-              <div className="hidden px-2 pb-2 pt-1 text-[12px] font-medium text-ink-tertiary md:flex">
-                8 Trụ Cột Tri Thức
+          {/* Hard Gate Interlock (Active when fuelScore < 8/20) */}
+          {readiness.totalScore < 8 && (
+            <div
+              data-testid="hard-gate-interlock"
+              className="mx-3 mt-2.5 sm:mx-5 rounded-xl border border-hairline/60 bg-card p-3 sm:p-3.5 space-y-2.5 shadow-xs shrink-0"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent shrink-0">
+                    <ShieldAlert size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[12px] sm:text-[13px] font-semibold text-ink truncate block">
+                      Cầu Dao An Toàn (Hard Gate Interlock)
+                    </span>
+                    <span className="text-[11px] text-ink-secondary">
+                      Bảo vệ doanh nghiệp khỏi AI báo giá ảo giác
+                    </span>
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-medium border shrink-0",
+                    isHardGateLocked
+                      ? "bg-accent/10 text-accent border-accent/20"
+                      : "bg-control text-ink-secondary border-hairline"
+                  )}
+                >
+                  {isHardGateLocked ? "Đang Khóa An Toàn" : "Mở Khóa Cưỡng Bức"}
+                </span>
               </div>
-              {(Object.keys(CONTEXT_PILLARS) as ContextPillarId[]).map((id) => {
-                const p = CONTEXT_PILLARS[id];
-                const active = activeTab === id;
-                const shortLabel = SHORT_PILLAR_LABELS[id] || p.title;
 
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setActiveTab(id)}
-                    className={cn(
-                      "shrink-0 snap-start whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] transition-colors md:whitespace-normal",
-                      active
-                        ? "bg-control font-medium text-ink"
-                        : "text-ink-secondary hover:bg-control/60 hover:text-ink"
-                    )}
-                  >
-                    <div className="truncate">{shortLabel}</div>
-                  </button>
-                );
-              })}
+              <p className="text-[12px] text-ink leading-relaxed">
+                Tạm dừng chế độ bot tự động gửi báo giá cho đến khi bổ sung đủ dữ liệu sàn (Điểm nhiên liệu: {readiness.totalScore}/20, dưới ngưỡng an toàn 8/20).
+              </p>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-hairline/40">
+                <span className="text-[11px] text-ink-tertiary">
+                  Trạng thái: {isHardGateLocked ? "Mọi báo giá bắt buộc phải có Founder duyệt" : "Cảnh báo: Bot có nguy cơ báo giá sai biên lợi nhuận sàn"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !isHardGateLocked;
+                    setIsHardGateLocked(next);
+                    try {
+                      if (typeof window !== "undefined" && window.localStorage) {
+                        window.localStorage.setItem("rai2_quote_hard_gate_interlock", String(next));
+                      }
+                    } catch {}
+                  }}
+                  className={cn(
+                    "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors border shrink-0",
+                    isHardGateLocked
+                      ? "bg-accent text-white border-transparent hover:bg-accent/90"
+                      : "bg-control text-ink border-hairline hover:bg-control/80"
+                  )}
+                >
+                  {isHardGateLocked ? "Bật Khóa (Khuyến nghị)" : "Mở Khóa Tự Động"}
+                </button>
+              </div>
             </div>
+          )}
 
-            {/* Main Editor & Sharpness Audit */}
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              {/* Textarea Area */}
-              <div className="flex-1 flex flex-col p-3.5 sm:p-4 overflow-y-auto space-y-2.5">
-                {distillNotice && (
-                  <div className="flex items-center justify-between rounded-xl border border-hairline/40 bg-card p-2.5 text-[13px] text-ink">
-                    <span>{distillNotice}</span>
+          {!canEdit && (
+            <div className="mx-3 sm:mx-5 mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-[12px] text-amber-300 flex items-center gap-2 shrink-0">
+              <span className="font-semibold shrink-0">🔒 Chế độ Xem:</span>
+              <span>Chỉ Quản trị viên (Owner/Admin) mới có quyền chỉnh sửa và đồng bộ Két Sắt Context Vault cho toàn tổ chức.</span>
+            </div>
+          )}
+
+          {/* Content Body: Edit Mode */}
+          {viewMode === "edit" && (
+            <div className="flex-1 flex flex-col md:flex-row mt-3 border-t border-hairline/40 min-h-0">
+              {/* Horizontal Pillar Tabs (Mobile) / Sidebar Tabs (Desktop) */}
+              <div className="sticky top-0 z-10 flex w-full shrink-0 snap-x gap-1 overflow-x-auto border-b border-hairline/40 bg-card p-2 scrollbar-none md:static md:w-[210px] md:flex-col md:border-b-0 md:border-r md:p-3 md:bg-transparent">
+                <div className="hidden px-2 pb-2 pt-1 text-[12px] font-semibold text-ink-tertiary md:flex">
+                  8 Trụ Cột Tri Thức
+                </div>
+                {(Object.keys(CONTEXT_PILLARS) as ContextPillarId[]).map((id) => {
+                  const p = CONTEXT_PILLARS[id];
+                  const active = activeTab === id;
+                  const shortLabel = SHORT_PILLAR_LABELS[id] || p.title;
+
+                  return (
                     <button
+                      key={id}
                       type="button"
-                      onClick={() => setDistillNotice(null)}
-                      className="text-ink-tertiary hover:text-ink font-bold ml-2"
+                      onClick={() => setActiveTab(id)}
+                      className={cn(
+                        "shrink-0 snap-start whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] transition-colors md:whitespace-normal",
+                        active
+                          ? "bg-control font-medium text-ink shadow-xs"
+                          : "text-ink-secondary hover:bg-control/60 hover:text-ink"
+                      )}
                     >
-                      ✕
+                      <div className="truncate">{shortLabel}</div>
                     </button>
-                  </div>
-                )}
+                  );
+                })}
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-[13px] sm:text-[14px] text-ink">
-                      {CONTEXT_PILLARS[activeTab].title}
-                    </h3>
-                    <p className="text-[12px] text-ink-secondary">
-                      {CONTEXT_PILLARS[activeTab].subtitle}
-                    </p>
+              {/* Main Editor & Sharpness Audit */}
+              <div className="flex-1 flex flex-col lg:flex-row min-w-0">
+                {/* Textarea Area */}
+                <div className="flex-1 flex flex-col p-3.5 sm:p-4 space-y-3 min-w-0">
+                  {distillNotice && (
+                    <div className="flex items-center justify-between rounded-xl border border-hairline/40 bg-card p-2.5 text-[13px] text-ink">
+                      <span>{distillNotice}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDistillNotice(null)}
+                        className="text-ink-tertiary hover:text-ink font-bold ml-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold text-[13px] sm:text-[14px] text-ink">
+                        {CONTEXT_PILLARS[activeTab].title}
+                      </h3>
+                      <p className="text-[12px] text-ink-secondary">
+                        {CONTEXT_PILLARS[activeTab].subtitle}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+                        <button
+                          type="button"
+                          onClick={onOpenMarginGuard}
+                          className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                        >
+                          <ShieldAlert size={13} />
+                          <span>Margin Guard</span>
+                        </button>
+                      )}
+                      {activeTab === "sales_process" && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {onOpenFiveLevers && (
+                            <button
+                              type="button"
+                              onClick={onOpenFiveLevers}
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                            >
+                              <TrendingUp size={13} />
+                              <span>5 Đòn Bẩy P&amp;L</span>
+                            </button>
+                          )}
+                          {onOpenMarginGuard && (
+                            <button
+                              type="button"
+                              onClick={onOpenMarginGuard}
+                              className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                            >
+                              <ShieldAlert size={13} />
+                              <span>Margin Guard</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {activeTab === "sops" && (
+                        <button
+                          type="button"
+                          onClick={() => setVoiceToSopOpen(true)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                        >
+                          <FileCheck size={13} />
+                          <span>Đóng gói SOP (Voice)</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleResetToTemplate}
+                        className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-text hover:underline"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Nạp mẫu chuẩn</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+
+                  {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+                    <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ShieldAlert size={15} className="text-accent shrink-0" />
+                        <span className="truncate">
+                          Biểu phí và cam kết doanh thu cần tuân thủ cầu dao <strong>Margin Guard</strong> (Biên lợi nhuận gộp &ge; 35%).
+                        </span>
+                      </div>
                       <button
                         type="button"
                         onClick={onOpenMarginGuard}
-                        className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                        className="shrink-0 font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
                       >
-                        <ShieldAlert size={13} />
-                        <span>Margin Guard</span>
+                        <span>Tính giá sàn</span>
+                        <ArrowRight size={12} />
                       </button>
-                    )}
-                    {activeTab === "sales_process" && (
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                    </div>
+                  )}
+
+                  {activeTab === "sales_process" && (onOpenFiveLevers || onOpenMarginGuard) && (
+                    <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <TrendingUp size={15} className="text-accent shrink-0" />
+                        <span className="truncate">
+                          Kịch bản chốt đơn cần áp dụng mô hình <strong>5 Đòn Bẩy P&amp;L</strong> và rào chắn chống mòn giá.
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
                         {onOpenFiveLevers && (
                           <button
                             type="button"
                             onClick={onOpenFiveLevers}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                            className="font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
                           >
-                            <TrendingUp size={13} />
-                            <span>5 Đòn Bẩy P&amp;L</span>
+                            <span>Mô phỏng 5 Đòn Bẩy</span>
+                            <ArrowRight size={12} />
                           </button>
                         )}
                         {onOpenMarginGuard && (
                           <button
                             type="button"
                             onClick={onOpenMarginGuard}
-                            className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                            className="font-medium text-ink-secondary hover:text-ink hover:underline flex items-center gap-1 cursor-pointer"
                           >
-                            <ShieldAlert size={13} />
-                            <span>Margin Guard</span>
+                            <span>Kiểm tra giá sàn</span>
                           </button>
                         )}
                       </div>
-                    )}
-                    {activeTab === "sops" && (
-                      <button
-                        type="button"
-                        onClick={() => setVoiceToSopOpen(true)}
-                        className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
-                      >
-                        <FileCheck size={13} />
-                        <span>Đóng gói SOP (Voice)</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleResetToTemplate}
-                      className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-text hover:underline"
-                    >
-                      <RotateCcw size={12} />
-                      <span>Nạp mẫu chuẩn</span>
-                    </button>
-                  </div>
-                </div>
-
-                {activeTab === "offer_breakdown" && onOpenMarginGuard && (
-                  <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <ShieldAlert size={15} className="text-accent shrink-0" />
-                      <span className="truncate">
-                        Biểu phí và cam kết doanh thu cần tuân thủ cầu dao <strong>Margin Guard</strong> (Biên lợi nhuận gộp &ge; 35%).
-                      </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={onOpenMarginGuard}
-                      className="shrink-0 font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Tính giá sàn</span>
-                      <ArrowRight size={12} />
-                    </button>
-                  </div>
-                )}
-
-                {activeTab === "sales_process" && (onOpenFiveLevers || onOpenMarginGuard) && (
-                  <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <TrendingUp size={15} className="text-accent shrink-0" />
-                      <span className="truncate">
-                        Kịch bản chốt đơn cần áp dụng mô hình <strong>5 Đòn Bẩy P&amp;L</strong> và rào chắn chống mòn giá.
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      {onOpenFiveLevers && (
-                        <button
-                          type="button"
-                          onClick={onOpenFiveLevers}
-                          className="font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>Mô phỏng 5 Đòn Bẩy</span>
-                          <ArrowRight size={12} />
-                        </button>
-                      )}
-                      {onOpenMarginGuard && (
-                        <button
-                          type="button"
-                          onClick={onOpenMarginGuard}
-                          className="font-medium text-ink-secondary hover:text-ink hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>Kiểm tra giá sàn</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <textarea
-                  value={currentContent}
-                  onChange={(e) => canEdit && handleContentChange(e.target.value)}
-                  readOnly={!canEdit}
-                  className={cn(
-                    "min-h-[200px] w-full flex-1 resize-none rounded-lg border border-hairline/40 bg-inset p-3 font-mono text-[13px] leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-focus/60",
-                    !canEdit && "opacity-80 cursor-not-allowed bg-control/20"
                   )}
-                  placeholder={canEdit ? "Nhập nội dung bối cảnh..." : "Nội dung chỉ đọc (Read-only)..."}
-                />
-              </div>
 
-              {/* Sharpness Gauge Panel */}
-              <div className="flex w-full flex-col gap-2.5 overflow-y-auto border-t border-hairline/40 p-3.5 sm:p-4 lg:w-64 lg:border-l lg:border-t-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-ink">
-                    Độ Sắc Nét:
-                  </span>
-                  <span
+                  <textarea
+                    value={currentContent}
+                    onChange={(e) => canEdit && handleContentChange(e.target.value)}
+                    readOnly={!canEdit}
+                    rows={12}
                     className={cn(
-                       "ui-chip border",
-                      sharpness.isSharp
-                        ? "bg-card text-accent-text border-hairline"
-                        : "bg-card text-warning border-hairline"
+                      "min-h-[220px] sm:min-h-[280px] w-full flex-1 rounded-lg border border-hairline/40 bg-inset p-3.5 font-mono text-[13px] leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-focus/60 resize-y",
+                      !canEdit && "opacity-80 cursor-not-allowed bg-control/20"
                     )}
-                  >
-                    {sharpness.score}/100 {sharpness.isSharp ? "✓ Đạt" : "⚠ Cần sửa"}
-                  </span>
-                </div>
-
-                <div className="w-full bg-control rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="h-full bg-accent transition-all duration-300"
-                    style={{ width: `${sharpness.score}%` }}
+                    placeholder={canEdit ? "Nhập nội dung bối cảnh..." : "Nội dung chỉ đọc (Read-only)..."}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[12px]">
-                    <div className="rounded-lg border border-hairline/40 bg-card p-2">
-                    <div className="text-ink-tertiary">Số từ:</div>
-                    <div className="font-semibold text-ink">
-                      {sharpness.wordCount}
-                    </div>
+                {/* Sharpness Gauge Panel */}
+                <div className="flex w-full flex-col gap-2.5 border-t border-hairline/40 p-3.5 sm:p-4 lg:w-64 lg:shrink-0 lg:border-l lg:border-t-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-semibold text-ink">
+                      Độ Sắc Nét:
+                    </span>
+                    <span
+                      className={cn(
+                        "ui-chip border",
+                        sharpness.isSharp
+                          ? "bg-card text-accent-text border-hairline"
+                          : "bg-card text-warning border-hairline"
+                      )}
+                    >
+                      {sharpness.score}/100 {sharpness.isSharp ? "✓ Đạt" : "⚠ Cần sửa"}
+                    </span>
                   </div>
-                    <div className="rounded-lg border border-hairline/40 bg-card p-2">
-                    <div className="text-ink-tertiary">Từ/câu TB:</div>
-                    <div className="font-semibold text-ink">
-                      {sharpness.averageWordsPerSentence} (chuẩn 12-18)
-                    </div>
-                  </div>
-                </div>
 
-                {sharpness.flaggedJargon.length > 0 && (
-                  <div className="rounded-lg border border-hairline/40 bg-card p-2.5 text-[12px]">
-                    <div className="font-semibold text-ink-secondary mb-1">Từ sáo rỗng:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {sharpness.flaggedJargon.map((j) => (
-                        <span
-                          key={j}
-                          className="px-1.5 py-0.5 rounded bg-inset text-ink-secondary line-through text-[11px]"
-                        >
-                          {j}
-                        </span>
+                  <div className="w-full bg-control rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="h-full bg-accent transition-all duration-300"
+                      style={{ width: `${sharpness.score}%` }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[12px]">
+                    <div className="rounded-lg border border-hairline/40 bg-card p-2">
+                      <div className="text-ink-tertiary">Số từ:</div>
+                      <div className="font-semibold text-ink">
+                        {sharpness.wordCount}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-hairline/40 bg-card p-2">
+                      <div className="text-ink-tertiary">Từ/câu TB:</div>
+                      <div className="font-semibold text-ink">
+                        {sharpness.averageWordsPerSentence} (chuẩn 12-18)
+                      </div>
+                    </div>
+                  </div>
+
+                  {sharpness.flaggedJargon.length > 0 && (
+                    <div className="rounded-lg border border-hairline/40 bg-card p-2.5 text-[12px]">
+                      <div className="font-semibold text-ink-secondary mb-1">Từ sáo rỗng:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {sharpness.flaggedJargon.map((j) => (
+                          <span
+                            key={j}
+                            className="px-1.5 py-0.5 rounded bg-inset text-ink-secondary line-through text-[11px]"
+                          >
+                            {j}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="text-[13px] font-semibold text-ink mb-1">
+                      Góp ý tinh chỉnh:
+                    </div>
+                    <ul className="text-[12px] space-y-1 text-ink-secondary">
+                      {sharpness.feedback.map((f, i) => (
+                        <li key={i} className="flex items-start gap-1">
+                          <span className="text-accent-text">•</span>
+                          <span>{f}</span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
-                )}
-
-                <div>
-                  <div className="text-[13px] font-semibold text-ink mb-1">
-                    Góp ý tinh chỉnh:
-                  </div>
-                  <ul className="text-[12px] space-y-1 text-ink-secondary">
-                    {sharpness.feedback.map((f, i) => (
-                      <li key={i} className="flex items-start gap-1">
-                        <span className="text-accent-text">•</span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Record First View */}
         {viewMode === "record" && (
@@ -782,6 +785,7 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
             </div>
           </div>
         )}
+        </div>
 
         {/* Sticky Action Footer CTA matching Image 3 */}
         <footer className="border-t border-hairline/50 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 shrink-0 bg-card">
