@@ -197,6 +197,12 @@ export function saveAutonomyProfiles(profiles: Record<string, BotAutonomyProfile
   }
 }
 
+export function hasBotAutonomyProfile(botId: string): boolean {
+  if (typeof window === "undefined" || !window.localStorage) return false;
+  const profiles = loadSavedAutonomyProfiles();
+  return Boolean(profiles[botId]);
+}
+
 export function getBotAutonomyTier(botId: string): AutonomyTierMeta {
   const profiles = loadSavedAutonomyProfiles();
   const profile = profiles[botId];
