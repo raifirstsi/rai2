@@ -29,4 +29,32 @@ describe("ExtractSopAction & Chat Message Actions", () => {
     sopItem?.onSelect();
     expect(onExtractSop).toHaveBeenCalledTimes(1);
   });
+
+  it("includes extract-sop item in useBotMessageMenu when onExtractSop is provided", () => {
+    let capturedItems: ReturnType<typeof useBotMessageMenu> = [];
+    const onExtractSop = vi.fn();
+
+    function TestComponent() {
+      capturedItems = useBotMessageMenu({
+        text: "Các bước giải quyết sự cố bàn giao thiết kế...",
+        messageId: "msg-456",
+        tts: undefined,
+        localVoice: false,
+        canSpeak: false,
+        viewRaw: false,
+        onToggleRaw: vi.fn(),
+        onExtractSop,
+      });
+      return null;
+    }
+
+    renderToStaticMarkup(createElement(TestComponent));
+
+    const sopItem = capturedItems.find((item) => item.key === "extract-sop");
+    expect(sopItem).toBeDefined();
+    expect(sopItem?.label).toContain("Đóng gói SOP (Voice-to-SOP)");
+
+    sopItem?.onSelect();
+    expect(onExtractSop).toHaveBeenCalledTimes(1);
+  });
 });
