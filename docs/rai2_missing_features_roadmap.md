@@ -203,3 +203,23 @@ flowchart LR
 
 > [!IMPORTANT]
 > **Cam kết thực thi:** Toàn bộ các giai đoạn trên đều tuân thủ nguyên tắc cốt lõi của cuốn sách: **Mọi dòng code viết ra phải phục vụ cho P&L, giải phóng thời gian người chủ và mở rộng biên lợi nhuận ròng, tuyệt đối không tạo thêm rác công nghệ.**
+
+---
+
+## NHẬT KÝ THỰC THI & HOÀN THIỆN KHOẢNG HỞ (EXECUTION AUDIT LOG)
+
+### 1. Khoảng hở số 1: Huy hiệu Cấp độ Tự trị (Autonomy Tier Badge)
+- **Hiện trạng:** Đã hoàn tất 100%.
+- **Vị trí tích hợp:**
+  - `src/components/BotRole.tsx`: Component `AutonomyTierBadge` hiển thị huy hiệu `T1 · 50%`, `T2 · 80%`, `T3 · 95%`. Nhấn vào huy hiệu sẽ mở trực tiếp Modal Cổng Tốt Nghiệp Sát Hạch cho bot đó.
+  - `src/components/Sidebar.tsx`: Tích hợp badge trực tiếp trên hàng danh sách của từng Bot (`BotListItem`).
+  - `src/components/BotModelBadge.tsx`: Cập nhật tooltip cho avatar ở chế độ thu gọn / rail icon.
+  - `src/lib/autonomy-graduation.ts`: Thêm helper `getBotAutonomyTier()` và cơ chế reactive event `rai2:autonomy-updated`.
+
+### 2. Khoảng hở số 2: Nút 1-Chạm "Đóng gói SOP" (Voice-to-SOP) Trên Tin Nhắn Chat
+- **Hiện trạng:** Đã hoàn tất 100%.
+- **Vị trí tích hợp:**
+  - `src/components/MessageActions.tsx`: Component `ExtractSopAction` (`FileCheck` icon) trên thanh công cụ inline của tin nhắn bot và user.
+  - `src/components/message-menu.tsx`: Menu item "Đóng gói SOP (Voice-to-SOP)" trong menu ba chấm `…` cho cả tin nhắn bot (`useBotMessageMenu`) và user (`userMessageMenu`).
+  - `src/components/VoiceToSopModal.tsx`: Tự động biên dịch `initialText` thành cấu trúc chuẩn 4 phần (Trigger, Action Steps, Guardrails, DoD), bổ sung nút Đóng ở sticky footer.
+  - `src/components/ChatView.tsx` & `src/components/GroupView.tsx`: Mở ngay `VoiceToSopModal` khi bấm 1-chạm vào bất kỳ tin nhắn/hướng dẫn nào trong đoạn hội thoại cá nhân hoặc phòng ban.

@@ -1,7 +1,56 @@
+import { useEffect, useState } from "react";
 import { Crown } from "lucide-react";
 import { activeLocale, t } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
+import { getBotAutonomyTier } from "@/lib/autonomy-graduation";
 import { localizeRoleTitle } from "../../shared/team-templates-localization";
 import type { Bot } from "@/state/store";
+
+export function AutonomyTierBadge({
+  botId,
+  onClick,
+  className,
+}: {
+  botId: string;
+  onClick?: () => void;
+  className?: string;
+}) {
+  const [tierMeta, setTierMeta] = useState(() => getBotAutonomyTier(botId));
+
+  useEffect(() => {
+    const update = () => setTierMeta(getBotAutonomyTier(botId));
+    window.addEventListener("rai2:autonomy-updated", update);
+    window.addEventListener("storage", update);
+    return () => {
+      window.removeEventListener("rai2:autonomy-updated", update);
+      window.removeEventListener("storage", update);
+    };
+  }, [botId]);
+
+  return (
+    <button
+      type="button"
+      data-testid="autonomy-tier-badge"
+      title={`${tierMeta.name} · ${tierMeta.autonomyPct}% Tự trị - Nhấn để xem sát hạch & tốt nghiệp`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onClick) {
+          onClick();
+        } else if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("rai2:open-autonomy-modal", { detail: { botId } })
+          );
+        }
+      }}
+      className={cn(
+        "shrink-0 rounded border border-hairline/60 bg-control/40 px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-tight text-ink-secondary hover:border-accent hover:text-ink transition-colors cursor-pointer",
+        className
+      )}
+    >
+      {tierMeta.code} · {tierMeta.autonomyPct}%
+    </button>
+  );
+}
 
 export function SidebarBotRole({ role }: { role: string }) {
   const localized = localizeRoleTitle(role, activeLocale());

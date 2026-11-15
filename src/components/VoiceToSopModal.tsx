@@ -54,10 +54,22 @@ export function VoiceToSopModal({
   const [editDod, setEditDod] = useState("");
 
   useEffect(() => {
-    if (initialText) {
+    if (isOpen && initialText && initialText.trim().length > 0) {
       setRawText(initialText);
+      const compiled = compileMonologueToSop(initialText, {
+        category: selectedCategory !== "general" ? selectedCategory : undefined,
+      });
+      setExtractedSop(compiled);
+      setEditTitle(compiled.title);
+      setEditTrigger(compiled.trigger);
+      setEditSteps([...compiled.steps]);
+      setEditGuardrails([...compiled.guardrails]);
+      setEditDod(compiled.definitionOfDone);
+    } else if (isOpen && (!initialText || initialText.trim().length === 0)) {
+      setRawText("");
+      setExtractedSop(null);
     }
-  }, [initialText]);
+  }, [isOpen, initialText]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -403,13 +415,22 @@ export function VoiceToSopModal({
         <footer className="flex flex-col-reverse sm:flex-row items-center justify-between border-t border-hairline/50 px-4 py-3 sm:px-6 sm:py-3.5 bg-card gap-2.5 shrink-0">
           {extractedSop ? (
             <>
-              <button
-                type="button"
-                onClick={() => setExtractedSop(null)}
-                className="rounded-lg px-4 py-2 text-[13px] font-medium text-ink-secondary hover:bg-raised transition-colors w-full sm:w-auto"
-              >
-                Chỉnh Sửa Lại Độc Thoại
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setExtractedSop(null)}
+                  className="rounded-lg px-3 py-2 text-[13px] font-medium text-ink-secondary hover:bg-raised transition-colors"
+                >
+                  Chỉnh Sửa Lại Độc Thoại
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-lg px-3 py-2 text-[13px] font-medium text-ink-secondary hover:text-ink transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
               <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto justify-end">
                 {saveSuccessMessage && (
                   <span className="text-[13px] font-medium text-accent flex items-center gap-1.5">

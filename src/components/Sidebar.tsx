@@ -11,7 +11,7 @@ import { openBotRow } from "@/state/thread-navigation";
 import { llmThreadTitlesEnabled } from "@/lib/feature-flags";
 
 import { BotAvatar } from "./Avatar";
-import { BotEngineMark, BotModelBadge, botTooltip } from "./BotModelBadge"; import { SidebarBotRole } from "./BotRole";
+import { BotEngineMark, BotModelBadge, botTooltip } from "./BotModelBadge"; import { AutonomyTierBadge, SidebarBotRole } from "./BotRole";
 import { stateForBot } from "@/lib/mascot";
 import { cn } from "@/lib/cn";
 import { searchMatchesThreads, useSearchDisclosure } from "@/lib/search-disclosure";
@@ -821,6 +821,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
                 <title>{t("call.live.badge")}</title>
               </Phone>
             )}
+            {!simpleList && !renaming && <AutonomyTierBadge botId={bot.id} />}
             {!simpleList && title && !renaming && <SidebarBotRole role={title} />}
           </span>
           {last && !renaming && !expanded && (
@@ -1004,6 +1005,19 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const [fiveLeversModalOpen, setFiveLeversModalOpen] = useState(false);
   const [architectureModalOpen, setArchitectureModalOpen] = useState(false);
   const [autonomyModalOpen, setAutonomyModalOpen] = useState(false);
+  const [autonomyModalBotId, setAutonomyModalBotId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const handleOpenAutonomy = (e: Event) => {
+      const customEvent = e as CustomEvent<{ botId?: string }>;
+      if (customEvent.detail?.botId) {
+        setAutonomyModalBotId(customEvent.detail.botId);
+      }
+      setAutonomyModalOpen(true);
+    };
+    window.addEventListener("rai2:open-autonomy-modal", handleOpenAutonomy);
+    return () => window.removeEventListener("rai2:open-autonomy-modal", handleOpenAutonomy);
+  }, []);
   const [addingReadyBotId, setAddingReadyBotId] = useState<string | null>(null);
   const [archivedBotsOpen, setArchivedBotsOpen] = useState(false);
   const [teamFeedback, setTeamFeedback] = useState<{
@@ -1909,7 +1923,11 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       {autonomyModalOpen && (
         <AutonomyGraduationModal
           isOpen={autonomyModalOpen}
-          onClose={() => setAutonomyModalOpen(false)}
+          initialBotId={autonomyModalBotId}
+          onClose={() => {
+            setAutonomyModalOpen(false);
+            setAutonomyModalBotId(undefined);
+          }}
         />
       )}
       {addingReadyBotId &&
