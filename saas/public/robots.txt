@@ -1,0 +1,26 @@
+# robots.txt for https://rai2.si
+User-agent: *
+Allow: /
+Allow: /assets/
+Allow: /giai-phap/
+Allow: /phuong-phap-luan/
+Disallow: /api/
+Disallow: /app/
+
+# AI Crawlers & Answer Engines
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://rai2.si/sitemap.xml
