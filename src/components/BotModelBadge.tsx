@@ -2,7 +2,8 @@ import type { Bot, InstanceInfo } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { engineDisplayName } from "@/lib/engine-name";
-import { getBotAutonomyTier } from "@/lib/autonomy-graduation";
+import { getBotAutonomyTier, hasBotAutonomyProfile } from "@/lib/autonomy-graduation";
+import { isEnterpriseBot } from "@/lib/rai2-departments";
 import { InstanceProviderMark } from "./ProviderIcons";
 
 export function botModel(bot: Pick<Bot, "modelSelection">, instances: InstanceInfo[]): { instance: InstanceInfo; label: string } | null {
@@ -13,9 +14,18 @@ export function botModel(bot: Pick<Bot, "modelSelection">, instances: InstanceIn
   return { instance, label: label || engineDisplayName(instance) };
 }
 
-export function botTooltip(bot: Pick<Bot, "name" | "title" | "chiefOfStaff" | "modelSelection"> & { id?: string }, instances: InstanceInfo[]): string {
+export function botTooltip(
+  bot: Pick<Bot, "name" | "title" | "chiefOfStaff" | "modelSelection"> & {
+    id?: string;
+    zone?: number;
+    role?: string;
+    section?: string;
+  },
+  instances: InstanceInfo[]
+): string {
   const model = botModel(bot, instances);
-  const tierMeta = bot.id ? getBotAutonomyTier(bot.id) : null;
+  const showTier = Boolean(bot.id && (isEnterpriseBot(bot) || hasBotAutonomyProfile(bot.id)));
+  const tierMeta = showTier && bot.id ? getBotAutonomyTier(bot.id) : null;
   return [
     bot.name,
     bot.title.trim(),

@@ -43,6 +43,8 @@ import { FiveLeversModal } from "./FiveLeversModal";
 import { ArchitectureAssessmentModal } from "./ArchitectureAssessmentModal";
 import { AutonomyGraduationModal } from "./AutonomyGraduationModal";
 import { useRai2Mode } from "@/lib/rai2-mode";
+import { isEnterpriseBot } from "@/lib/rai2-departments";
+import { hasBotAutonomyProfile } from "@/lib/autonomy-graduation";
 import { Rai2ModeSwitcher } from "./Rai2ModeSwitcher";
 import { SidebarNewChatPanel } from "./SidebarNewChatPanel";
 import { openCommandPalette } from "./CommandPalette";
@@ -712,6 +714,7 @@ export function useVisibleMessages(bot: Bot): Message[] {
 
 export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const advanced = useAdvancedMode();
+  const { isEnterprise } = useRai2Mode();
   const { bot, selected, deleting, mascotMotion, reveal, pendingQueued, instances, liveCall, density, query, dispatch, onMenu, renameRequest, botDrag: drag, botDrop: drop, botDragging: dragging } = props;
   const showThreads = useShowThreads();
   const liveMedia = useLiveMedia();
@@ -822,7 +825,9 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
                 <title>{t("call.live.badge")}</title>
               </Phone>
             )}
-            {!simpleList && !renaming && <AutonomyTierBadge botId={bot.id} />}
+            {!simpleList && !renaming && isEnterprise && (isEnterpriseBot(bot) || hasBotAutonomyProfile(bot.id)) && (
+              <AutonomyTierBadge botId={bot.id} />
+            )}
             {!simpleList && title && !renaming && <SidebarBotRole role={title} />}
           </span>
           {last && !renaming && !expanded && (
@@ -1240,10 +1245,13 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             onClick={() => { setPlusOpen(false); dispatch({ type: "newBot" }); }}
             role="menuitem"
             className={plusItem}
+            data-testid="sidebar-new-bot-btn"
           >
             <BotIcon size={16} className="text-ink-secondary" />
-            <span className="flex-1">{advanced ? t("sidebar.newBot") : t("sidebar.newBotSimple")}</span>
-            {advanced && <ShortcutHint id="new-bot" />}
+            <span className="flex-1 font-medium truncate">
+              {isCreator ? "Tạo Bot Tự Do (From Scratch)" : (advanced ? t("sidebar.newBot") : t("sidebar.newBotSimple"))}
+            </span>
+            {advanced && !isCreator && <ShortcutHint id="new-bot" />}
           </button>}
           <button
             onClick={() => {
@@ -1269,7 +1277,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             className={plusItem}
           >
             <LayoutTemplate size={16} className="text-ink-secondary" />
-            {t("sidebar.teamLibrary")}
+            <span className="flex-1 truncate">{isCreator ? "Thư viện Mẫu Bot" : t("sidebar.teamLibrary")}</span>
           </button>}
           {teamSettingsAllowed !== false && isEnterprise && (
             <>

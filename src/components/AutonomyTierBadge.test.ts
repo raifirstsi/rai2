@@ -82,4 +82,27 @@ describe("AutonomyTierBadge & Sidebar Integration", () => {
     expect(tooltip).toContain("Rai Copilot");
     expect(tooltip).toContain("T2 (80% Tự trị)");
   });
+
+  it("excludes autonomy tier from botTooltip for free custom bots created from scratch", () => {
+    const customFreeBot: Pick<Bot, "id" | "name" | "title" | "chiefOfStaff" | "modelSelection"> = {
+      id: "free-user-bot-123",
+      name: "Trợ Lý Viết Thơ",
+      title: "Cá nhân",
+      chiefOfStaff: false,
+      modelSelection: { instanceId: "claude", model: "sonnet" },
+    };
+
+    const mockInstances: InstanceInfo[] = [{
+      instanceId: "claude",
+      driverKind: "claudeAgent",
+      displayName: "Claude",
+      snapshot: { state: "available" },
+      models: { default: "sonnet", options: [{ id: "sonnet", label: "Sonnet 3.5" }] },
+    }];
+
+    const tooltip = botTooltip(customFreeBot, mockInstances);
+    expect(tooltip).toContain("Trợ Lý Viết Thơ");
+    expect(tooltip).not.toContain("Tự trị");
+    expect(tooltip).not.toContain("T1");
+  });
 });
