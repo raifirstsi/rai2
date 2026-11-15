@@ -163,21 +163,25 @@ graph TD
 
 ### 1. Ranh Giới Cách Ly Cho Chế Độ Khách Cá Nhân (Creator Mode)
 * **Nguyên tắc cốt tử:** Khách hàng cá nhân cần sự tự do, sáng tạo và tốc độ. Họ không được bị quấy rầy bởi các thuật ngữ quản trị doanh nghiệp.
-* **Quy chuẩn kỹ thuật:**
+* **Quy chuẩn kỹ thuật đã triển khai & live:**
   * **Ẩn huy hiệu tự trị (`AutonomyTierBadge`):** Chỉ hiển thị huy hiệu T1/T2/T3 khi bot là `isEnterpriseBot(bot)` HOẶC khi đang ở chế độ `enterprise`. Bot cá nhân tạo tự do hoàn toàn sạch sẽ.
   * **Tooltip sạch sẽ:** `botTooltip()` không tự ý chèn chuỗi `T1 (50% Tự trị)` vào bot của người dùng tự tạo.
   * **Menu `+` Tinh gọn:** Hiển thị trực quan hai lựa chọn trọng tâm: `"Tạo Bot Tự Do (From Scratch)"` và `"Thư viện Mẫu Bot"`. Ẩn toàn bộ 10 modal quản trị doanh nghiệp khỏi TopBar.
+  * **Tạo Bot Siêu Tốc (10 Giây):** `NewBotDialog` tự động nhận diện Creator Mode để tinh gọn giao diện còn đúng 4 tabs thiết yếu (`Identity`, `Soul`, `Model`, `Skills`), loại bỏ các tab cấu hình doanh nghiệp phức tạp.
 
 ### 2. Quy Chuẩn Vận Hành Chế Độ VIP Enterprise (Doanh Nghiệp 5–20 Nhân Sự)
 * **Nguyên tắc cốt tử:** Doanh nghiệp nhỏ không có thời gian setup phức tạp. Hệ thống phải sẵn sàng chạy ngay trong 30 giây:
-  * **Đội ngũ 12 Bot 7 Vùng:** Sẵn sàng 80% nghiệp vụ (RAI Lead, RAI Copy, RAI Sales, RAI Ops, RAI CSKH, RAI Finance, RAI HR, CAIO).
-  * **Context Vault 8 Trụ Cột:** Trung tâm ngữ cảnh duy nhất, liên thông 1-click sang Margin Guard và Five Levers.
-  * **Chốt chặn an toàn P&L:** Tự động chặn mọi đề xuất chiết khấu làm tỷ suất lợi nhuận gộp $< 35\%$.
-  * **Cơ chế phân quyền nhóm (RBAC):** Chủ doanh nghiệp (Owner/Admin) toàn quyền cấu hình Két sắt và Margin Guard; nhân viên (Member) tập trung tương tác tác vụ và phối hợp đội ngũ.
+  * **Đội ngũ 12 Bot 7 Vùng:** Sẵn sàng 80% nghiệp vụ (RAI Lead, RAI Copy, RAI Sales, RAI Ops, RAI CSKH, RAI Finance, RAI HR, CAIO, Tech, Strategy, Legal, Quality).
+  * **Context Vault 8 Trụ Cột:** Trung tâm ngữ cảnh duy nhất, liên thông 1-click sang Margin Guard và Five Levers. Hỗ trợ thu âm hoặc dán văn bản lớn để chắt lọc tri thức tự động vào các trụ cột. Giao diện được tối ưu với khung cuộn liền mạch chống kẹt chuột (scroll trap) trên cả mobile và desktop.
+  * **Bình Nhiên Liệu Dữ Liệu (Data Readiness Gauge /20):** Thiết kế tối giản, hỗ trợ thu gọn/mở rộng linh hoạt với 5 ngăn nhiên liệu, phát hiện cờ đỏ và gắn chốt an toàn Hard Gate Interlock.
+  * **Chốt chặn an toàn P&L:** Tự động chặn mọi đề xuất chiết khấu làm tỷ suất lợi nhuận gộp $< 35\%$, hiển thị thẻ duyệt tương tác HITL trực tiếp trong chat.
+  * **Cơ chế phân quyền nhóm (RBAC Thực Chiến):** Phân định rạch ròi giữa Chủ doanh nghiệp (Owner/Admin) và Nhân viên (Member):
+    * *Owner/Admin:* Toàn quyền chỉnh sửa 8 trụ cột Context Vault, đồng bộ tri thức toàn bộ bots, điều chỉnh ngưỡng sàn Margin Guard.
+    * *Member (Nhân viên):* Context Vault tự động chuyển sang chế độ Xem (Read-only), ẩn nút đồng bộ toàn hệ thống; thanh trượt ngưỡng sàn Margin Guard bị khóa cứng `(Khóa bởi Quản trị viên)`, ngăn chặn rủi ro nhân viên hạ giá bán làm xói mòn lợi nhuận công ty.
 
 ### 3. Quy Trình Xác Thực & Đánh Thức Workspace (Workspace Lifecycle & Auto-Wakeup Gateway)
-* **Luồng đăng nhập chuẩn:** `POST /api/auth/start` (OTP 8 số) ➔ `POST /api/auth/verify` (Tạo Cookie `rai2_token`) ➔ `GET /api/workspace/open` (Resume workspace qua fleet socket và tạo mã claim) ➔ `POST /api/auth/rai2/claim` ➔ Chuyển hướng vào `/app`.
-* **Xử lý rủi ro Workspace Idle Suspend:** Workspace tự động ngủ đông sau 15 phút idle để tiết kiệm RAM. Khi người dùng truy cập lại qua link trực tiếp hoặc bookmark, hệ thống tự động nhận diện và chuyển hướng về cổng đánh thức thay vì hiển thị màn hình lỗi 503 thô kệch.
+* **Luồng đăng nhập chuẩn A-to-Z:** `POST /api/auth/start` (OTP 8 số gửi về email) ➔ `POST /api/auth/verify` (Xác thực OTP, tạo Cookie bảo mật `rai2_token`) ➔ `GET /api/workspace/open` (Đánh thức workspace qua fleet socket và phát hành mã claim) ➔ `POST /api/auth/rai2/claim` ➔ Chuyển hướng trơn tru vào `/app`.
+* **Triệt tiêu màn hình lỗi 503 khi Workspace Idle Suspend:** Workspace tự động ngủ đông sau 15 phút không hoạt động để tối ưu tài nguyên máy chủ. Caddy reverse proxy được nâng cấp để phục vụ trang **Auto-Wakeup Gateway** chuẩn Dark Theme (`text/html; charset=utf-8` HTTP 503) có hiệu ứng Spinner, thông điệp hướng dẫn Tiếng Việt rõ ràng, nút bấm *"Đánh Thức & Vào Không Gian Làm Việc ➔"* và script tự động chuyển hướng người dùng về `/api/workspace/open` sau 3 giây, loại bỏ hoàn toàn trang trắng báo lỗi thô kệch.
 
 ---
 
