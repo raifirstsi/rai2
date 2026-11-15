@@ -84,24 +84,56 @@
 ---
 
 ## III. BẢN ĐĂNG KÝ TRẠNG THÁI TIẾN ĐỘ 15 CHẶNG (STATUS TRACKER)
+> Cập nhật theo mã nguồn thực tế đã commit và triển khai Live Production trên `https://app.rai2.si`.
 
-| Chặng | Nội dung chương sách | Module tính năng trên rai2.si | Trạng thái |
-| :--- | :--- | :--- | :---: |
-| **Chặng 1** | **Chương 1 & 2** (The Retrofit Trap & AI-First Principle) | **RAI² Onboarding Gateway & Target Architecture Worksheet** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 2** | **Chương 3 & 4** (AI is a Mirror & The Silent Advantage) | **Business Clarity Validator & Silent IP Vault** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 3** | **Chương 5 & 6** (How It Works & The Context Window) | **Central Context Repository & Context Curator** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 4** | **Chương 7 & 8** (Categories & Show Me Test) | **Task Router & "Show Me" Live Sandbox** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 5** | **Chương 9 & 10** (Business Map & 5 Revenue Levers) | **7-Zone Priority Map & 5-Lever P&L Engine** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 6** | **Chương 11 & 12** (Theory of Constraints & Buy/Build/Wait) | **TOC Constraint Detector & Buy/Build/Wait Calculator** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 7** | **Chương 13 & 14** (Integration Spine & Autonomy Spectrum) | **Integration Spine & 95% Autonomy Graduation Engine** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 8** | **Chương 15 & 16** (Context Docs & Documentation Dividend) | **8-Pillar Context Vault & 'Record First' Dual Engine** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 9** | **Chương 17 & 18** (Task Map & Signal vs Noise Audit) | **Role Redesign Engine & Signal Time Ratio Metric** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 10** | **Chương 19, 20 & 21** (Architecture, 4 Foundations & Failure) | **Closed-Loop Spine, 4 Foundations & Silent Error Interceptor** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 11** | **Chương 22 & 23** (Claude Ecosystem & SKILL.md Standard) | **3-Surface Grid & 10 Core Skills SKILL.md Compiler** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 12** | **Chương 24 & 25** (Bot Security & MCP Pipelines) | **Sandboxed Agent Mesh & MCP Combinatorial Hub** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 13** | **Chương 26, 27 & 28** (Autonomous Research, RAG & Media) | **Intel Radar, 50k-Threshold Core & Multimodal Studio** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 14** | **Chương 29 & 30** (Avoid App Traps & 3-File Autoresearch) | **Anti-App Builder Gate & Three-File Optimization Loop** | **ĐÃ HOÀN TẤT SPEC** |
-| **Chặng 15** | **Chương 31-35** (Sequencing, Operator to Architect & 24M) | **Sequencing Spine, Transformation Roadmap & Architect Cockpit** | **ĐÃ HOÀN TẤT SPEC** |
+| Chặng | Nội dung chương sách | Module tính năng trên rai2.si | Trạng thái Thực tế | Mã nguồn & Bằng chứng |
+| :--- | :--- | :--- | :---: | :--- |
+| **Chặng 1** | **Chương 1 & 2** (The Retrofit Trap & AI-First Principle) | **Target Architecture Worksheet & Workflow Problem Detector** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/target-architecture.ts`<br/>`ArchitectureAssessmentModal.tsx` |
+| **Chặng 2** | **Chương 3 & 4** (AI is a Mirror & The Silent Advantage) | **Business Clarity Validator & Silent IP Vault** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/rai2-departments.ts`<br/>`src/lib/rai-ready-bots.ts` (PR #31, #33) |
+| **Chặng 3** | **Chương 5 & 6** (How It Works & The Context Window) | **Central Context Repository & Context Curator** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/context-vault.ts`<br/>`ContextVaultModal.tsx` (PR #39) |
+| **Chặng 4** | **Chương 7 & 8** (Categories & Show Me Test) | **AI Maturity Assessment (/21) & "Show Me" Sandbox** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/ai-maturity.ts`<br/>`ArchitectureAssessmentModal.tsx` (PR #34) |
+| **Chặng 5** | **Chương 9 & 10** (Business Map & 5 Revenue Levers) | **7-Zone Priority Map & 5-Lever P&L Engine** | **ĐÃ HOÀN TẤT & LIVE** | `StrategyMapModal.tsx`<br/>`FiveLeversModal.tsx` (PR #34, #39) |
+| **Chặng 6** | **Chương 11 & 12** (Theory of Constraints & Buy/Build/Wait) | **TOC Constraint Detector & Buy/Build/Wait Gate** | **ĐÃ HOÀN TẤT & LIVE** | `TocConstraintModal.tsx`<br/>`StrategyMap7Zone.tsx` (PR #31, #34) |
+| **Chặng 7** | **Chương 13 & 14** (Integration Spine & Autonomy Spectrum) | **Integration Spine & 95% Autonomy Graduation Engine** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/autonomy-graduation.ts`<br/>`AutonomyGraduationModal.tsx`<br/>`AutonomyTierBadge.tsx` (PR #34, #36) |
+| **Chặng 8** | **Chương 15 & 16** (Context Docs & Documentation Dividend) | **8-Pillar Context Vault & 'Record First' Voice-to-SOP** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/voice-to-sop.ts`<br/>`VoiceToSopModal.tsx`<br/>`ExtractSopAction` in chat (PR #36, #39) |
+| **Chặng 9** | **Chương 17 & 18** (Task Map & Signal vs Noise Audit) | **Role Redesign Engine & Signal Time Ratio Metric** | **SCALE HORIZON** | Phân tầng nâng cao cho DN >20 nhân sự |
+| **Chặng 10** | **Chương 19, 20 & 21** (Architecture, 4 Foundations & Failure) | **Margin Guard Circuit-Breaker & Silent Error Interceptor** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/margin-guard.ts`<br/>`MarginGuardChatCard.tsx`<br/>`MarginGuardModal.tsx` (PR #37) |
+| **Chặng 11** | **Chương 22 & 23** (Claude Ecosystem & SKILL.md Standard) | **3-Surface Grid & 7-Zone Bot DNA Presets** | **ĐÃ HOÀN TẤT & LIVE** | `rai-ready-bots.ts`<br/>`rai2-departments.ts` (PR #31, #33) |
+| **Chặng 12** | **Chương 24 & 25** (Bot Security & MCP Pipelines) | **Sandboxed Agent Mesh & MCP Combinatorial Hub** | **SCALE HORIZON** | Đang sử dụng Core Sandbox mặc định |
+| **Chặng 13** | **Chương 26, 27 & 28** (Autonomous Research, RAG & Media) | **Intel Radar, 50k-Threshold Core & Multimodal Studio** | **SCALE HORIZON** | Tích hợp media nâng cao cho giai đoạn 2 |
+| **Chặng 14** | **Chương 29 & 30** (Avoid App Traps & 3-File Autoresearch) | **Anti-App Builder Gate & Three-File Optimization Loop** | **SCALE HORIZON** | Tối ưu hóa tự động ngầm |
+| **Chặng 15** | **Chương 31-35** (Sequencing, Operator to Architect & 24M) | **Friday Pulse 17:00, Dynamic ARI & Architect Cockpit** | **ĐÃ HOÀN TẤT & LIVE** | `src/lib/friday-pulse.ts`<br/>`FridayPulseModal.tsx`<br/>`Sidebar.tsx` 17:00 banner (PR #38) |
+
+---
+
+## IIIA. BẢN ĐỒ CẦU NỐI THỰC CHIẾN: 15 CHẶNG LÝ LUẬN ➔ 4 GIAI ĐOẠN ROADMAP P&L
+> **Nguyên tắc phân tầng:** Để giúp doanh nghiệp SME 5–20 nhân sự không bị "ngộ độc lý thuyết 35 chương", toàn bộ 15 Chặng lý luận hàn lâm được ánh xạ và gom cụm vào **4 Giai Đoạn Sinh Tồn Cốt Tử** trong `docs/rai2_missing_features_roadmap.md`:
+
+```mermaid
+flowchart TD
+    subgraph Sách["15 Chặng Lý Thuyết (Chương 1-35)"]
+        direction TB
+        C1["Chặng 1, 8, 10: Thoát MeOS, SOP, Bảo Vệ Margin"]
+        C2["Chặng 5, 6, 15: Bản Đồ 7 Vùng, TOC, Nhịp Thở 17:00 & ARI"]
+        C3["Chặng 3, 5, 8: Két Sắt Ngữ Cảnh, Bình Nhiên Liệu /20, 5 Đòn Bẩy P&L"]
+        C4["Chặng 1, 4, 7: Sát Hạch Kiến Trúc, Trưởng Thành AI /21, Tự Trị 95%"]
+        C_Ext["Chặng 9, 12, 13, 14: Mesh Agent, Media Studio, Auto-Research"]
+    end
+
+    subgraph ThựcChiến["4 Giai Đoạn Thực Chiến (Roadmap Đã Live 100%)"]
+        direction TB
+        G1["GIAI ĐOẠN 1: GIẢI PHÓNG FOUNDER & BẢO VỆ MARGIN<br/>• Voice-to-SOP 1-Chạm<br/>• Margin Guard >= 35% & Thẻ Duyệt Chat HITL"]
+        G2["GIAI ĐOẠN 2: BẢN ĐỒ 7 VÙNG & NHỊP THỞ 17:00 THỨ SÁU<br/>• Bản đồ tương tác 7 Vùng gắn điểm nghẽn TOC<br/>• Báo cáo 17:00, ARI động & Webhook Zalo/Telegram"]
+        G3["GIAI ĐOẠN 3: 5 ĐÒN BẨY P&L & BÌNH NHIÊN LIỆU DỮ LIỆU<br/>• Compounding Engine 5 Đòn bẩy P&L<br/>• Data Readiness Gauge /20 điểm & Hard Gate Interlock"]
+        G4["GIAI ĐOẠN 4: CỔNG SÁT HẠCH & TỰ TRỊ 95%<br/>• Target Architecture Worksheet (Keep/Eliminate/Redesign)<br/>• AI Maturity Assessment /21<br/>• 95% Autonomy Graduation Engine (Tiers 1/2/3)"]
+    end
+
+    C1 --> G1
+    C2 --> G2
+    C3 --> G3
+    C4 --> G4
+    C_Ext -.->|"Scale Horizon (Dành cho DN >20 nhân sự)"| Future["GIAI ĐOẠN MỞ RỘNG TIẾP THEO"]
+```
 
 ---
 
@@ -3146,57 +3178,66 @@ Hệ thống `rai2.si` tự động vẽ ma trận 2 trục dựa trên câu tr�
 
 ---
 
-### BẢN ĐỒ ÁNH XẠ 13 BỘ BẢO BỐI THÀNH RUNTIME POLICY GUARDRAILS TRÊN MAUSBOT
-
-> [!IMPORTANT]
-> **TỪ TÀI LIỆU CHIẾN LƯỢC THÀNH BỘ QUY TẮC PHẦN MỀM THỜI GIAN THỰC (REALTIME POLICY ENGINES)**  
-> 13 bộ công cụ của **RAI² FIRST OS** không tồn tại như các tập tin tài liệu rời rạc, mà được biên dịch trực tiếp thành các mô-đun mã nguồn và chính sách kiểm soát ngầm trong lõi ứng dụng Mausbot.
+### BẢN ĐỒ ÁNH XẠ 13 BỘ BẢO BỐI THÀNH RUNTIME POLICY GUARDRAILS TRÊN MAUSBOT & RAI2.SI
+> **Cập nhật đối chiếu chuẩn xác 100% với cấu trúc thư mục thực tế của dự án (`src/lib/` & `src/components/`).**
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │              MA TRẬN ÁNH XẠ 13 BẢO BỐI CHIẾN LƯỢC THÀNH RUNTIME GUARDRAILS TRÊN MAUSBOT          │
 ├─────────┬────────────────────────────────────┬─────────────────────────────┬─────────────────────┤
-│ BẢO BỐI │ TÊN TÀI LIỆU GỐC                   │ MÔ-ĐUN CODE TRONG MAUSBOT   │ CHỨC NĂNG VẬN HÀNH  │
-│ SỐ      │ (STRATEGIC SUITE ARTIFACT)         │ (CORE RUNTIME SUBSYSTEM)    │ THỰC TẾ TRONG APP   │
+│ BẢO BỐI │ TÊN TÀI LIỆU GỐC                   │ MÔ-ĐUN CODE THỰC TẾ         │ CHỨC NĂNG VẬN HÀNH  │
+│ SỐ      │ (STRATEGIC SUITE ARTIFACT)         │ TRONG REPO MAUSBOT / RAI2   │ THỰC TẾ TRÊN APP    │
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 1  │ The Foundation Blueprint           │ `src/core/foundation_lint.ts`│ Linter thẩm định cấu│
-│         │ Bản thiết kế 4 trụ cột nền móng    │                             │ trúc bot trước chạy.│
+│ Tool 1  │ The Foundation Blueprint           │ `src/lib/target-architecture.ts` │ Phân loại 3 cột:    │
+│         │ Bản thiết kế 4 trụ cột nền móng    │ `ArchitectureAssessmentModal`│ Keep 30% / Elim 20% │
+│         │ (16 Tiêu Chí ➔ Ngưỡng 3/4)         │                             │ / Redesign 50%.     │
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 2  │ The AI Strategy Guide              │ `src/agents/rai_strategy.ts`│ Bộ quy tắc tư duy:  │
-│         │ Tấn công vào tiền, không tiết kiệm │                             │ Tấn công vào doanh  │
-│         │ phút làm việc lặt vặt              │                             │ thu, không chạy ads │
+│ Tool 2  │ The AI Strategy Guide              │ `src/components/FiveLeversModal` │ Mô phỏng 5 đòn bẩy  │
+│         │ Tấn công vào tiền, không tiết kiệm │ `src/lib/rai2-departments.ts`│ L, CR, AOV, F, M vào│
+│         │ phút làm việc lặt vặt              │                             │ Lợi nhuận gộp & EBIT│
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 3  │ The Data Readiness Workbook        │ `src/services/david_vault.ts`│ Bộ lọc 50k từ, ngăn │
-│         │ Bình nhiên liệu ngữ cảnh sạch      │                             │ rác ngữ cảnh tràn ly│
+│ Tool 3  │ The Data Readiness Workbook        │ `src/lib/context-vault.ts`  │ Đo 5 ngăn bình dữ   │
+│         │ Bình nhiên liệu ngữ cảnh sạch      │ `src/components/DataReadinessGauge` │ liệu /20đ; Hard Gate│
+│         │ (Thang /20 điểm)                   │ `ContextVaultModal.tsx`     │ Interlock khi <8/20.│
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 4  │ The Use Case Playbook              │ `src/skills/zone_library/`  │ 21 file SKILL.MD nạp│
-│         │ 21 Tình huống sử dụng đỉnh cao     │                             │ sẵn cho 7 Vùng việc.│
+│ Tool 4  │ The Use Case Playbook              │ `src/lib/rai-ready-bots.ts` │ Đóng gói sẵn 80% DNA│
+│         │ 21 Tình huống sử dụng đỉnh cao     │ `src/lib/rai2-departments.ts`│ nhân sự số theo 7   │
+│         │                                    │                             │ Vùng nghiệp vụ.     │
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 5  │ The Change Management Guide        │ `src/agents/rai_talent.ts`  │ Kịch bản đồng hành  │
-│         │ Dắt đội ngũ cùng đi, xóa sợ hãi    │                             │ chuyển hóa vị trí NV│
+│ Tool 5  │ The Change Management Guide        │ `src/lib/rai-ready-bots.ts` │ Định vị vai trò bot │
+│         │ Dắt đội ngũ cùng đi, xóa sợ hãi    │ (`rai-talent`, `rai-coach`) │ đồng hành, đào tạo  │
+│         │                                    │ `src/lib/target-architecture`│ nội bộ SOP 4 phần.  │
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 6  │ The Risk & Ethics Framework        │ `src/security/pii_guard.ts` │ Che mờ CCCD, SĐT, mã│
-│         │ Bảo vệ niềm tin và dữ liệu         │                             │ số thuế, chống rò rỉ│
+│ Tool 6  │ The Risk & Ethics Framework        │ `src/lib/margin-guard.ts`   │ Chốt chặn Margin    │
+│         │ Bảo vệ niềm tin, P&L và dữ liệu    │ `MarginGuardChatCard.tsx`   │ >= 35%; Thẻ duyệt   │
+│         │                                    │ `MarginGuardModal.tsx`      │ HITL 1-chạm trong chat│
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 7  │ The Implementation Roadmap         │ `src/core/sequencing.ts`    │ Cổng giải tỏa điểm  │
-│         │ Lộ trình 90 ngày chuẩn xác         │                             │ nghẽn tuần tự theo vụ│
+│ Tool 7  │ The Implementation Roadmap         │ `src/lib/autonomy-graduation.ts` │ Cổng thăng hạng 3   │
+│         │ Lộ trình 90 ngày chuẩn xác         │ `AutonomyGraduationModal`   │ cấp độ (T1/T2/T3);  │
+│         │                                    │ `AutonomyTierBadge.tsx`     │ streak 50 task sạch.│
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 8  │ The KPI & Metrics Guide            │ `src/telemetry/pnl_meter.ts`│ Đồng hồ P&L đo tiền │
-│         │ Thước đo tiền tươi & giờ giải phóng│                             │ thật & số giờ tiết kiệm│
+│ Tool 8  │ The KPI & Metrics Guide            │ `src/lib/friday-pulse.ts`   │ Quét Backlog >48h;  │
+│         │ Thước đo tiền tươi & giờ giải phóng│ `FridayPulseModal.tsx`      │ Tính $ARI$ động &   │
+│         │                                    │ `src/components/Sidebar.tsx`│ Webhook Zalo/Tele.  │
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 9  │ The AI Vendor Evaluation Kit       │ `src/tools/buy_build_calc.ts`│ Bảng tính TCO 2 năm │
-│         │ Thẩm định mua/xây/chờ              │                             │ chặn đứng app rác.  │
+│ Tool 9  │ The AI Vendor Evaluation Kit       │ `src/components/TocConstraintModal` │ Định vị điểm nghẽn  │
+│         │ Thẩm định mua/xây/chờ              │ `StrategyMap7Zone.tsx`      │ TOC kẹt tiền duy    │
+│         │                                    │                             │ nhất trước khi mua. │
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 10 │ The AI Maturity Assessment         │ `src/core/maturity_gate.ts` │ Thang đo năng lực   │
-│         │ Đánh giá độ trưởng thành 4 cấp độ  │                             │ tự trị của công ty. │
+│ Tool 10 │ The AI Maturity Assessment         │ `src/lib/ai-maturity.ts`    │ Chụp X-quang 7 câu  │
+│         │ Đánh giá độ trưởng thành qua 7 vùng│ `ArchitectureAssessmentModal`│ hỏi qua 7 Vùng /21đ;│
+│         │ (Thang /21 điểm + Lộ trình 90 ngày)│                             │ Lộ trình 90 ngày.   │
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 11 │ The Retrofit Test Scorecard        │ `src/linter/anti_retrofit.ts`│ Cảnh báo khi người  │
-│         │ Thẻ điểm bóc trần bẫy chắp vá      │                             │ dùng gắn AI vào việc│
+│ Tool 11 │ The Retrofit Test Scorecard        │ `src/lib/target-architecture.ts` │ Phát hiện copy/paste│
+│         │ Thẻ điểm bóc trần bẫy chắp vá      │ (`detectWorkflowProblem`)   │ nhắc nhở; cảnh báo  │
+│         │                                    │                             │ gãy quy trình intake│
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 12 │ The Foundation Filter Checklist    │ `src/evaluator/filter24.ts` │ 24 Bài test tự động │
-│         │ 24 Tiêu chí sàn lọc chất lượng cao │                             │ trước khi duyệt bài │
+│ Tool 12 │ The Foundation Filter Checklist    │ `DataReadinessGauge.tsx`    │ Cầu dao khóa cứng   │
+│         │ 24 Tiêu chí sàn lọc chất lượng cao │ `ContextVaultModal.tsx`     │ bot không ra trận   │
+│         │                                    │                             │ khi móng dữ liệu <8.│
 ├─────────┼────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
-│ Tool 13 │ The Digital Integration Map        │ `src/engine/state_machine.ts`│ Xương sống chuyển   │
-│         │ Quy trình kết nối liên hoàn 7 Vùng │                             │ giao dữ liệu 7 Vùng.│
+│ Tool 13 │ The Digital Integration Map        │ `src/components/StrategyMapModal` │ Bản đồ trực quan 7  │
+│         │ Quy trình kết nối liên hoàn 7 Vùng │ `StrategyMap7Zone.tsx`      │ vùng chuỗi giá trị; │
+│         │                                    │                             │ đồng bộ viền đỏ TOC.│
 └─────────┴────────────────────────────────────┴─────────────────────────────┴─────────────────────┘
 ```
