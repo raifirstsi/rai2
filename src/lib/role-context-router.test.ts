@@ -77,10 +77,10 @@ describe("role-context-router - Role-Based Context Allocation & Injection", () =
     expect(bundle["memory/business_toc.md"]).toContain("L2 (Nén thời gian phản hồi): +50%");
   });
 
-  it("allocates full 8-pillar context to rai-strategy (Executive Overseer)", () => {
+  it("allocates full 8-pillar context and Margin Guard to rai-strategy (Executive Overseer)", () => {
     const bundle = buildBotMemoryBundle("rai-strategy", mockVaultContents, mockTocDiagnosis);
 
-    expect(Object.keys(bundle).length).toBe(9); // 8 pillars + 1 business_toc.md
+    expect(Object.keys(bundle).length).toBe(12); // 8 pillars + 1 business_toc.md + margin_guard.md + rules.md + MEMORY.md
     expect(bundle["memory/brand_voice.md"]).toBeDefined();
     expect(bundle["memory/customer_avatar.md"]).toBeDefined();
     expect(bundle["memory/offer_breakdown.md"]).toBeDefined();
@@ -90,13 +90,47 @@ describe("role-context-router - Role-Based Context Allocation & Injection", () =
     expect(bundle["memory/standard_operating_procedures.md"]).toBeDefined();
     expect(bundle["memory/industry_context.md"]).toBeDefined();
     expect(bundle["memory/business_toc.md"]).toBeDefined();
+    expect(bundle["memory/margin_guard.md"]).toBeDefined();
+    expect(bundle["memory/rules.md"]).toBeDefined();
+    expect(bundle["MEMORY.md"]).toBeDefined();
   });
 
-  it("only provides brand_voice to fallback/unknown bots to prevent token waste", () => {
+  it("injects Margin Guard with hard floor rules and HITL escalation for Zone 3 (Sales/Quote)", () => {
+    const bundle = buildBotMemoryBundle("rai-closer", mockVaultContents, mockTocDiagnosis, {
+      targetGrossMargin: 40,
+      maxDiscountAllowed: 3,
+      companyName: "Nội Thất Khang Gia",
+    });
+
+    // Check margin_guard.md
+    expect(bundle["memory/margin_guard.md"]).toBeDefined();
+    expect(bundle["memory/margin_guard.md"]).toContain("≥ **40%**");
+    expect(bundle["memory/margin_guard.md"]).toContain("≤ **3%**");
+    expect(bundle["memory/margin_guard.md"]).toContain("Nội Thất Khang Gia");
+    expect(bundle["memory/margin_guard.md"]).toContain("Quid-Pro-Quo");
+    expect(bundle["memory/margin_guard.md"]).toContain("Người Sáng Lập");
+
+    // Check rules.md
+    expect(bundle["memory/rules.md"]).toBeDefined();
+    expect(bundle["memory/rules.md"]).toContain("biên lợi nhuận ≥ 40%");
+    expect(bundle["memory/rules.md"]).toContain("chiết khấu vượt quá 3%");
+
+    // Check MEMORY.md
+    expect(bundle["MEMORY.md"]).toBeDefined();
+    expect(bundle["MEMORY.md"]).toContain("[MARGIN GUARD]: Biên lợi nhuận sàn ≥40%, Chiết khấu tối đa ≤3%");
+  });
+
+  it("does not inject Margin Guard into non-sales/finance bots like rai-lead (Zone 2)", () => {
+    const bundle = buildBotMemoryBundle("rai-lead", mockVaultContents, mockTocDiagnosis);
+    expect(bundle["memory/margin_guard.md"]).toBeUndefined();
+    expect(bundle["memory/rules.md"]).toBeUndefined();
+  });
+
+  it("leaves fallback/unknown/custom bots completely unpolluted with zero enterprise files", () => {
     const bundle = buildBotMemoryBundle("unknown-custom-bot", mockVaultContents, mockTocDiagnosis);
 
-    expect(Object.keys(bundle).length).toBe(1);
-    expect(bundle["memory/brand_voice.md"]).toBeDefined();
+    expect(Object.keys(bundle).length).toBe(0);
+    expect(bundle["memory/brand_voice.md"]).toBeUndefined();
     expect(bundle["memory/business_toc.md"]).toBeUndefined();
   });
 

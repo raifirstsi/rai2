@@ -25,6 +25,8 @@ export interface ReadyBot {
   apps: string[];
   notes?: Record<string, string>;
   routines?: BotRoutineTemplate[];
+  section?: string;
+  zone?: number;
 }
 
 const WEEKDAYS = [1, 2, 3, 4, 5];
@@ -347,6 +349,8 @@ export function readyBotTemplate(defaults: NewBotDefaults, bot: ReadyBot): NewBo
     color: bot.look.color,
     mascotBody: bot.look.mascotBody,
     avatarUrl: getBotMascotUrl({ id: bot.id, name: bot.name, color: bot.look.color }),
+    ...(bot.section ? { section: bot.section } : {}),
+    ...(bot.zone ? { zone: bot.zone } : {}),
   };
   for (const [path, text] of Object.entries(bot.notes ?? {})) {
     const own = template.memory[path]?.trimEnd();

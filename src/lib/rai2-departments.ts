@@ -334,3 +334,33 @@ export function getAgentByKey(key: string): RaiAgentDefinition | undefined {
   }
   return undefined;
 }
+
+export const ALL_ENTERPRISE_AGENT_KEYS = new Set(
+  RAI2_DEPARTMENTS.flatMap((dept) => dept.agents.map((agent) => agent.key.toLowerCase()))
+);
+
+export function isEnterpriseAgentKey(key: string | undefined | null): boolean {
+  if (!key) return false;
+  return ALL_ENTERPRISE_AGENT_KEYS.has(key.toLowerCase().trim());
+}
+
+/**
+ * Checks whether a bot belongs to the Enterprise tier (7 Zones / Prebaked RAI Agents).
+ * Freely created bots ("bot tạo tự do" from scratch) return false and remain completely isolated
+ * from enterprise constraints, context vault sync, and TOC diagnosis.
+ */
+export function isEnterpriseBot(bot: {
+  id?: string;
+  name?: string;
+  role?: string;
+  zone?: number;
+  section?: string;
+} | null | undefined): boolean {
+  if (!bot) return false;
+  if (typeof bot.zone === "number" && bot.zone >= 1 && bot.zone <= 7) return true;
+  if (isEnterpriseAgentKey(bot.id) || isEnterpriseAgentKey(bot.role)) return true;
+  if (bot.section && RAI2_DEPARTMENTS.some((dept) => dept.name === bot.section || dept.code === bot.section)) {
+    return true;
+  }
+  return false;
+}

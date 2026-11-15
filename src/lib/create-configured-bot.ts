@@ -35,7 +35,7 @@ export async function createConfiguredBot(
   const lang = activeLocale() || "vi";
   const response = await request<{ bot: Bot }>("/api/bots", {
     method: "POST", body: JSON.stringify({ name: profile.name, title: profile.title,
-      description: profile.description, ...chosenAi, section: profile.section,
+      description: profile.description, ...chosenAi, section: profile.section, zone: profile.zone,
       language: lang,
       useDefaults: false, ...(visibility !== undefined ? { visibility } : {}), ...(reportsTo ? { reportsTo } : {}),
       ...(Object.hasOwn(template.profile, "toolScope") ? { settings: { toolScope } } : {}),

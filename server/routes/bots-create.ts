@@ -163,6 +163,17 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
           return json(res, 400, { error: "section must be at most 60 characters" });
         }
       }
+      let zone: number | undefined;
+      if (body.zone !== undefined && body.zone !== null) {
+        if (typeof body.zone !== "number" || body.zone < 1 || body.zone > 7) {
+          return json(res, 400, { error: "zone must be an integer between 1 and 7" });
+        }
+        zone = Math.round(body.zone);
+      } else if (settings.zone !== undefined && settings.zone !== null) {
+        if (typeof settings.zone === "number" && settings.zone >= 1 && settings.zone <= 7) {
+          zone = Math.round(settings.zone);
+        }
+      }
       const creator = auth.kind === "session" && auth.session.membershipAuthority === "team" ? auth.session.email : undefined;
       let reportsTo: string | undefined;
       if (body.reportsTo !== undefined && body.reportsTo !== null) {
@@ -197,7 +208,7 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       const look = kept.id || settings.color || settings.mascotBody ? undefined : freshLook(store.bots);
       const existingBots = store.bots;
       const greetingLanguage = typeof body.language === "string" && body.language.trim() ? body.language.trim() : undefined;
-      const bot = store.createBot({ ...profile.patch, soul: settings.soul, section, modelSelection: selection,
+      const bot = store.createBot({ ...profile.patch, soul: settings.soul, section, zone, modelSelection: selection,
         toolScope: settings.toolScope ?? undefined, color: settings.color ?? look?.color, mascotBody: settings.mascotBody ?? look?.mascotBody,
         ...(deps.team && creator ? { createdBy: creator } : {}), ...(reportsTo ? { reportsTo } : {}),
         ...(created?.ok ? { visibility: created.visibility } : {}) }, kept.id ? { ...kept, seedMessages: false } : { greetingLanguage });
@@ -211,7 +222,7 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
             : bot.avatarUrl || undefined;
         store.patchBot(bot.id, {
           // Store creation completed the workspace defaults (effort included): the rest of the template must not undo them.
-          ...ordinary, name: bot.name, section, modelSelection: bot.modelSelection,
+          ...ordinary, name: bot.name, section, zone: zone ?? ordinary.zone, modelSelection: bot.modelSelection,
           mascotExpression: ordinary.mascotExpression ?? undefined,
           avatarUrl,
           avatarCrop: ordinary.avatarCrop ?? (avatarUrl ? "circle" : undefined),

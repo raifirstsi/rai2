@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RAI2_DEPARTMENTS, getAgentByKey } from "./rai2-departments";
+import { RAI2_DEPARTMENTS, getAgentByKey, isEnterpriseAgentKey, isEnterpriseBot } from "./rai2-departments";
 
 describe("RAI2 Departments & Workforce Registry", () => {
   it("defines exactly 7 departments spanning Zones 1 to 7", () => {
@@ -39,5 +39,27 @@ describe("RAI2 Departments & Workforce Registry", () => {
 
     const nonExistent = getAgentByKey("unknown-agent");
     expect(nonExistent).toBeUndefined();
+  });
+
+  it("identifies enterprise agents and isolates free bots from scratch", () => {
+    // Enterprise agent keys
+    expect(isEnterpriseAgentKey("rai-lead")).toBe(true);
+    expect(isEnterpriseAgentKey("rai-close")).toBe(true);
+    expect(isEnterpriseAgentKey("rai-strategy")).toBe(true);
+    expect(isEnterpriseAgentKey("my-custom-bot")).toBe(false);
+    expect(isEnterpriseAgentKey(null)).toBe(false);
+    expect(isEnterpriseAgentKey(undefined)).toBe(false);
+
+    // Enterprise bots (by zone or key)
+    expect(isEnterpriseBot({ id: "b1", name: "RAI Lead", zone: 2 })).toBe(true);
+    expect(isEnterpriseBot({ id: "rai-lead", name: "Custom Name" })).toBe(true);
+    expect(isEnterpriseBot({ id: "b2", name: "Sales Bot", section: "Phòng Kinh Doanh & Chốt Hợp Đồng" })).toBe(true);
+
+    // Free bots created from scratch: MUST return false!
+    expect(isEnterpriseBot({ id: "b-custom-1", name: "Trợ lý viết code Python" })).toBe(false);
+    expect(isEnterpriseBot({ id: "b-custom-2", name: "Bot cá nhân", section: "Dự án riêng" })).toBe(false);
+    expect(isEnterpriseBot({ id: "b-custom-3", name: "Tự do", section: "Chung" })).toBe(false);
+    expect(isEnterpriseBot(null)).toBe(false);
+    expect(isEnterpriseBot(undefined)).toBe(false);
   });
 });

@@ -233,8 +233,11 @@ function DraftSection({ active, draft, defaultsMode, owner }: { active: Section;
   const team = useTeamPeople();
   const derived = useBotSettingsDerived(bot);
   const handleSectionOrZoneChange = (chosenSection: string) => {
-    draft.patch({ section: chosenSection });
-    if (chosenSection) {
+    const matchedZone = RAI2_DEPARTMENT_ZONES.find(z => z.name === chosenSection);
+    draft.patch({ section: chosenSection, zone: matchedZone?.zone });
+    // Only inject enterprise knowledge if an official 7-zone enterprise department was chosen.
+    // General or custom user sections remain completely clean from scratch.
+    if (matchedZone) {
       const vault = loadSavedContextVault();
       const toc = loadSavedTocDiagnosis();
       const bundle = buildBotMemoryBundle(chosenSection, vault, toc);

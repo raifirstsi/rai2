@@ -24,6 +24,7 @@ export const botDefaultsProfileSchema = profilePatchSchema.extend({
   name: z.string({ error: "name must be a string" }).max(100, { error: "name must be at most 100 characters" })
     .refine(fitsOnOneLine, "name must fit on one line").optional(),
   section: z.string({ error: "section must be a string" }).trim().max(60, { error: "section must be at most 60 characters" }).optional(),
+  zone: z.number({ error: "zone must be a number" }).int().min(1).max(7).optional(),
   color: z.enum(MAUS_COLOR_NAMES).optional(),
   mascotExpression: z.string().max(60).nullable().optional(),
   modelSelection: botDefaultModelSchema.optional(),
