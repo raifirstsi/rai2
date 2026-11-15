@@ -42,6 +42,13 @@ describe("packaged native modules", () => {
     expect(manifest.dependencies).toEqual(pins);
   });
 
+  it("declares every natively required package in the rai2-runtime package manifest", () => {
+    const text = readFileSync(join(root, "scripts", "package-rai2-runtime.mjs"), "utf8");
+    for (const name of nativelyRequired()) {
+      expect(text).toContain(`"${name}": app.dependencies["${name}"]`);
+    }
+  });
+
   it("stages the native tree in the Podman image where the server looks for it", () => {
     const text = readFileSync(join(root, "deploy", "podman", "Containerfile"), "utf8");
     expect(text.indexOf("RUN node scripts/prepare-duckdb.mjs")).toBeGreaterThan(text.indexOf("COPY . ."));
