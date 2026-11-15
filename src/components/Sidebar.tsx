@@ -2,7 +2,7 @@ import { OrganizationIdentity } from "./OrganizationIdentity";
 import { RaiLogo } from "./RaiLogo";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Archive, BookOpen, Bot as BotIcon, Check, ChevronRight, ClipboardCopy, Compass, Crown, FileCheck, FolderPlus, Gauge, LayoutTemplate, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Phone, Pin, Plus, Search, ShieldAlert, Sparkles, SquarePen, TextQuote, Trash2, TrendingUp, Users, X } from "lucide-react";
+import { Activity, Archive, BookOpen, Bot as BotIcon, Building2, Check, ChevronRight, ClipboardCopy, Compass, Crown, FileCheck, FolderPlus, Gauge, GraduationCap, LayoutTemplate, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Phone, Pin, Plus, Search, ShieldAlert, Sparkles, SquarePen, TextQuote, Trash2, TrendingUp, Users, X } from "lucide-react";
 import { api, useStore, formatTime, visibleMessages, currentTaskBot, botOpensTo, openBot, openThread, type Action, type AppState, type Bot, type BotProject, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { approvalModeFor } from "../../shared/approval-mode";
 import { liveActivityLabel, sidebarMessage } from "@/lib/live-activity";
@@ -39,6 +39,8 @@ import { MarginGuardModal } from "./MarginGuardModal";
 import { StrategyMapModal } from "./StrategyMapModal";
 import { FridayPulseModal } from "./FridayPulseModal";
 import { FiveLeversModal } from "./FiveLeversModal";
+import { ArchitectureAssessmentModal } from "./ArchitectureAssessmentModal";
+import { AutonomyGraduationModal } from "./AutonomyGraduationModal";
 import { useRai2Mode } from "@/lib/rai2-mode";
 import { Rai2ModeSwitcher } from "./Rai2ModeSwitcher";
 import { SidebarNewChatPanel } from "./SidebarNewChatPanel";
@@ -1000,6 +1002,8 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const [strategyMapModalOpen, setStrategyMapModalOpen] = useState(false);
   const [fridayPulseModalOpen, setFridayPulseModalOpen] = useState(false);
   const [fiveLeversModalOpen, setFiveLeversModalOpen] = useState(false);
+  const [architectureModalOpen, setArchitectureModalOpen] = useState(false);
+  const [autonomyModalOpen, setAutonomyModalOpen] = useState(false);
   const [addingReadyBotId, setAddingReadyBotId] = useState<string | null>(null);
   const [archivedBotsOpen, setArchivedBotsOpen] = useState(false);
   const [teamFeedback, setTeamFeedback] = useState<{
@@ -1302,6 +1306,22 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
               >
                 <TrendingUp size={16} className="text-emerald-500 shrink-0" />
                 <span className="flex-1 font-medium text-ink truncate">Mô Phỏng 5 Đòn Bẩy (P&L)</span>
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); setArchitectureModalOpen(true); }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <Building2 size={16} className="text-accent shrink-0" />
+                <span className="flex-1 font-medium text-ink truncate">Sát Hạch Kiến Trúc (/21)</span>
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); setAutonomyModalOpen(true); }}
+                role="menuitem"
+                className={plusItem}
+              >
+                <GraduationCap size={16} className="text-accent shrink-0" />
+                <span className="flex-1 font-medium text-ink truncate">Tốt Nghiệp Tự Trị 95%</span>
               </button>
             </>
           )}
@@ -1874,6 +1894,22 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             if (zoneNumber) setHireDialogZone(zoneNumber);
             setHireDialogOpen(true);
           }}
+        />
+      )}
+      {architectureModalOpen && (
+        <ArchitectureAssessmentModal
+          isOpen={architectureModalOpen}
+          onClose={() => setArchitectureModalOpen(false)}
+          onOpenAutonomyGraduation={() => {
+            setArchitectureModalOpen(false);
+            setAutonomyModalOpen(true);
+          }}
+        />
+      )}
+      {autonomyModalOpen && (
+        <AutonomyGraduationModal
+          isOpen={autonomyModalOpen}
+          onClose={() => setAutonomyModalOpen(false)}
         />
       )}
       {addingReadyBotId &&
