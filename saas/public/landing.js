@@ -210,3 +210,40 @@ if (document.readyState === "loading") {
 } else {
   initAppleSlider();
 }
+
+
+/* 7-Zone Hiring Desk Tab Switching */
+const initHiringDesk = () => {
+  const tabButtons = document.querySelectorAll(".zone-tab-btn");
+  const panels = document.querySelectorAll(".zone-panel");
+  if (!tabButtons.length || !panels.length) return;
+
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const zoneId = btn.getAttribute("data-zone");
+      if (!zoneId) return;
+
+      tabButtons.forEach((b) => {
+        if (b.getAttribute("data-zone") === zoneId) {
+          b.classList.add("active");
+        } else {
+          b.classList.remove("active");
+        }
+      });
+
+      panels.forEach((p) => {
+        if (p.getAttribute("data-zone") === zoneId) {
+          p.classList.add("active");
+        } else {
+          p.classList.remove("active");
+        }
+      });
+    });
+  });
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initHiringDesk);
+} else {
+  initHiringDesk();
+}
