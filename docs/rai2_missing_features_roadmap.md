@@ -144,8 +144,9 @@ flowchart LR
     5. *Ngăn 5: Ranh giới cấm & Tuân thủ pháp lý (Constraints)* (0–4 điểm).
   * **Cảnh báo chất lượng:** Nếu bình nhiên liệu < 12/20 điểm, hệ thống hiển thị khuyến nghị: *"Dữ liệu chưa đủ chuẩn để AI ra chiến trường, hãy bổ sung thêm thông tin ở các ô bị thiếu để tránh ảo giác"*.
 * **Định nghĩa hoàn thành (DoD):**
-  - Tự động chấm điểm độ đầy đủ và chiều sâu văn bản trong 8 trụ cột của Két sắt.
-  - Hiển thị thanh tiến trình trực quan (0–20 điểm) kèm checklist nhắc nhở.
+  - [x] Tự động chấm điểm độ đầy đủ và chiều sâu văn bản trong 8 trụ cột của Két sắt (`DataReadinessGauge`).
+  - [x] Hiển thị thanh tiến trình trực quan (0–20 điểm) kèm checklist nhắc nhở và Cầu Dao Khóa Cứng (Hard Gate Interlock).
+  - [x] Liên kết chéo 1-chạm từ Trụ cột 3 (Offer) tới Cầu Dao Margin Guard và từ Trụ cột 5 (Sales Process) tới Mô phỏng 5 Đòn Bẩy P&L.
 
 ---
 
