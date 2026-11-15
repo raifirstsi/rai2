@@ -198,6 +198,15 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
           else section = trimmed;
         }
       }
+      if (body.zone !== undefined) {
+        if (body.zone === null) {
+          patch.zone = undefined;
+        } else if (typeof body.zone === "number" && body.zone >= 1 && body.zone <= 7) {
+          patch.zone = Math.round(body.zone);
+        } else {
+          return json(res, 400, { error: "zone must be an integer between 1 and 7" });
+        }
+      }
       for (const key of ["unread", "cloudBackend", "color", "mascotExpression", "mascotBody", "pinned", "hidden", "sidebarHidden", "welcomed"] as const) {
         if (body[key] !== undefined) patch[key] = body[key];
       }

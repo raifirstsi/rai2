@@ -1,5 +1,48 @@
 import type { ContextPillarId } from "./context-vault";
 import type { TocDiagnosisResult } from "./toc-detector";
+import { loadSavedFingerprint } from "@/components/CompanyFingerprintModal";
+
+export interface MarginGuardConfig {
+  targetGrossMargin?: number;
+  targetNetMargin?: number;
+  maxDiscountAllowed?: number;
+  companyName?: string;
+  paymentMilestones?: string[];
+  rulesPrompt?: string;
+}
+
+export function isMarginGuardedRole(identifier: string | number): boolean {
+  if (typeof identifier === "number") {
+    return identifier === 1 || identifier === 3 || identifier === 6;
+  }
+  const s = String(identifier || "").toLowerCase().trim();
+  if (
+    s.includes("zone-1") ||
+    s.includes("z1") ||
+    s.includes("strategy") ||
+    s.includes("chiến lược") ||
+    s.includes("điều hành")
+  ) return true;
+  if (
+    s.includes("zone-3") ||
+    s.includes("z3") ||
+    s.includes("quote") ||
+    s.includes("close") ||
+    s.includes("sales") ||
+    s.includes("bán hàng") ||
+    s.includes("kinh doanh")
+  ) return true;
+  if (
+    s.includes("zone-6") ||
+    s.includes("z6") ||
+    s.includes("margin") ||
+    s.includes("cash") ||
+    s.includes("finance") ||
+    s.includes("tài chính") ||
+    s.includes("dòng tiền")
+  ) return true;
+  return false;
+}
 
 export interface BotContextAllocation {
   pillars: ContextPillarId[];
@@ -121,9 +164,9 @@ export const BOT_ROLE_CONTEXT_MAP: Record<string, BotContextAllocation> = {
     tocSummaryRequired: false,
   },
 
-  // Default fallback for general assistants
+  // Default fallback for custom/free assistants: zero enterprise injection to ensure isolation
   default: {
-    pillars: ["brand_voice"],
+    pillars: [],
     injectToc: false,
     tocSummaryRequired: false,
   },
@@ -151,8 +194,12 @@ export const RAI2_DEPARTMENT_ZONES: DepartmentZoneOption[] = [
 /**
  * Resolves context allocation by checking Bot ID, Zone code, or Department name.
  */
-export function resolveBotContextAllocation(identifier: string): BotContextAllocation {
-  const normalized = (identifier || "").toLowerCase().trim();
+export function resolveBotContextAllocation(identifier: string | number): BotContextAllocation {
+  if (typeof identifier === "number") {
+    const zoneKey = `zone-${identifier}`;
+    if (BOT_ROLE_CONTEXT_MAP[zoneKey]) return BOT_ROLE_CONTEXT_MAP[zoneKey];
+  }
+  const normalized = String(identifier || "").toLowerCase().trim();
   if (BOT_ROLE_CONTEXT_MAP[normalized]) {
     return BOT_ROLE_CONTEXT_MAP[normalized];
   }
@@ -207,9 +254,10 @@ const PILLAR_HEADINGS: Record<ContextPillarId, string> = {
  * Builds the customized memory file bundle for a specific bot role or department based on current Vault and TOC data.
  */
 export function buildBotMemoryBundle(
-  botIdOrDepartment: string,
+  botIdOrDepartment: string | number,
   vaultContents: Record<ContextPillarId, string> | null,
-  tocDiagnosis: TocDiagnosisResult | null
+  tocDiagnosis: TocDiagnosisResult | null,
+  customFingerprint?: MarginGuardConfig | null
 ): Record<string, string> {
   const allocation = resolveBotContextAllocation(botIdOrDepartment);
   const memoryBundle: Record<string, string> = {};
@@ -248,6 +296,75 @@ export function buildBotMemoryBundle(
     }
 
     memoryBundle["memory/business_toc.md"] = tocContent;
+  }
+
+  // 3. Inject Margin Guard Hard Rules for Zone 3 (Sales/Quote), Zone 6 (Finance/Margin), and Zone 1 (Strategy)
+  if (isMarginGuardedRole(botIdOrDepartment)) {
+    let fingerprint = customFingerprint;
+    if (!fingerprint && typeof window !== "undefined") {
+      try {
+        fingerprint = loadSavedFingerprint();
+      } catch {
+        fingerprint = null;
+      }
+    }
+
+    const floorMargin =
+      fingerprint?.targetGrossMargin ??
+      fingerprint?.targetNetMargin ??
+      35;
+    const maxDiscount = fingerprint?.maxDiscountAllowed ?? 5;
+    const company = fingerprint?.companyName?.trim() || "Doanh nghiệp";
+    const milestones = (fingerprint?.paymentMilestones && fingerprint.paymentMilestones.length > 0)
+      ? fingerprint.paymentMilestones.map((m, i) => `${i + 1}. ${m}`).join("\n")
+      : "1. 50% đặt cọc ngay khi ký hợp đồng/chốt phương án.\n2. 40% nghiệm thu giai đoạn/tập kết vật tư.\n3. 10% thanh toán dứt điểm trong vòng 24h sau khi bàn giao nghiệm thu.";
+
+    const marginGuardDoc = [
+      "# CẦU DAO BẢO VỆ BIÊN LÃI (MARGIN GUARD PROTOCOL)",
+      "",
+      `Áp dụng nghiêm ngặt cho toàn bộ hoạt động Báo giá, Đàm phán và Chốt hợp đồng tại ${company}.`,
+      "",
+      "## 1. Ngưỡng Biên Lợi Nhuận Sàn (Floor Gross Margin)",
+      `- **Biên lợi nhuận sàn bắt buộc:** ≥ **${floorMargin}%**.`,
+      `- **Ranh giới đỏ:** TUYỆT ĐỐI KHÔNG tự ý báo giá, giảm giá hoặc đồng ý các yêu cầu khiến biên lợi nhuận rớt dưới **${floorMargin}%**.`,
+      "",
+      "## 2. Hạn Mức Chiết Khấu Tối Đa (Discount Ceiling)",
+      `- **Mức chiết khấu tối đa được phép:** ≤ **${maxDiscount}%**.`,
+      "- **Nguyên tắc Quid-Pro-Quo (Đổi Giá Trị Lấy Giá):** Mọi khoản giảm giá PHẢI đi kèm điều kiện trao đổi:",
+      "  1. Thanh toán sớm 100% trước hoặc đặt cọc trong vòng 24h.",
+      "  2. Tăng số lượng đơn hàng hoặc cam kết hợp đồng dài hạn.",
+      "  3. Lược bớt hạng mục công việc, giảm bớt quà tặng hoặc bảo hành mở rộng.",
+      "  *(CẤM giảm giá suông vô điều kiện).* ",
+      "",
+      "## 3. Các Mốc Thanh Toán & Dòng Tiền:",
+      milestones,
+      "",
+      "## 4. Cắt Cầu Dao Tự Động & Kích Hoạt Human-In-The-Loop (HITL)",
+      `- Khi khách hàng ép giá dưới sàn hoặc đòi chiết khấu > ${maxDiscount}%:`,
+      "  - Cắt cầu dao ngay lập tức: Dừng việc tự ý thương lượng giá.",
+      "  - Phản hồi lịch sự theo kịch bản chuẩn:",
+      '    > *"Dạ mức giá/chiết khấu này vượt thẩm quyền của em. Em xin phép ghi nhận và chuyển ngay hồ sơ đề xuất này lên Người Sáng Lập / Ban Giám Đốc để xem xét phê duyệt riêng cho anh/chị ạ."*',
+      "  - Chuyển giao ngay thông tin deal cho Người Sáng Lập duyệt ngoại lệ.",
+    ].join("\n");
+
+    memoryBundle["memory/margin_guard.md"] = marginGuardDoc;
+
+    const rulesDoc = [
+      "# QUY TẮC CỐT TỬ (CORE OPERATING RULES)",
+      "",
+      "## CẦU DAO MARGIN GUARD & KỶ LUẬT GIÁ",
+      `1. **Bảo vệ biên lãi:** Mọi đề xuất giá phải bảo đảm biên lợi nhuận ≥ ${floorMargin}%.`,
+      `2. **Trần chiết khấu:** Không tự ý chiết khấu vượt quá ${maxDiscount}%, mọi chiết khấu phải có điều kiện bù đắp.`,
+      "3. **Kích hoạt HITL khi chạm sàn:** Khi khách ép giá dưới sàn, kích hoạt quy trình từ chối lịch thiệp và chuyển Người Sáng Lập duyệt.",
+    ].join("\n");
+
+    memoryBundle["memory/rules.md"] = rulesDoc;
+
+    memoryBundle["MEMORY.md"] = [
+      "# BỘ NHỚ LÕI & NGUYÊN TẮC VẬN HÀNH",
+      "",
+      `- [MARGIN GUARD]: Biên lợi nhuận sàn ≥${floorMargin}%, Chiết khấu tối đa ≤${maxDiscount}%. Cấm hạ giá dưới sàn. Vượt hạn mức: kích hoạt HITL chuyển Người Sáng Lập duyệt.`,
+    ].join("\n");
   }
 
   return memoryBundle;

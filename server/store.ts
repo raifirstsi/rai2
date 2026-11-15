@@ -1306,7 +1306,7 @@ export class Store {
     profile: Partial<
       Pick<
         BotRecord,
-        "name" | "title" | "description" | "soul" | "color" | "mascotExpression" | "mascotBody" | "mascotFaceColor" | "avatarUrl" | "modelSelection" | "section" | "cwd" | "visibility" | "toolScope" | "createdBy" | "reportsTo"
+        "name" | "title" | "description" | "soul" | "color" | "mascotExpression" | "mascotBody" | "mascotFaceColor" | "avatarUrl" | "modelSelection" | "section" | "cwd" | "visibility" | "toolScope" | "createdBy" | "reportsTo" | "zone"
       >
     > = {},
     opts: {
@@ -1340,6 +1340,7 @@ export class Store {
       createdAt: Date.now(),
     };
     if (section) bot.section = section;
+    if (typeof profile.zone === "number") bot.zone = profile.zone;
     if (profile.createdBy?.trim()) bot.createdBy = ownerEmail(profile.createdBy);
     if (profile.reportsTo?.trim()) bot.reportsTo = ownerEmail(profile.reportsTo);
     if (profile.cwd) bot.cwd = profile.cwd;

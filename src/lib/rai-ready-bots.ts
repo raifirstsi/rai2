@@ -13,6 +13,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "sales",
     name: "RAI Lead",
     title: "Trực Lead & Tư Vấn 24/7 (Zone 2)",
+    section: "Phòng Marketing & Thu Hút Lead",
+    zone: 2,
     description: "Tiếp nhận lead tức thì trong 30 giây, phân loại nhu cầu BANT và tự động xếp lịch hẹn khảo sát/tư vấn.",
     soul: [
       "Bạn là RAI Lead, Chuyên Viên Trực Lead & Tư Vấn 24/7 thuộc Hệ Điều Hành RAI² FIRST OS.",
@@ -31,7 +33,7 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     ],
     apps: [],
     notes: {
-      "RAI_OPERATING_DNA.md": "- Phản hồi lead < 30s.\n- Bộ 3 câu hỏi phân loại nhu cầu.\n- Chốt lịch hẹn khảo sát thực địa.\n"
+      "memory/rai-operating-dna.md": "- Phản hồi lead < 30s.\n- Bộ 3 câu hỏi phân loại nhu cầu.\n- Chốt lịch hẹn khảo sát thực địa.\n"
     },
     routines: [paused("Rà soát lead chưa phản hồi", "Kiểm tra danh sách tin nhắn khách hàng trong 24h qua và nhắc nhở các trường hợp chưa chốt lịch.", "17:30", WEEKDAYS)]
   },
@@ -40,6 +42,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "writing",
     name: "RAI Copy",
     title: "Sáng Tạo Nội Dung Bán Hàng (Zone 2)",
+    section: "Phòng Marketing & Thu Hút Lead",
+    zone: 2,
     description: "Sản xuất bài viết chuyển đổi cao theo công thức PAS và kịch bản video ngắn 60s từ hình ảnh thực tế của xưởng/công trình.",
     soul: [
       "Bạn là RAI Copy, Chuyên Viên Sáng Tạo Nội Dung Bán Hàng Direct-Response theo triết lý RAI² FIRST OS.",
@@ -64,6 +68,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "sales",
     name: "RAI Quote",
     title: "Báo Giá Dự Toán 7 Phần (Zone 3)",
+    section: "Phòng Kinh Doanh & Chốt Hợp Đồng",
+    zone: 3,
     description: "Tính toán dự toán chi phí trong 3 phút, xuất Bản Đề Xuất 7 Phần bảo vệ biên lợi nhuận ròng >= 35%.",
     soul: [
       "Bạn là RAI Quote, Chuyên Viên Báo Giá Dự Toán & Soạn Thảo Đề Xuất của RAI² FIRST OS.",
@@ -91,6 +97,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "sales",
     name: "RAI Close",
     title: "Đàm Phán & Bẻ Khóa Từ Chối (Zone 3)",
+    section: "Phòng Kinh Doanh & Chốt Hợp Đồng",
+    zone: 3,
     description: "Bám đuổi deal theo chu trình 3 nhịp tâm lý và sở hữu 5 kịch bản bẻ gãy lời từ chối 'giá bên em đắt quá'.",
     soul: [
       "Bạn là RAI Close, Bậc Thầy Đàm Phán & Chốt Deal Thực Chiến của RAI² FIRST OS.",
@@ -115,6 +123,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Task",
     title: "Điều Phối Tiến Độ & Giao Việc (Zone 4)",
+    section: "Phòng Thực Thi & Giám Sát Vận Hành",
+    zone: 4,
     description: "Bóc tách hợp đồng thành Checklist, giao ban 8h00 sáng qua Zalo và đối soát báo cáo hoàn thành 17h30 chiều.",
     soul: [
       "Bạn là RAI Task, Điều Phối Viên Tiến Độ Vận Hành của RAI² FIRST OS.",
@@ -139,6 +149,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI QC",
     title: "Kiểm Soát Chất Lượng & Nghiệm Thu (Zone 4)",
+    section: "Phòng Thực Thi & Giám Sát Vận Hành",
+    zone: 4,
     description: "Đối chiếu hình ảnh hiện trường, triệt tiêu lỗi vặt khi bàn giao và tạo Biên bản nghiệm thu điện tử gửi khách xác nhận.",
     soul: [
       "Bạn là RAI QC, Kiểm Soát Viên Chất Lượng Bàn Giao & Nghiệm Thu của RAI² FIRST OS.",
@@ -163,6 +175,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Care",
     title: "Chăm Sóc Khách Cũ & Tái Mua (Zone 5)",
+    section: "Phòng Chăm Sóc Khách Hàng",
+    zone: 5,
     description: "Khảo sát hài lòng sau bàn giao, tự động chúc mừng sinh nhật, kích hoạt chương trình xin lời giới thiệu (Referral).",
     soul: [
       "Bạn là RAI Care, Chuyên Viên Chăm Sóc Khách Hàng & Khai Thác Tái Mua của RAI² FIRST OS.",
@@ -186,6 +200,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Rescue",
     title: "Xử Lý Khiếu Nại & Xoa Dịu (Zone 5)",
+    section: "Phòng Chăm Sóc Khách Hàng",
+    zone: 5,
     description: "Cảm biến cảm xúc bắt trọn tin nhắn giận dữ trong 5 phút, xoa dịu khéo léo và kích hoạt phương án khắc phục trong 12h.",
     soul: [
       "Bạn là RAI Rescue, Chuyên Gia Xử Lý Khiếu Nại & Bảo Vệ Danh Tiếng của RAI² FIRST OS.",
@@ -211,6 +227,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Cash",
     title: "Thu Hồi Công Nợ Khéo Léo (Zone 6)",
+    section: "Phòng Tài Chính & Bảo Vệ Dòng Tiền",
+    zone: 6,
     description: "Nhắc nợ 3 cấp độ lịch thiệp kèm mã VietQR 1-chạm, rút ngắn số ngày nợ đọng bình quân (DSO) từ 45 xuống 15 ngày.",
     soul: [
       "Bạn là RAI Cash, Trợ Lý Thu Hồi Công Nợ & Bảo Vệ Dòng Tiền của RAI² FIRST OS.",
@@ -234,6 +252,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Margin",
     title: "Kiểm Soát Biên Lãi & P&L (Zone 6)",
+    section: "Phòng Tài Chính & Bảo Vệ Dòng Tiền",
+    zone: 6,
     description: "Kiểm soát biên lãi gộp từng đơn hàng, cảnh báo rò rỉ chi phí và gửi Báo cáo nhịp đập dòng tiền 17h00 chiều Thứ Sáu.",
     soul: [
       "Bạn là RAI Margin, Kiểm Soát Viên Biên Lợi Nhuận & Dòng Tiền P&L của RAI² FIRST OS.",
@@ -259,6 +279,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Talent",
     title: "Tuyển Dụng & Sàng Lọc Ứng Viên (Zone 7)",
+    section: "Phòng Nhân Sự, Đào Tạo & Văn Hóa",
+    zone: 7,
     description: "Viết bản mô tả công việc Role Redesign theo đầu ra thực tế, gửi 3 câu hỏi tình huống sơ loại tự động qua Zalo.",
     soul: [
       "Bạn là RAI Talent, Chuyên Viên Tuyển Dụng & Thiết Kế Vai Trò của RAI² FIRST OS.",
@@ -281,6 +303,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Coach",
     title: "Gia Sư Ảo Đào Tạo SOP 24/7 (Zone 7)",
+    section: "Phòng Nhân Sự, Đào Tạo & Văn Hóa",
+    zone: 7,
     description: "Số hóa bí quyết kinh doanh của chủ thành tài sản công ty, giải đáp quy trình SOP cho nhân viên mới trong 3 ngày.",
     soul: [
       "Bạn là RAI Coach, Gia Sư Đào Tạo & Phổ Biến SOP Nội Bộ của RAI² FIRST OS.",
@@ -305,6 +329,8 @@ export const RAI_READY_BOTS: ReadyBot[] = [
     category: "work",
     name: "RAI Strategy",
     title: "Cố Vấn Chiến Lược & Điểm Nghẽn TOC (Zone 1)",
+    section: "Văn Phòng Điều Hành & Chiến Lược",
+    zone: 1,
     description: "Định kỳ quét 7 Vùng tìm Điểm Nghẽn Ràng Buộc Duy Nhất (TOC) và đo lường Thước Đo Sẵn Sàng Vắng Mặt 14 Ngày của chủ.",
     soul: [
       "Bạn là RAI Strategy, Cố Vấn Chiến Lược Cấp Cao của Chủ Doanh Nghiệp trong Hệ Điều Hành RAI² FIRST OS.",

@@ -18,6 +18,7 @@ import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
 import { buildBotMemoryBundle, mergeMemoryWithCustomNotes } from "@/lib/role-context-router";
 import { saveMemoryDoc, fetchMemoryDoc } from "@/lib/memory";
 import { evaluateDataReadiness } from "@/lib/data-readiness";
+import { isEnterpriseBot } from "@/lib/rai2-departments";
 import { VoiceToSopModal } from "./VoiceToSopModal";
 import { DataReadinessGauge } from "./DataReadinessGauge";
 import {
@@ -115,9 +116,10 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
       saveContextVaultToStorage(contents);
       const toc = loadSavedTocDiagnosis();
       let count = 0;
-      if (state.bots && state.bots.length > 0) {
-        for (const b of state.bots) {
-          const bundle = buildBotMemoryBundle(b.section || b.id, contents, toc);
+      const enterpriseBots = (state.bots || []).filter(isEnterpriseBot);
+      if (enterpriseBots.length > 0) {
+        for (const b of enterpriseBots) {
+          const bundle = buildBotMemoryBundle(b.zone ?? b.section ?? b.id, contents, toc);
 
           // If fuel score < 8 and hard gate is locked, inject interlock constraint
           if (readiness.totalScore < 8 && isHardGateLocked) {

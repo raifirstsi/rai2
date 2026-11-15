@@ -21,6 +21,7 @@ import {
 } from "@/lib/voice-to-sop";
 import { saveMemoryDoc, fetchMemoryDoc } from "@/lib/memory";
 import { mergeMemoryWithCustomNotes } from "@/lib/role-context-router";
+import { isEnterpriseBot } from "@/lib/rai2-departments";
 
 interface VoiceToSopModalProps {
   isOpen: boolean;
@@ -135,10 +136,11 @@ export function VoiceToSopModal({
       // 1. Save into Context Vault localStorage & trigger storage event
       saveSopToVault(finalizedSop);
 
-      // 2. Optionally sync into relevant bots' memory/sops.md
-      if (syncToAllBots && state.bots && state.bots.length > 0) {
+      // 2. Optionally sync into relevant enterprise bots' memory/sops.md (skip free bots)
+      const targetBots = (state.bots || []).filter(isEnterpriseBot);
+      if (syncToAllBots && targetBots.length > 0) {
         const formattedMd = formatSopToMarkdown(finalizedSop);
-        for (const bot of state.bots) {
+        for (const bot of targetBots) {
           try {
             const existing = await fetchMemoryDoc(bot.id, "sops.md").catch(() => null);
             const currentText = existing?.text || "# STANDARD OPERATING PROCEDURES (SOP)\n";

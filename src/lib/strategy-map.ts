@@ -40,19 +40,59 @@ const ZONE_WEIGHTS: Record<number, number> = {
   7: 0.10, // HR & Training
 };
 
+export type ActiveBotCandidate =
+  | string
+  | {
+      id: string;
+      name?: string;
+      title?: string;
+      section?: string;
+      zone?: number;
+    };
+
 export function evaluateStrategyMap7Zones(params: {
-  activeBotIds: string[];
+  activeBotIds?: string[];
+  activeBots?: ActiveBotCandidate[];
   tocDiagnosis?: TocDiagnosisResult | null;
 }): StrategyMapSummary {
-  const { activeBotIds, tocDiagnosis } = params;
-  const activeTokens = activeBotIds
+  const { activeBotIds = [], activeBots, tocDiagnosis } = params;
+
+  const allCandidates: ActiveBotCandidate[] = [
+    ...(activeBots || []),
+    ...activeBotIds,
+  ];
+
+  const botObjects = allCandidates.filter(
+    (c): c is Exclude<ActiveBotCandidate, string> => typeof c === "object" && c !== null
+  );
+
+  const stringTokens = allCandidates
+    .flatMap((c) => {
+      if (typeof c === "string") return [c];
+      return [c.id, c.name, c.title, c.section].filter(Boolean) as string[];
+    })
     .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
     .map((id) => id.trim().toLowerCase());
-  const activeSet = new Set(activeTokens);
 
+  const activeSet = new Set(stringTokens);
   const constraintZoneNumber = tocDiagnosis?.zoneNumber || null;
 
   const evaluatedZones: ZoneEvaluation[] = RAI2_DEPARTMENTS.map((dept: RaiDepartment) => {
+    // 1. Explicit zone match from bot metadata (DETERMINISTIC)
+    const directZoneBots = botObjects.filter((b) => b.zone === dept.zone);
+    const directSectionBots = botObjects.filter((b) => {
+      if (!b.section) return false;
+      const s = b.section.toLowerCase();
+      return (
+        s === dept.name.toLowerCase() ||
+        s === dept.code.toLowerCase() ||
+        s.includes(`vùng ${dept.zone}`) ||
+        s.includes(`zone ${dept.zone}`) ||
+        s.includes(`z${dept.zone}`)
+      );
+    });
+
+    // 2. Keyword/Agent matching
     const activeKeysInDept = dept.agents
       .map((a) => a.key)
       .filter((k) => {
@@ -68,7 +108,7 @@ export function evaluateStrategyMap7Zones(params: {
 
         const bareKey = kLower.replace(/^rai[-_]/, "");
 
-        return activeTokens.some((tok) => {
+        return stringTokens.some((tok) => {
           if (tok.includes(kLower) || kLower.includes(tok)) return true;
           if (bareKey.length >= 3 && (tok.includes(bareKey) || bareKey.includes(tok))) return true;
           if (nameLower && (tok.includes(nameLower) || nameLower.includes(tok))) return true;
@@ -77,7 +117,13 @@ export function evaluateStrategyMap7Zones(params: {
         });
       });
 
-    const activeCount = activeKeysInDept.length;
+    const matchedKeys = new Set<string>([
+      ...activeKeysInDept,
+      ...directZoneBots.map((b) => b.id || b.name || `bot-zone-${dept.zone}`),
+      ...directSectionBots.map((b) => b.id || b.name || `bot-section-${dept.zone}`),
+    ]);
+
+    const activeCount = matchedKeys.size;
     const isConstraint = constraintZoneNumber === dept.zone;
 
     let status: ZoneHealthStatus = "HEALTHY";
@@ -103,7 +149,7 @@ export function evaluateStrategyMap7Zones(params: {
       iconName: dept.iconName,
       status,
       activeAgentsCount: activeCount,
-      activeBotKeys: activeKeysInDept,
+      activeBotKeys: Array.from(matchedKeys),
       totalExpectedAgents: dept.agents.length,
       isConstraintZone: isConstraint,
       weight: ZONE_WEIGHTS[dept.zone] || 0.1,

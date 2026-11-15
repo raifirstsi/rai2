@@ -359,6 +359,8 @@ export interface WireBot extends DefaultBotFields, BotAccessFields {
   movedTo?: BotMovedTo;
   /** Optional labeled divider used to organize this bot in the sidebar. */
   section?: string;
+  /** RAI² First OS 7-Zone Strategy Map assignment (1 to 7). */
+  zone?: number;
   /** the one message pinned to the top of this bot's active thread */
   pinnedMessageId?: string;
   /** The coordinator for this bot's sidebar section. */

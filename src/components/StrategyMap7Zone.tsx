@@ -12,11 +12,16 @@ import {
   AlertCircle,
   Plus,
 } from "lucide-react";
-import { evaluateStrategyMap7Zones, ZoneEvaluation } from "@/lib/strategy-map";
+import {
+  evaluateStrategyMap7Zones,
+  ZoneEvaluation,
+  type ActiveBotCandidate,
+} from "@/lib/strategy-map";
 import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
 
 interface StrategyMap7ZoneProps {
   activeBotIds?: string[];
+  activeBots?: ActiveBotCandidate[];
   onHireDepartment?: (deptCode: string, zoneNumber?: number) => void;
   onOpenTocDiagnostic?: () => void;
   onSelectZone?: (zoneNumber: number) => void;
@@ -35,6 +40,7 @@ const ZONE_ICONS: Record<string, React.ElementType> = {
 
 export function StrategyMap7Zone({
   activeBotIds = [],
+  activeBots,
   onHireDepartment,
   onOpenTocDiagnostic,
   onSelectZone,
@@ -45,9 +51,10 @@ export function StrategyMap7Zone({
   const summary = useMemo(() => {
     return evaluateStrategyMap7Zones({
       activeBotIds,
+      activeBots,
       tocDiagnosis,
     });
-  }, [activeBotIds, tocDiagnosis]);
+  }, [activeBotIds, activeBots, tocDiagnosis]);
 
   return (
     <section

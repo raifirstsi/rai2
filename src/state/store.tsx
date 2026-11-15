@@ -314,6 +314,7 @@ export interface Bot extends DefaultBotFields, Pick<WireBot, "mascotFaceColor" |
   pinned?: boolean;
   hidden?: boolean;
   section?: string;
+  zone?: number;
   pinnedMessageId?: string;
   chiefOfStaff?: boolean;
   managedSections?: string[];

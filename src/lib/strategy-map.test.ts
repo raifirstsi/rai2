@@ -78,4 +78,24 @@ describe("strategy-map - 7-Zone Interactive Strategy Map Evaluation", () => {
     expect(zone3?.activeAgentsCount).toBeGreaterThan(0);
     expect(zone4?.activeAgentsCount).toBeGreaterThan(0);
   });
+
+  it("matches custom bots deterministically by zone number metadata", () => {
+    const summary = evaluateStrategyMap7Zones({
+      activeBots: [
+        { id: "custom-bot-1", name: "Bé Nga Tư Vấn", zone: 3 },
+        { id: "custom-bot-2", name: "Kế Toán Trưởng", zone: 6 },
+      ],
+      tocDiagnosis: null,
+    });
+
+    const zone3 = summary.zones.find((z) => z.zoneNumber === 3);
+    const zone6 = summary.zones.find((z) => z.zoneNumber === 6);
+    const zone1 = summary.zones.find((z) => z.zoneNumber === 1);
+
+    expect(zone3?.activeAgentsCount).toBe(1);
+    expect(zone3?.activeBotKeys).toContain("custom-bot-1");
+    expect(zone6?.activeAgentsCount).toBe(1);
+    expect(zone6?.activeBotKeys).toContain("custom-bot-2");
+    expect(zone1?.activeAgentsCount).toBe(0);
+  });
 });
