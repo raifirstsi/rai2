@@ -8,6 +8,11 @@ import {
 } from "./ContextVaultModal.tsx";
 import { CONTEXT_PILLARS, type ContextPillarId } from "../lib/context-vault.ts";
 
+let mockOwnerOrAdmin: boolean | null = true;
+vi.mock("@/lib/use-owner-or-admin", () => ({
+  useOwnerOrAdmin: () => mockOwnerOrAdmin,
+}));
+
 vi.mock("@/state/store", () => ({
   useStore: () => ({ state: { bots: [] }, dispatch: () => {} }),
 }));
@@ -101,5 +106,20 @@ describe("ContextVaultModal - Storage & Logic", () => {
     expect(html).toContain("8 Trụ Cột Tri Thức");
     expect(html).toContain("Két Sắt Ngữ Cảnh 8 Trụ Cột");
     expect(html).toContain("Context Vault");
+  });
+
+  it("enforces read-only mode and hides sync CTA when user is a non-admin Member", () => {
+    mockOwnerOrAdmin = false;
+    const html = renderToString(
+      React.createElement(ContextVaultModal, {
+        isOpen: true,
+        onClose: () => {},
+      })
+    );
+
+    expect(html).toContain("Chế độ Xem");
+    expect(html).toContain("Chỉ Quản trị viên (Owner/Admin) mới có quyền chỉnh sửa");
+    expect(html).not.toContain("Lưu &amp; Đồng Bộ Toàn Bộ RAIs");
+    mockOwnerOrAdmin = true;
   });
 });
