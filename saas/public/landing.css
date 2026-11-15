@@ -1333,3 +1333,221 @@ h2 {
   :root { scroll-behavior: auto; }
   .headline-mascot, .headline-mascot-motion, .mascot-eye, .mascot-wave { animation: none; }
 }
+
+/* Apple-style Inside RAI² Slider */
+.inside-rai-section {
+  padding-block: 72px;
+}
+.apple-slider-container {
+  max-width: 920px;
+  margin: 32px auto 0;
+}
+.apple-slider-window {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+.apple-window-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--line);
+}
+[data-theme="dark"] .apple-window-bar {
+  background: rgba(255, 255, 255, 0.03);
+}
+.apple-window-dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.apple-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.apple-dot.red { background: #ff5f56; }
+.apple-dot.yellow { background: #ffbd2e; }
+.apple-dot.green { background: #27c93f; }
+.apple-window-url {
+  font-size: 11.5px;
+  font-family: monospace;
+  color: var(--muted);
+  background: var(--bg);
+  padding: 3px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.apple-slide-counter {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.apple-slider-viewport {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+  touch-action: pan-y;
+}
+.apple-slides-track {
+  display: flex;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.apple-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.slide-img-wrap {
+  padding: 20px 24px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg);
+}
+.slide-img-wrap img {
+  width: 100%;
+  max-width: 820px;
+  max-height: 480px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  display: block;
+  margin: 0 auto;
+}
+.slide-caption {
+  padding: 22px 24px 24px;
+  text-align: center;
+  background: var(--panel);
+}
+.slide-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 6px;
+}
+.slide-caption h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+.slide-caption p {
+  max-width: 680px;
+  margin: 0 auto 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.slide-cta {
+  display: flex;
+  justify-content: center;
+}
+.slide-cta .button {
+  min-height: 44px;
+  padding: 10px 24px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.apple-slider-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 14px 20px 18px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+.slider-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.slider-btn:hover {
+  background: var(--panel);
+  border-color: var(--blue);
+  color: var(--blue);
+  transform: scale(1.05);
+}
+.slider-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.slider-dot.active {
+  width: 22px;
+  border-radius: 4px;
+  background: var(--blue);
+}
+@media (max-width: 640px) {
+  .inside-rai-section {
+    padding-block: 48px;
+  }
+  .slide-img-wrap {
+    padding: 12px 12px 0;
+  }
+  .slide-img-wrap img {
+    max-height: 280px;
+  }
+  .slide-caption {
+    padding: 16px 14px 18px;
+  }
+  .slide-caption h3 {
+    font-size: 16px;
+  }
+  .slide-caption p {
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .slide-cta .button {
+    width: 100%;
+    max-width: 300px;
+    min-height: 46px;
+  }
+  .slider-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .slider-dots {
+    gap: 4px;
+  }
+  .slider-dot {
+    width: 6px;
+    height: 6px;
+  }
+  .slider-dot.active {
+    width: 16px;
+  }
+}

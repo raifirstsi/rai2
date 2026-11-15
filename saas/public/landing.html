@@ -335,8 +335,226 @@
           line-height: 1.6 !important;
         }
       }
+
+      /* Apple.com Style Screen Slider */
+      .inside-rai-section {
+        padding-block: 72px !important;
+      }
+      .apple-slider-container {
+        max-width: 920px !important;
+        margin: 32px auto 0 !important;
+      }
+      .apple-slider-window {
+        background: var(--panel) !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06) !important;
+        overflow: hidden !important;
+      }
+      .apple-window-bar {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 12px 18px !important;
+        background: rgba(0, 0, 0, 0.02) !important;
+        border-bottom: 1px solid var(--line) !important;
+      }
+      [data-theme="dark"] .apple-window-bar {
+        background: rgba(255, 255, 255, 0.03) !important;
+      }
+      .apple-window-dots {
+        display: flex !important;
+        align-items: center !important;
+        gap: 7px !important;
+      }
+      .apple-dot {
+        width: 10px !important;
+        height: 10px !important;
+        border-radius: 50% !important;
+        display: inline-block !important;
+      }
+      .apple-dot.red { background: #ff5f56 !important; }
+      .apple-dot.yellow { background: #ffbd2e !important; }
+      .apple-dot.green { background: #27c93f !important; }
+      .apple-window-url {
+        font-size: 11.5px !important;
+        font-family: monospace !important;
+        color: var(--muted) !important;
+        background: var(--bg) !important;
+        padding: 3px 12px !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--line) !important;
+      }
+      .apple-slide-counter {
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        color: var(--muted) !important;
+      }
+      .apple-slider-viewport {
+        overflow: hidden !important;
+        width: 100% !important;
+        position: relative !important;
+        touch-action: pan-y !important;
+      }
+      .apple-slides-track {
+        display: flex !important;
+        transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        will-change: transform !important;
+      }
+      .apple-slide {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      .slide-img-wrap {
+        padding: 20px 24px 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        background: var(--bg) !important;
+      }
+      .slide-img-wrap img {
+        width: 100% !important;
+        max-width: 820px !important;
+        max-height: 480px !important;
+        height: auto !important;
+        object-fit: contain !important;
+        border-radius: 8px !important;
+        border: 1px solid var(--line) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+        display: block !important;
+        margin: 0 auto !important;
+      }
+      .slide-caption {
+        padding: 22px 24px 24px !important;
+        text-align: center !important;
+        background: var(--panel) !important;
+      }
+      .slide-tag {
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.06em !important;
+        text-transform: uppercase !important;
+        color: var(--blue) !important;
+        margin-bottom: 6px !important;
+      }
+      .slide-caption h3 {
+        font-size: 19px !important;
+        font-weight: 700 !important;
+        color: var(--ink) !important;
+        margin: 0 0 8px !important;
+        line-height: 1.3 !important;
+      }
+      .slide-caption p {
+        max-width: 680px !important;
+        margin: 0 auto 18px !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+        color: var(--muted) !important;
+      }
+      .slide-cta {
+        display: flex !important;
+        justify-content: center !important;
+      }
+      .slide-cta .button {
+        min-height: 44px !important;
+        padding: 10px 24px !important;
+        font-size: 13.5px !important;
+        font-weight: 600 !important;
+      }
+      .apple-slider-controls {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 16px !important;
+        padding: 14px 20px 18px !important;
+        background: var(--panel) !important;
+        border-top: 1px solid var(--line) !important;
+      }
+      .slider-btn {
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 50% !important;
+        border: 1px solid var(--line) !important;
+        background: var(--bg) !important;
+        color: var(--ink) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+      }
+      .slider-btn:hover {
+        background: var(--panel) !important;
+        border-color: var(--blue) !important;
+        color: var(--blue) !important;
+        transform: scale(1.05) !important;
+      }
+      .slider-dots {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .slider-dot {
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        background: var(--line) !important;
+        border: none !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+        transition: all 0.25s ease !important;
+      }
+      .slider-dot.active {
+        width: 22px !important;
+        border-radius: 4px !important;
+        background: var(--blue) !important;
+      }
+      @media (max-width: 640px) {
+        .inside-rai-section {
+          padding-block: 48px !important;
+        }
+        .slide-img-wrap {
+          padding: 12px 12px 0 !important;
+        }
+        .slide-img-wrap img {
+          max-height: 280px !important;
+        }
+        .slide-caption {
+          padding: 16px 14px 18px !important;
+        }
+        .slide-caption h3 {
+          font-size: 16px !important;
+        }
+        .slide-caption p {
+          font-size: 13px !important;
+          line-height: 1.5 !important;
+          margin-bottom: 14px !important;
+        }
+        .slide-cta .button {
+          width: 100% !important;
+          max-width: 300px !important;
+          min-height: 46px !important;
+        }
+        .slider-btn {
+          width: 34px !important;
+          height: 34px !important;
+        }
+        .slider-dots {
+          gap: 4px !important;
+        }
+        .slider-dot {
+          width: 6px !important;
+          height: 6px !important;
+        }
+        .slider-dot.active {
+          width: 16px !important;
+        }
+      }
     </style>
-    <script src="/landing.js?v=20261114-theme-sync1" defer></script>
+    <script src="/landing.js?v=20261115-apple-slider1" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -717,6 +935,246 @@
                 </div>
               </div>
             </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: BÊN TRONG RAI² CÓ GÌ (APPLE-STYLE INTERACTIVE SLIDER) -->
+      <section id="ben-trong-rai" class="section inside-rai-section" style="background: var(--panel); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);">
+        <div class="site-shell">
+          <div class="section-intro centered">
+            <p class="section-kicker">TRỰC QUAN GIAO DIỆN BUỒNG LÁI · INSIDE RAI²</p>
+            <h2>Bên Trong RAI² Có Gì? Trực Quan 13 Vũ Khí Thực Chiến</h2>
+            <p>Khám phá giao diện buồng lái điều hành thực tế của RAI² - được thiết kế theo phong cách tối giản, chuẩn mực, giúp doanh chủ và đội ngũ làm chủ toàn diện bộ máy nhân sự số.</p>
+          </div>
+
+          <!-- Apple.com Style Screen Slider -->
+          <div class="apple-slider-container" role="region" aria-label="Slide các tính năng bên trong RAI²">
+            <!-- Window Bezel -->
+            <div class="apple-slider-window">
+              <div class="apple-window-bar">
+                <div class="apple-window-dots" aria-hidden="true">
+                  <span class="apple-dot red"></span>
+                  <span class="apple-dot yellow"></span>
+                  <span class="apple-dot green"></span>
+                </div>
+                <div class="apple-window-url">app.rai2.si</div>
+                <div class="apple-slide-counter"><span id="slide-current">01</span> / 13</div>
+              </div>
+
+              <!-- Slides Track -->
+              <div class="apple-slider-viewport">
+                <div class="apple-slides-track">
+                  <!-- Slide 1 -->
+                  <div class="apple-slide" data-index="0">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-01-multi-agent-room.jpg" alt="Phòng Tăng Trưởng SEO & Phối Hợp Đa Tác Vụ" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">COLLABORATION · PHÒNG BAN ĐA TÁC VỤ</div>
+                      <h3>Phòng Tăng Trưởng SEO & Phối Hợp Đa Tác Vụ</h3>
+                      <p>Các nhân sự số chuyên trách (Scout nghiên cứu từ khóa, Atlas kiểm toán kỹ thuật, Quill viết nội dung) tự động thảo luận, phân chia việc và giữ nhịp tiến độ trong cùng một phòng ban số.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 2 -->
+                  <div class="apple-slide" data-index="1">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-02-bot-templates.jpg" alt="Thư Viện Mẫu Nhân Sự Số Đóng Gói Sẵn" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">TEMPLATE VAULT · KHO MẪU BOT</div>
+                      <h3>Thư Viện Mẫu Nhân Sự Số Đóng Gói Sẵn</h3>
+                      <p>Hàng chục mẫu bot chuyên môn hóa theo quy trình thực chiến: RAI Close (bẻ khóa từ chối giá cao), RAI Task (giao ban), RAI QC (kiểm soát chất lượng), RAI Cash (thu hồi công nợ), RAI Care (chăm sóc khách cũ)...</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 3 -->
+                  <div class="apple-slide" data-index="2">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-03-context-vault.jpg" alt="Két Sắt Ngữ Cảnh 8 Trụ Cột & Bình Nhiên Liệu Dữ Liệu" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">CONTEXT VAULT · NGUỒN SỰ THẬT DUY NHẤT</div>
+                      <h3>Két Sắt Ngữ Cảnh 8 Trụ Cột & Bình Nhiên Liệu Dữ Liệu</h3>
+                      <p>Khóa chặt Brand Voice DNA, thông tin sản phẩm, định vị đối thủ và quy trình bán hàng. Thước đo 20 điểm đảm bảo chỉ khi đủ nhiên liệu dữ liệu chuẩn thì AI mới được phép thực thi, ngăn chặn 100% ảo giác.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 4 -->
+                  <div class="apple-slide" data-index="3">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-04-hiring-desk.jpg" alt="Bàn Tuyển Dụng Nhân Sự Số 7 Vùng" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">RECRUITMENT · 7 VÙNG NGHIỆP VỤ</div>
+                      <h3>Bàn Tuyển Dụng Nhân Sự Số 7 Vùng</h3>
+                      <p>Giao diện tuyển dụng và phân bổ nhân sự số trực quan theo 7 vùng sống còn: Marketing (RAI Lead, RAI Copy), Bán hàng, Chăm sóc, Vận hành, Tài chính... với cam kết KPI và 80% nghiệp vụ nạp sẵn.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 5 -->
+                  <div class="apple-slide" data-index="4">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-05-ari-friday-report.jpg" alt="Báo Cáo Nhịp Thở 17:00 Thứ Sáu ($ARI$)" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">ARI METRIC · THƯỚC ĐO SẴN SÀNG VẮNG MẶT</div>
+                      <h3>Báo Cáo Nhịp Thở 17:00 Thứ Sáu ($ARI$)</h3>
+                      <p>Kiểm tra sức khỏe P&L và Chỉ số Sẵn sàng Vắng mặt của Người chủ ($ARI$) định kỳ. Hệ thống chỉ ra ngay cấp độ tự hành và mục tiêu ưu tiên duy nhất tuần tới để giải phóng người sáng lập khỏi bẫy sự vụ.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 6 -->
+                  <div class="apple-slide" data-index="5">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-06-voice-to-sop.jpg" alt="Voice-to-SOP: Đóng Gói Quy Trình 1-Chạm" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">VOICE-TO-SOP · RECORD FIRST, WRITE NEVER</div>
+                      <h3>Voice-to-SOP: Đóng Gói Quy Trình 1-Chạm</h3>
+                      <p>Không cần gõ tài liệu phức tạp. Người chủ chỉ cần bấm mic nói lại cách mình xử lý công việc thực tế, RAI² tự động phiên âm, cấu trúc hóa và xuất bản thành bản SOP chuẩn hóa 4 phần cho bot chạy ngay.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 7 -->
+                  <div class="apple-slide" data-index="6">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-07-7zones-toc.jpg" alt="Bản Đồ Chiến Lược 7 Vùng & Bắt Điểm Nghẽn TOC" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">TOC STRATEGY · BẮT ĐIỂM NGHẼN DÒNG TIỀN</div>
+                      <h3>Bản Đồ Chiến Lược 7 Vùng & Bắt Điểm Nghẽn TOC</h3>
+                      <p>Bao phủ toàn diện dòng chảy giá trị: Tiếp thị -> Bán hàng -> Cung ứng -> Chăm sóc -> Dòng tiền. Định vị chính xác mắt xích nghẽn TOC (như Zone 3 - Tốc độ báo giá & chốt đơn) để gỡ nghẽn tức thì.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 8 -->
+                  <div class="apple-slide" data-index="7">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-08-architecture-audit.jpg" alt="Sát Hạch Kiến Trúc & Đo Độ Trưởng Thành AI" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">ARCHITECTURE AUDIT · THE SHOW-ME TEST</div>
+                      <h3>Sát Hạch Kiến Trúc & Đo Độ Trưởng Thành AI</h3>
+                      <p>Khung sát hạch bóc trần sự thật về năng lực vận hành. Phân loại tác vụ rạch ròi thành 3 giỏ: Giữ lại cho người (Keep 25%), Xóa bỏ bước thừa (Eliminate 38%) và Thiết kế lại cho AI (Redesign 38%).</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 9 -->
+                  <div class="apple-slide" data-index="8">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-09-byok-providers.jpg" alt="Trung Tâm Kết Nối AI Đa Nhà Cung Cấp" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">100% BYOK · TỰ DO CÔNG NGHỆ TUYỆT ĐỐI</div>
+                      <h3>Trung Tâm Kết Nối AI Đa Nhà Cung Cấp</h3>
+                      <p>Tự mang khóa API của riêng bạn (Grok, Kimi, Cursor, Claude, Codex, Google Gemini, OpenCode...). Dữ liệu nằm trong két sắt riêng, không bị khóa cứng vào bất kỳ một nhà cung cấp AI nào.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 10 -->
+                  <div class="apple-slide" data-index="9">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-10-pnl-compounding.jpg" alt="Mô Phỏng 5 Đòn Bẩy Tài Chính P&L" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">COMPOUNDING ENGINE · ĐÒN BẨY TÀI CHÍNH P&L</div>
+                      <h3>Mô Phỏng 5 Đòn Bẩy Tài Chính P&L</h3>
+                      <p>Mô phỏng đòn bẩy tài chính kép tăng trưởng lợi nhuận không tăng nhân sự. Dự báo tác động dòng tiền trên bảng P&L (+1.11 tỷ VNĐ/năm, x1.87 lợi nhuận ròng) khi nhân sự số tối ưu từng khâu.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 11 -->
+                  <div class="apple-slide" data-index="10">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-11-team-canvas.jpg" alt="Bản Đồ Đội Ngũ Nhân Sự Số (Canvas Trực Quan)" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">TEAM CANVAS · SƠ ĐỒ ĐỘI HÌNH</div>
+                      <h3>Bản Đồ Đội Ngũ Nhân Sự Số (Canvas Trực Quan)</h3>
+                      <p>Canvas trực quan hiển thị toàn bộ 22+ nhân sự số trong doanh nghiệp, phòng ban trực thuộc và cách chúng kết nối tương tác với nhau. Nhắn tin, gắn thẻ @bot hoặc phân công việc chỉ với 1 click.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 12 -->
+                  <div class="apple-slide" data-index="11">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-12-agent-workspace.jpg" alt="Không Gian Làm Việc Trực Tiếp Cùng Từng Chuyên Gia Số" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">AGENT WORKSPACE · CHUYÊN GIA RIÊNG BIỆT</div>
+                      <h3>Không Gian Làm Việc Trực Tiếp Cùng Từng Chuyên Gia Số</h3>
+                      <p>Tương tác chuyên sâu 1-1 với từng nhân sự số (như Maya - Chiến lược gia Marketing). Chuyển hóa mục tiêu kinh doanh thành chiến lược có đòn bẩy cao và bảo vệ doanh nghiệp khỏi các hoạt động rời rạc.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Slide 13 -->
+                  <div class="apple-slide" data-index="12">
+                    <div class="slide-img-wrap">
+                      <img src="/assets/features/feature-13-mcp-integrations.jpg" alt="Kết Nối Ứng Dụng NghiỆp Vụ & Máy Chủ MCP" loading="lazy">
+                    </div>
+                    <div class="slide-caption">
+                      <div class="slide-tag">MCP ECOSYSTEM · KẾT NỐI HỆ SINH THÁI</div>
+                      <h3>Kết Nối Ứng Dụng Nghiệp Vụ & Máy Chủ MCP</h3>
+                      <p>Tích hợp trực tiếp các công cụ hàng ngày: Google Workspace (Calendar, Docs, Sheets), Notion, GitHub, Linear, Jira, Sentry... cho phép nhân sự số đọc hiểu và thao tác tự động trên công cụ bạn đang dùng.</p>
+                      <div class="slide-cta">
+                        <a class="button button-primary" href="https://app.rai2.si/">Đăng ký trải nghiệm</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Slider Navigation Controls -->
+              <div class="apple-slider-controls">
+                <button class="slider-btn prev-btn" type="button" aria-label="Slide trước">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <div class="slider-dots" role="tablist" aria-label="Chọn slide">
+                  <!-- Dots generated dynamically via JS -->
+                </div>
+                <button class="slider-btn next-btn" type="button" aria-label="Slide tiếp theo">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

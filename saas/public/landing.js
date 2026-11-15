@@ -90,3 +90,123 @@ document.addEventListener("keydown", (event) => {
 addEventListener("resize", () => {
   if (innerWidth > 960) closeMenu();
 });
+
+/* Apple-style Inside RAI² Slider */
+const initAppleSlider = () => {
+  const track = document.querySelector(".apple-slides-track");
+  const slides = document.querySelectorAll(".apple-slide");
+  const dotsContainer = document.querySelector(".slider-dots");
+  const prevBtn = document.querySelector(".slider-btn.prev-btn");
+  const nextBtn = document.querySelector(".slider-btn.next-btn");
+  const currentCounter = document.getElementById("slide-current");
+  const viewport = document.querySelector(".apple-slider-viewport");
+
+  if (!track || slides.length === 0) return;
+
+  let currentIndex = 0;
+  const total = slides.length;
+  let autoplayTimer = null;
+
+  if (dotsContainer) {
+    dotsContainer.innerHTML = "";
+    slides.forEach((_, i) => {
+      const dot = document.createElement("button");
+      dot.className = `slider-dot ${i === 0 ? "active" : ""}`;
+      dot.type = "button";
+      dot.setAttribute("aria-label", `Xem slide ${i + 1}`);
+      dot.addEventListener("click", () => goToSlide(i));
+      dotsContainer.appendChild(dot);
+    });
+  }
+
+  const updateUI = () => {
+    track.style.transform = `translateX(-${currentIndex * 100}%)`;
+    if (currentCounter) {
+      currentCounter.textContent = String(currentIndex + 1).padStart(2, "0");
+    }
+    const dots = dotsContainer?.querySelectorAll(".slider-dot");
+    dots?.forEach((d, i) => {
+      d.classList.toggle("active", i === currentIndex);
+      d.setAttribute("aria-selected", i === currentIndex ? "true" : "false");
+    });
+  };
+
+  const goToSlide = (idx) => {
+    currentIndex = (idx + total) % total;
+    updateUI();
+  };
+
+  prevBtn?.addEventListener("click", () => {
+    goToSlide(currentIndex - 1);
+    resetAutoplay();
+  });
+
+  nextBtn?.addEventListener("click", () => {
+    goToSlide(currentIndex + 1);
+    resetAutoplay();
+  });
+
+  // Touch Swipe for mobile
+  let startX = 0;
+  let startY = 0;
+  let isSwiping = false;
+
+  viewport?.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isSwiping = true;
+    stopAutoplay();
+  }, { passive: true });
+
+  viewport?.addEventListener("touchend", (e) => {
+    if (!isSwiping) return;
+    isSwiping = false;
+    const diffX = e.changedTouches[0].clientX - startX;
+    const diffY = e.changedTouches[0].clientY - startY;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX < 0) goToSlide(currentIndex + 1);
+      else goToSlide(currentIndex - 1);
+    }
+    startAutoplay();
+  }, { passive: true });
+
+  // Autoplay
+  const startAutoplay = () => {
+    stopAutoplay();
+    autoplayTimer = setInterval(() => {
+      goToSlide(currentIndex + 1);
+    }, 6000);
+  };
+
+  const stopAutoplay = () => {
+    if (autoplayTimer) clearInterval(autoplayTimer);
+  };
+
+  const resetAutoplay = () => {
+    stopAutoplay();
+    startAutoplay();
+  };
+
+  const container = document.querySelector(".apple-slider-container");
+  container?.addEventListener("mouseenter", stopAutoplay);
+  container?.addEventListener("mouseleave", startAutoplay);
+
+  // Keyboard navigation
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") {
+      goToSlide(currentIndex - 1);
+      resetAutoplay();
+    } else if (e.key === "ArrowRight") {
+      goToSlide(currentIndex + 1);
+      resetAutoplay();
+    }
+  });
+
+  startAutoplay();
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initAppleSlider);
+} else {
+  initAppleSlider();
+}
