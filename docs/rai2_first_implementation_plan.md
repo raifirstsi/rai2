@@ -148,7 +148,7 @@ graph TD
     Workspace --> ModeSwitcher{"Bộ Chuyển Chế Độ (useRai2Mode)"}
     
     ModeSwitcher -->|"Chế độ Cá Nhân (Creator Mode)"| CreatorFlow["CREATOR MODE: TẠO BOT TỰ DO"]
-    CreatorFlow --> C1["Tạo Bot Trắng (From Scratch)"]
+    CreatorFlow --> C1["Tạo RAI"]
     CreatorFlow --> C2["Tùy Biến Prompt / Model / Mascot"]
     CreatorFlow --> C3["Chat Tự Do · Không Ép Quy Tắc Doanh Nghiệp"]
     CreatorFlow --> C4["Cách Ly Triệt Để: Ẩn T1-T3, Ẩn Két Sắt, Ẩn P&L"]
@@ -166,7 +166,7 @@ graph TD
 * **Quy chuẩn kỹ thuật đã triển khai & live:**
   * **Ẩn huy hiệu tự trị (`AutonomyTierBadge`):** Chỉ hiển thị huy hiệu T1/T2/T3 khi bot là `isEnterpriseBot(bot)` HOẶC khi đang ở chế độ `enterprise`. Bot cá nhân tạo tự do hoàn toàn sạch sẽ.
   * **Tooltip sạch sẽ:** `botTooltip()` không tự ý chèn chuỗi `T1 (50% Tự trị)` vào bot của người dùng tự tạo.
-  * **Menu `+` Tinh gọn:** Hiển thị trực quan hai lựa chọn trọng tâm: `"Tạo Bot Tự Do (From Scratch)"` và `"Thư viện Mẫu Bot"`. Ẩn toàn bộ 10 modal quản trị doanh nghiệp khỏi TopBar.
+  * **Menu `+` Tinh gọn:** Hiển thị trực quan hai lựa chọn trọng tâm: `"Tạo RAI"` và `"Thư viện Mẫu Bot"`. Ẩn toàn bộ 10 modal quản trị doanh nghiệp khỏi TopBar.
   * **Tạo Bot Siêu Tốc (10 Giây):** `NewBotDialog` tự động nhận diện Creator Mode để tinh gọn giao diện còn đúng 4 tabs thiết yếu (`Identity`, `Soul`, `Model`, `Skills`), loại bỏ các tab cấu hình doanh nghiệp phức tạp.
 
 ### 2. Quy Chuẩn Vận Hành Chế Độ VIP Enterprise (Doanh Nghiệp 5–20 Nhân Sự)

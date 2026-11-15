@@ -99,6 +99,12 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
 
   const readiness = useMemo(() => evaluateDataReadiness(contents), [contents]);
 
+  const filledPillarsCount = useMemo(() => {
+    return (Object.keys(CONTEXT_PILLARS) as ContextPillarId[]).filter(
+      (id) => (contents[id] || "").trim().length > 60
+    ).length;
+  }, [contents]);
+
   useEffect(() => {
     if (isOpen && canEdit) {
       saveContextVaultToStorage(contents);
@@ -314,6 +320,7 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           <div className="px-3 pt-3 sm:px-5 shrink-0">
             <DataReadinessGauge
               vaultData={contents}
+              defaultExpanded={false}
               onSelectPillar={(pillarId) => {
                 setViewMode("edit");
                 setActiveTab(pillarId as ContextPillarId);
@@ -396,13 +403,17 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           {viewMode === "edit" && (
             <div className="flex-1 flex flex-col md:flex-row mt-3 border-t border-hairline/40 min-h-0">
               {/* Horizontal Pillar Tabs (Mobile) / Sidebar Tabs (Desktop) */}
-              <div className="sticky top-0 z-10 flex w-full shrink-0 snap-x gap-1 overflow-x-auto border-b border-hairline/40 bg-card p-2 scrollbar-none md:static md:w-[210px] md:flex-col md:border-b-0 md:border-r md:p-3 md:bg-transparent">
-                <div className="hidden px-2 pb-2 pt-1 text-[12px] font-semibold text-ink-tertiary md:flex">
-                  8 Trụ Cột Tri Thức
+              <div className="sticky top-0 z-10 flex w-full shrink-0 snap-x gap-1 overflow-x-auto border-b border-hairline/40 bg-card p-2 scrollbar-none md:sticky md:top-0 md:z-10 md:w-[240px] md:flex-col md:border-b-0 md:border-r md:p-3 md:bg-transparent md:self-start md:space-y-1 md:max-h-[calc(88dvh-130px)] md:overflow-y-auto">
+                <div className="hidden px-2 pb-2 pt-1 text-[12px] font-semibold text-ink-tertiary md:flex items-center justify-between">
+                  <span>8 Trụ Cột Tri Thức</span>
+                  <span className="text-[10px] font-mono font-medium text-ink-secondary rounded bg-control px-1.5 py-0.5">
+                    {filledPillarsCount}/8
+                  </span>
                 </div>
-                {(Object.keys(CONTEXT_PILLARS) as ContextPillarId[]).map((id) => {
+                {(Object.keys(CONTEXT_PILLARS) as ContextPillarId[]).map((id, idx) => {
                   const p = CONTEXT_PILLARS[id];
                   const active = activeTab === id;
+                  const isFilled = (contents[id] || "").trim().length > 60;
                   const shortLabel = SHORT_PILLAR_LABELS[id] || p.title;
 
                   return (
@@ -411,13 +422,38 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
                       type="button"
                       onClick={() => setActiveTab(id)}
                       className={cn(
-                        "shrink-0 snap-start whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] transition-colors md:whitespace-normal",
+                        "group flex shrink-0 snap-start items-center justify-between gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-[12px] sm:text-[13px] transition-all md:whitespace-normal md:py-2.5",
                         active
-                          ? "bg-control font-medium text-ink shadow-xs"
-                          : "text-ink-secondary hover:bg-control/60 hover:text-ink"
+                          ? "bg-accent/10 font-semibold text-accent border border-accent/25 shadow-xs"
+                          : "text-ink-secondary hover:bg-control/60 hover:text-ink border border-transparent"
                       )}
                     >
-                      <div className="truncate">{shortLabel}</div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={cn(
+                            "flex size-5 shrink-0 items-center justify-center rounded-md text-[11px] font-bold font-mono transition-colors",
+                            active
+                              ? "bg-accent text-white"
+                              : isFilled
+                              ? "bg-control text-ink"
+                              : "bg-control/60 text-ink-tertiary"
+                          )}
+                        >
+                          {idx + 1}
+                        </span>
+                        <span className="truncate">{shortLabel.replace(/^\d+\.\s*/, "")}</span>
+                      </div>
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full shrink-0 transition-colors",
+                          active
+                            ? "bg-accent"
+                            : isFilled
+                            ? "bg-emerald-500"
+                            : "bg-hairline/60"
+                        )}
+                        title={isFilled ? "Đã nạp bối cảnh" : "Chưa có bối cảnh"}
+                      />
                     </button>
                   );
                 })}
