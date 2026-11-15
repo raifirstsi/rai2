@@ -30,7 +30,7 @@ describe("FridayPulseModal - Component & Contract", () => {
     );
 
     expect(html).toContain("Báo Cáo Nhịp Thở Thứ Sáu 17:00");
-    expect(html).toContain("Thước đo Sẵn sàng Vắng mặt ($ARI$)");
+    expect(html).toContain("Thước Đo Sẵn Sàng Vắng Mặt (ARI)");
   });
 
   it("computes Friday Pulse report and formats markdown without error", () => {
