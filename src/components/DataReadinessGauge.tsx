@@ -85,13 +85,15 @@ export function DataReadinessGauge({
 
       {/* 5 Fuel Chambers Grid - Clean Uniform Neutral Cards (No Rainbow Colors) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        {result.chambers.map((c: ChamberEvaluation) => {
+        {result.chambers.map((c: ChamberEvaluation, idx: number) => {
           return (
             <button
               key={c.chamberKey}
               type="button"
               onClick={() => onSelectPillar && onSelectPillar(c.pillarId)}
-              className="rounded-lg p-2.5 text-left border border-hairline/60 bg-card hover:bg-control/50 transition-all flex flex-col justify-between hover:border-hairline"
+              className={`rounded-lg p-2.5 text-left border border-hairline/60 bg-card hover:bg-control/50 transition-all flex flex-col justify-between hover:border-hairline ${
+                idx === 4 ? "col-span-2 sm:col-span-1" : ""
+              }`}
             >
               <div>
                 <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-medium text-ink-secondary mb-1">
