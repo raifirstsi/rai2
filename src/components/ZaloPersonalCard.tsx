@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Loader2, MoreHorizontal, QrCode, KeyRound, TriangleAlert, User } from "lucide-react";
+import { Check, Loader2, MoreHorizontal, QrCode, KeyRound, TriangleAlert, User, Bot as BotIcon } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
-import { api } from "@/state/store";
+import { api, useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
 import type { ZaloPersonalStatus } from "../../shared/zalo";
 import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
+import { openBotSettings } from "./bot-panel/panel-link";
 
 const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
 const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
@@ -25,6 +26,7 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
   refreshKey?: number;
   onConnection?: (connected: boolean | null) => void;
 }) {
+  const { state, dispatch } = useStore();
   const [status, setStatus] = useState<ZaloPersonalStatus | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -214,6 +216,24 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
       </div>
 
       <div className="ps-[52px]">
+        {connected && (
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-ink-secondary">
+            <span>Gán bot xử lý tin nhắn:</span>
+            {state.bots.filter((b) => !b.hidden).slice(0, 5).map((bot) => (
+              <button
+                key={bot.id}
+                type="button"
+                onClick={() => openBotSettings(dispatch, "access", { botId: bot.id, page: "apps" })}
+                className="inline-flex items-center gap-1 rounded-full bg-raised/80 px-2 py-0.5 text-[11px] font-medium text-ink hover:bg-raised-hover hover:text-accent-text"
+                title={`Cấu hình quyền cho bot ${bot.name}`}
+              >
+                <BotIcon size={12} className="text-accent-text" />
+                {bot.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isEditing && (
           <div className="mt-3 flex flex-col gap-3 rounded-lg bg-raised/60 p-3">
             <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 p-2.5 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
