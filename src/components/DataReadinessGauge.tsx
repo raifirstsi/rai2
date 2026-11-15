@@ -36,7 +36,11 @@ export function DataReadinessGauge({
   return (
     <div
       data-readiness-gauge=""
-      className={`rounded-xl border border-hairline/60 bg-control/20 p-3 sm:p-4 space-y-2.5 sm:space-y-3 transition-all ${className}`}
+      className={`rounded-xl border border-hairline/60 bg-control/20 transition-all ${
+        isExpanded
+          ? "p-3 sm:p-4 space-y-2.5 sm:space-y-3"
+          : "px-3 py-2 sm:px-4 sm:py-2.5 space-y-1.5"
+      } ${className}`}
     >
       {/* Header Overview */}
       <div className="flex items-center justify-between gap-2">
