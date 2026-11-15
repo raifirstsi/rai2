@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { cn } from "@/lib/cn";
+import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import {
   X,
   ShieldCheck,
@@ -28,6 +30,8 @@ export function MarginGuardModal({
   initialCosts = 30_000_000,
   onApplyPrice,
 }: MarginGuardModalProps) {
+  const ownerOrAdmin = useOwnerOrAdmin();
+  const canEditThreshold = ownerOrAdmin !== false;
   const [proposedPrice, setProposedPrice] = useState<number>(initialPrice);
   const [directCosts, setDirectCosts] = useState<number>(initialCosts);
   const [minThreshold, setMinThreshold] = useState<number>(DEFAULT_MIN_MARGIN_THRESHOLD_PCT);
@@ -138,7 +142,9 @@ export function MarginGuardModal({
               <span className="font-medium text-ink">
                 Ngưỡng Biên Lợi Nhuận Tối Thiểu:
               </span>
-              <span className="font-bold text-accent">{minThreshold}%</span>
+              <span className="font-bold text-accent">
+                {minThreshold}% {!canEditThreshold && <span className="text-[11px] font-normal text-ink-tertiary">(Khóa bởi Quản trị viên)</span>}
+              </span>
             </div>
             <input
               type="range"
@@ -146,8 +152,9 @@ export function MarginGuardModal({
               max="65"
               step="5"
               value={minThreshold}
-              onChange={(e) => setMinThreshold(Number(e.target.value))}
-              className="w-full accent-accent cursor-pointer"
+              disabled={!canEditThreshold}
+              onChange={(e) => canEditThreshold && setMinThreshold(Number(e.target.value))}
+              className={cn("w-full accent-accent", canEditThreshold ? "cursor-pointer" : "cursor-not-allowed opacity-60")}
             />
             <div className="flex justify-between text-[10px] text-ink-tertiary">
               <span>20% (Thấp)</span>

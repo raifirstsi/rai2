@@ -266,7 +266,19 @@ export function caddySite(workspace: Pick<FleetWorkspace, "host" | "publicHost" 
     `\tredir https://${publicHost}{uri} permanent`, "}", "",
   ]);
   if (workspace.status !== "running") {
-    const message = workspace.status === "suspended" ? "This workspace is suspended." : "This workspace is not available.";
+    if (workspace.status === "suspended") {
+      const wakeupHtml = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Đang đánh thức AI Workspace... | RAI² First OS</title><style>body{background:#0c0f17;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:1.5rem;text-align:center}.card{background:#131926;border:1px solid #1e293b;border-radius:1rem;max-width:440px;width:100%;padding:2.5rem 2rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5)}.spinner{width:40px;height:40px;border:3px solid rgba(239,68,68,0.2);border-top-color:#ef4444;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.25rem;font-weight:700;margin-bottom:0.75rem;color:#fff}p{font-size:0.875rem;color:#94a3b8;line-height:1.5;margin-bottom:1.75rem}.btn{display:inline-block;width:100%;padding:0.75rem 1.25rem;background:#ef4444;color:#fff;font-weight:600;font-size:0.875rem;border-radius:0.5rem;text-decoration:none;box-sizing:border-box}.btn:hover{background:#dc2626}</style></head><body><div class="card"><div class="spinner"></div><h1>AI Workspace Đang Tạm Dừng</h1><p>This workspace is suspended. Không gian làm việc đang được tự động đánh thức. Bạn cũng có thể bấm nút bên dưới để mở lại ngay.</p><a class="btn" href="https://app.rai2.si/api/workspace/open">Đánh Thức &amp; Vào Không Gian Làm Việc ➔</a></div><script>setTimeout(function(){window.location.href="https://app.rai2.si/api/workspace/open";},3000);</script></body></html>';
+      return [
+        `${address} {`,
+        ...bind,
+        '\theader Content-Type "text/html; charset=utf-8"',
+        `\trespond "${wakeupHtml.replace(/"/g, '\\"')}" 503`,
+        "}",
+        "",
+        ...legacy,
+      ].join("\n");
+    }
+    const message = "This workspace is not available.";
     return [`${address} {`, ...bind, `\trespond "${message}" 503`, "}", "", ...legacy].join("\n");
   }
   return [

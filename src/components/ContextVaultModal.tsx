@@ -21,6 +21,7 @@ import { buildBotMemoryBundle, mergeMemoryWithCustomNotes } from "@/lib/role-con
 import { saveMemoryDoc, fetchMemoryDoc } from "@/lib/memory";
 import { evaluateDataReadiness } from "@/lib/data-readiness";
 import { isEnterpriseBot } from "@/lib/rai2-departments";
+import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { VoiceToSopModal } from "./VoiceToSopModal";
 import { DataReadinessGauge } from "./DataReadinessGauge";
 import {
@@ -64,6 +65,8 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   onOpenFiveLevers,
 }) => {
   const dialogTitleId = useId();
+  const ownerOrAdmin = useOwnerOrAdmin();
+  const canEdit = ownerOrAdmin !== false;
   const [activeTab, setActiveTab] = useState<ContextPillarId>("brand_voice");
   const [contents, setContents] = useState<Record<ContextPillarId, string>>(() => {
     const saved = loadSavedContextVault();
@@ -97,10 +100,10 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   const readiness = useMemo(() => evaluateDataReadiness(contents), [contents]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && canEdit) {
       saveContextVaultToStorage(contents);
     }
-  }, [isOpen, contents]);
+  }, [isOpen, contents, canEdit]);
 
   const currentContent = contents[activeTab] || "";
   const sharpness = useMemo(
@@ -380,6 +383,13 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           </div>
         )}
 
+        {!canEdit && (
+          <div className="mx-4 sm:mx-6 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-[12px] text-amber-300 flex items-center gap-2">
+            <span className="font-semibold shrink-0">🔒 Chế độ Xem:</span>
+            <span>Chỉ Quản trị viên (Owner/Admin) mới có quyền chỉnh sửa và đồng bộ Két Sắt Context Vault cho toàn tổ chức.</span>
+          </div>
+        )}
+
         {/* Content Body: Edit Mode */}
         {viewMode === "edit" && (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
@@ -546,9 +556,13 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
 
                 <textarea
                   value={currentContent}
-                  onChange={(e) => handleContentChange(e.target.value)}
-                  className="min-h-[200px] w-full flex-1 resize-none rounded-lg border border-hairline/40 bg-inset p-3 font-mono text-[13px] leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-focus/60"
-                  placeholder="Nhập nội dung bối cảnh..."
+                  onChange={(e) => canEdit && handleContentChange(e.target.value)}
+                  readOnly={!canEdit}
+                  className={cn(
+                    "min-h-[200px] w-full flex-1 resize-none rounded-lg border border-hairline/40 bg-inset p-3 font-mono text-[13px] leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-focus/60",
+                    !canEdit && "opacity-80 cursor-not-allowed bg-control/20"
+                  )}
+                  placeholder={canEdit ? "Nhập nội dung bối cảnh..." : "Nội dung chỉ đọc (Read-only)..."}
                 />
               </div>
 
@@ -772,7 +786,7 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
         {/* Sticky Action Footer CTA matching Image 3 */}
         <footer className="border-t border-hairline/50 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 shrink-0 bg-card">
           <div className="text-[12px] text-center sm:text-left text-ink-tertiary">
-            {syncStatus || "Mã hóa và lưu trữ cục bộ trong Két Sắt Doanh Nghiệp."}
+            {!canEdit ? "Chế độ xem: Chỉ Quản trị viên mới có quyền cập nhật Két Sắt." : (syncStatus || "Mã hóa và lưu trữ cục bộ trong Két Sắt Doanh Nghiệp.")}
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
@@ -783,24 +797,26 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
             >
               Đóng
             </button>
-            <button
-              type="button"
-              onClick={handleSyncAllBots}
-              disabled={isSyncing}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-accent/90 disabled:opacity-50 transition-opacity w-full sm:w-auto"
-            >
-              {isSyncing ? (
-                <>
-                  <Loader2 size={15} className="animate-spin" />
-                  <span>Đang Đồng Bộ...</span>
-                </>
-              ) : (
-                <>
-                  <Check size={15} />
-                  <span>Lưu & Đồng Bộ Toàn Bộ RAIs</span>
-                </>
-              )}
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={handleSyncAllBots}
+                disabled={isSyncing}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-accent/90 disabled:opacity-50 transition-opacity w-full sm:w-auto"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Đang Đồng Bộ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={15} />
+                    <span>Lưu & Đồng Bộ Toàn Bộ RAIs</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </footer>
       </div>
