@@ -1,6 +1,7 @@
 import type { ContextPillarId } from "./context-vault";
 import type { TocDiagnosisResult } from "./toc-detector";
 import { loadSavedFingerprint } from "@/components/CompanyFingerprintModal";
+import { getAgentByKey } from "./rai2-departments";
 
 export interface MarginGuardConfig {
   targetGrossMargin?: number;
@@ -68,6 +69,16 @@ export const BOT_ROLE_CONTEXT_MAP: Record<string, BotContextAllocation> = {
   },
 
   // Z3: Sales & Closing
+  "rai-quote": {
+    pillars: ["brand_voice", "customer_avatar", "offer_breakdown", "sales_process", "case_studies"],
+    injectToc: true,
+    tocSummaryRequired: true,
+  },
+  "rai-close": {
+    pillars: ["brand_voice", "customer_avatar", "offer_breakdown", "sales_process", "case_studies"],
+    injectToc: true,
+    tocSummaryRequired: true,
+  },
   "rai-closer": {
     pillars: ["brand_voice", "customer_avatar", "offer_breakdown", "sales_process", "case_studies"],
     injectToc: true,
@@ -75,6 +86,16 @@ export const BOT_ROLE_CONTEXT_MAP: Record<string, BotContextAllocation> = {
   },
 
   // Z4: Operations & SOP Execution
+  "rai-task": {
+    pillars: ["brand_voice", "offer_breakdown", "sops"],
+    injectToc: true,
+    tocSummaryRequired: true,
+  },
+  "rai-qc": {
+    pillars: ["brand_voice", "offer_breakdown", "sops", "case_studies"],
+    injectToc: true,
+    tocSummaryRequired: true,
+  },
   "rai-coach": {
     pillars: ["brand_voice", "offer_breakdown", "sops"],
     injectToc: true,
@@ -87,8 +108,18 @@ export const BOT_ROLE_CONTEXT_MAP: Record<string, BotContextAllocation> = {
     injectToc: false,
     tocSummaryRequired: false,
   },
+  "rai-rescue": {
+    pillars: ["brand_voice", "customer_avatar", "offer_breakdown", "sales_process", "sops"],
+    injectToc: true,
+    tocSummaryRequired: false,
+  },
 
   // Z6: Finance & P&L
+  "rai-cash": {
+    pillars: ["brand_voice", "offer_breakdown", "sales_process", "industry_context"],
+    injectToc: true,
+    tocSummaryRequired: true,
+  },
   "rai-margin": {
     pillars: ["brand_voice", "offer_breakdown", "industry_context"],
     injectToc: true,
@@ -202,6 +233,11 @@ export function resolveBotContextAllocation(identifier: string | number): BotCon
   const normalized = String(identifier || "").toLowerCase().trim();
   if (BOT_ROLE_CONTEXT_MAP[normalized]) {
     return BOT_ROLE_CONTEXT_MAP[normalized];
+  }
+  const enterpriseAgent = getAgentByKey(normalized);
+  if (enterpriseAgent) {
+    const zoneKey = `zone-${enterpriseAgent.zone}`;
+    if (BOT_ROLE_CONTEXT_MAP[zoneKey]) return BOT_ROLE_CONTEXT_MAP[zoneKey];
   }
   if (normalized.includes("zone-1") || normalized.includes("z1") || normalized.includes("điều hành") || normalized.includes("chiến lược") || normalized.includes("strategy")) {
     return BOT_ROLE_CONTEXT_MAP["rai-strategy"];

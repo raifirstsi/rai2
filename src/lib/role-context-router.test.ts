@@ -134,6 +134,23 @@ describe("role-context-router - Role-Based Context Allocation & Injection", () =
     expect(bundle["memory/business_toc.md"]).toBeUndefined();
   });
 
+  it("resolves all official 11 RAI enterprise agent keys correctly", () => {
+    const quoteAlloc = resolveBotContextAllocation("rai-quote");
+    expect(quoteAlloc.pillars).toContain("sales_process");
+    expect(quoteAlloc.injectToc).toBe(true);
+
+    const taskAlloc = resolveBotContextAllocation("rai-task");
+    expect(taskAlloc.pillars).toContain("sops");
+    expect(taskAlloc.injectToc).toBe(true);
+
+    const cashAlloc = resolveBotContextAllocation("rai-cash");
+    expect(cashAlloc.pillars).toContain("industry_context");
+    expect(cashAlloc.injectToc).toBe(true);
+
+    const rescueAlloc = resolveBotContextAllocation("rai-rescue");
+    expect(rescueAlloc.pillars).toContain("sales_process");
+  });
+
   it("resolves business department zone names to correct context allocations", () => {
     // Custom bot with Section "Phòng Marketing & Thu Hút Lead"
     const marketingAlloc = resolveBotContextAllocation("Phòng Marketing & Thu Hút Lead");
