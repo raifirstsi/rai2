@@ -423,20 +423,34 @@ export function TocConstraintModal({
               </div>
             </div>
 
-            {/* Bottom Action: 1-Click Activate Recommended Agent */}
-            <div className="border-t border-hairline/40 pt-3">
-              <button
-                type="button"
-                onClick={handleActivateAgent}
-                className="ui-button ui-button-primary ui-button-lg w-full"
-              >
-                <Sparkles className="size-3.5" />
-                <span>Kích Hoạt Nhân Sự Giải Phóng Điểm Nghẽn: {recommendedAgentName}</span>
-                <ArrowRight className="size-3.5" />
-              </button>
-            </div>
+            {/* Bottom Action: 1-Click Activate Recommended Agent in Footer */}
           </div>
         </div>
+
+        {/* Modal Footer matching Voice-to-SOP (Image 3) */}
+        <footer className="border-t border-hairline/50 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 shrink-0 bg-card">
+          <div className="text-[12px] text-center sm:text-left text-ink-tertiary">
+            Mô hình điểm nghẽn TOC &amp; 5 đòn bẩy P&amp;L doanh nghiệp.
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-[13px] font-medium text-ink-secondary hover:text-ink rounded-lg transition-colors w-full sm:w-auto text-center"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              onClick={handleActivateAgent}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-accent/90 transition-opacity w-full sm:w-auto"
+            >
+              <Sparkles size={15} />
+              <span>Kích Hoạt: {recommendedAgentName}</span>
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );

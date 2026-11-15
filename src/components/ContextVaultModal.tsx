@@ -688,7 +688,7 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSyncing}
-              className="px-4 py-2 text-[13px] font-medium text-ink-secondary hover:text-ink rounded-lg transition-colors hidden sm:inline-flex"
+              className="px-4 py-2.5 text-[13px] font-medium text-ink-secondary hover:text-ink rounded-lg transition-colors w-full sm:w-auto text-center"
             >
               Đóng
             </button>
