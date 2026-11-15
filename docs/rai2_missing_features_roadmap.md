@@ -226,3 +226,23 @@ flowchart LR
   - `src/components/message-menu.tsx`: Menu item "Đóng gói SOP (Voice-to-SOP)" trong menu ba chấm `…` cho cả tin nhắn bot (`useBotMessageMenu`) và user (`userMessageMenu`).
   - `src/components/VoiceToSopModal.tsx`: Tự động biên dịch `initialText` thành cấu trúc chuẩn 4 phần (Trigger, Action Steps, Guardrails, DoD), bổ sung nút Đóng ở sticky footer.
   - `src/components/ChatView.tsx` & `src/components/GroupView.tsx`: Mở ngay `VoiceToSopModal` khi bấm 1-chạm vào bất kỳ tin nhắn/hướng dẫn nào trong đoạn hội thoại cá nhân hoặc phòng ban.
+
+### 3. Khoảng hở số 3: Thẻ Duyệt Margin Guard Tương Tác Trực Tiếp Trong Chat
+- **Hiện trạng:** Đã hoàn tất 100%.
+- **Vị trí tích hợp:**
+  - `src/components/MarginGuardChatCard.tsx`: Thẻ tương tác Executive hiển thị giá đề xuất, chi phí vốn và nút "Duyệt Ngoại Lệ (1-Chạm)" cùng nút "Kiểm Tra Giá Sàn".
+  - `src/components/ChatView.tsx` & `src/components/GroupView.tsx`: Tự động kích hoạt bên dưới tin nhắn bot khi phát hiện cảnh báo Margin Guard (`isMarginGuardAlert`).
+  - `src/lib/margin-guard.ts`: Lưu trữ phê duyệt và đồng bộ sự kiện `rai2:margin-approval-updated`.
+
+### 4. Khoảng hở số 4: Kênh Webhook Zalo/Telegram & Nhắc Nhở 17:00 Cho Báo Cáo Nhịp Thở Thứ Sáu
+- **Hiện trạng:** Đã hoàn tất 100%.
+- **Vị trí tích hợp:**
+  - `src/components/FridayPulseModal.tsx`: Kênh gửi Webhook di động (hỗ trợ định dạng Zalo, Telegram Bot, REST API) với nút bắn báo cáo 1-chạm và lưu cấu hình tự động.
+  - `src/components/Sidebar.tsx`: Banner nhắc nhở tự động lúc 17:00 chiều thứ Sáu khi báo cáo tuần chưa được xem (`isFridayPulseDue`).
+  - `src/lib/friday-pulse.ts`: Hàm kiểm tra thời gian, gửi webhook payload và quản lý trạng thái đã xem.
+
+### 5. Khoảng hở số 5: Liên Kết Chéo 1-Chạm Két Sắt Tri Thức Tới Margin Guard & 5 Đòn Bẩy P&L
+- **Hiện trạng:** Đã hoàn tất 100%.
+- **Vị trí tích hợp:**
+  - `src/components/ContextVaultModal.tsx`: Tích hợp các nút mở nhanh và thẻ hướng dẫn tại Trụ cột 3 (Offer Breakdown) và Trụ cột 5 (Sales Process) tới `MarginGuardModal` và `FiveLeversModal`.
+  - `src/components/Sidebar.tsx` & `src/components/TeamLibraryPanel.tsx`: Truyền callbacks `onOpenMarginGuard` và `onOpenFiveLevers` mở trực tiếp các modal điều hành tài chính.
