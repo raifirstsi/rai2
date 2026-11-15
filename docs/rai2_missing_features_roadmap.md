@@ -54,8 +54,8 @@ flowchart LR
     - **Cầu dao tự ngắt (Circuit-Breaker):** Nếu Margin < 35%, bot **tuyệt đối không gửi báo giá cho khách**, mà tự động kích hoạt thẻ cảnh báo:
       > 🛑 **MARGIN GUARD CẢNH BÁO:** Báo giá này có biên lợi nhuận ước tính chỉ đạt [X]%, vi phạm chính sách tài chính (>35%). Đã chuyển trạng thái sang **Chờ Duyệt Từ Founder (HITL)**.
 * **Định nghĩa hoàn thành (DoD):**
-  - Bot `rai-closer` từ chối xuất báo giá khi margin < ngưỡng cài đặt.
-  - Có thẻ duyệt 1-chạm trên giao diện để Founder có thể chấp thuận ngoại lệ.
+  - [x] Bot `rai-closer` từ chối xuất báo giá khi margin < ngưỡng cài đặt (Core Bot Rules & Zone 3 Metadata).
+  - [x] Có thẻ duyệt 1-chạm trên giao diện để Founder có thể chấp thuận ngoại lệ (`MarginGuardChatCard` tương tác trực tiếp trên bong bóng chat 1-1 và nhóm, kiểm tra giá sàn và duyệt ngoại lệ 1-chạm).
 
 ---
 
