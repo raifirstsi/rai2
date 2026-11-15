@@ -84,4 +84,22 @@ describe("ContextVaultModal - Storage & Logic", () => {
     expect(html).toContain("Tạm dừng chế độ bot tự động gửi báo giá cho đến khi bổ sung đủ dữ liệu sàn");
     expect(html).toContain("Đang Khóa An Toàn");
   });
+
+  it("renders cross-link quick actions to Margin Guard and Five Levers", () => {
+    const onOpenMarginGuard = vi.fn();
+    const onOpenFiveLevers = vi.fn();
+
+    const html = renderToString(
+      React.createElement(ContextVaultModal, {
+        isOpen: true,
+        onClose: () => {},
+        onOpenMarginGuard,
+        onOpenFiveLevers,
+      })
+    );
+
+    expect(html).toContain("8 Trụ Cột Tri Thức");
+    expect(html).toContain("Két Sắt Ngữ Cảnh 8 Trụ Cột");
+    expect(html).toContain("Context Vault");
+  });
 });

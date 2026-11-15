@@ -11,6 +11,8 @@ import {
   Loader2,
   FileCheck,
   ShieldAlert,
+  TrendingUp,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
@@ -39,6 +41,8 @@ interface ContextVaultModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSyncComplete?: () => void;
+  onOpenMarginGuard?: () => void;
+  onOpenFiveLevers?: () => void;
 }
 
 const SHORT_PILLAR_LABELS: Record<ContextPillarId, string> = {
@@ -56,6 +60,8 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   isOpen,
   onClose,
   onSyncComplete,
+  onOpenMarginGuard,
+  onOpenFiveLevers,
 }) => {
   const dialogTitleId = useId();
   const [activeTab, setActiveTab] = useState<ContextPillarId>("brand_voice");
@@ -431,7 +437,41 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
                       {CONTEXT_PILLARS[activeTab].subtitle}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+                      <button
+                        type="button"
+                        onClick={onOpenMarginGuard}
+                        className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                      >
+                        <ShieldAlert size={13} />
+                        <span>Margin Guard</span>
+                      </button>
+                    )}
+                    {activeTab === "sales_process" && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {onOpenFiveLevers && (
+                          <button
+                            type="button"
+                            onClick={onOpenFiveLevers}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                          >
+                            <TrendingUp size={13} />
+                            <span>5 Đòn Bẩy P&amp;L</span>
+                          </button>
+                        )}
+                        {onOpenMarginGuard && (
+                          <button
+                            type="button"
+                            onClick={onOpenMarginGuard}
+                            className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                          >
+                            <ShieldAlert size={13} />
+                            <span>Margin Guard</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {activeTab === "sops" && (
                       <button
                         type="button"
@@ -452,6 +492,57 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ShieldAlert size={15} className="text-accent shrink-0" />
+                      <span className="truncate">
+                        Biểu phí và cam kết doanh thu cần tuân thủ cầu dao <strong>Margin Guard</strong> (Biên lợi nhuận gộp &ge; 35%).
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onOpenMarginGuard}
+                      className="shrink-0 font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Tính giá sàn</span>
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {activeTab === "sales_process" && (onOpenFiveLevers || onOpenMarginGuard) && (
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <TrendingUp size={15} className="text-accent shrink-0" />
+                      <span className="truncate">
+                        Kịch bản chốt đơn cần áp dụng mô hình <strong>5 Đòn Bẩy P&amp;L</strong> và rào chắn chống mòn giá.
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {onOpenFiveLevers && (
+                        <button
+                          type="button"
+                          onClick={onOpenFiveLevers}
+                          className="font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Mô phỏng 5 Đòn Bẩy</span>
+                          <ArrowRight size={12} />
+                        </button>
+                      )}
+                      {onOpenMarginGuard && (
+                        <button
+                          type="button"
+                          onClick={onOpenMarginGuard}
+                          className="font-medium text-ink-secondary hover:text-ink hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Kiểm tra giá sàn</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <textarea
                   value={currentContent}

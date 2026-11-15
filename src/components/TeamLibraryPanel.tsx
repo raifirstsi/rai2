@@ -20,6 +20,7 @@ import { HireAgentDialog } from "./HireAgentDialog";
 import { CompanyFingerprintModal } from "./CompanyFingerprintModal";
 import { TocConstraintModal } from "./TocConstraintModal";
 import { ContextVaultModal } from "./ContextVaultModal";
+import { MarginGuardModal } from "./MarginGuardModal";
 import { StrategyMapModal } from "./StrategyMapModal";
 import { FridayPulseModal } from "./FridayPulseModal";
 import { FiveLeversModal } from "./FiveLeversModal";
@@ -147,6 +148,7 @@ export function TeamLibraryPanel({
   const [strategyMapModalOpen, setStrategyMapModalOpen] = useState(false);
   const [fridayPulseModalOpen, setFridayPulseModalOpen] = useState(false);
   const [fiveLeversModalOpen, setFiveLeversModalOpen] = useState(false);
+  const [marginGuardModalOpen, setMarginGuardModalOpen] = useState(false);
   const { isEnterprise, setMode: setRai2Mode } = useRai2Mode();
   const [addingReadyBotId, setAddingReadyBotId] = useState<string | null>(null);
   const tabChosen = useRef(false);
@@ -1053,6 +1055,20 @@ export function TeamLibraryPanel({
         <ContextVaultModal
           isOpen={vaultModalOpen}
           onClose={() => setVaultModalOpen(false)}
+          onOpenMarginGuard={() => {
+            setVaultModalOpen(false);
+            setMarginGuardModalOpen(true);
+          }}
+          onOpenFiveLevers={() => {
+            setVaultModalOpen(false);
+            setFiveLeversModalOpen(true);
+          }}
+        />
+      )}
+      {marginGuardModalOpen && (
+        <MarginGuardModal
+          isOpen={marginGuardModalOpen}
+          onClose={() => setMarginGuardModalOpen(false)}
         />
       )}
       {strategyMapModalOpen && (

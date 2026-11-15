@@ -1907,6 +1907,14 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         <ContextVaultModal
           isOpen={vaultModalOpen}
           onClose={() => setVaultModalOpen(false)}
+          onOpenMarginGuard={() => {
+            setVaultModalOpen(false);
+            setMarginGuardModalOpen(true);
+          }}
+          onOpenFiveLevers={() => {
+            setVaultModalOpen(false);
+            setFiveLeversModalOpen(true);
+          }}
         />
       )}
       {voiceToSopModalOpen && (
