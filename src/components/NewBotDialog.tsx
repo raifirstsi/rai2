@@ -157,7 +157,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
       else parent.dispatch(action);
     },
   };
-  const title = defaultsMode ? t("newBot.defaults") : isCreator ? "Tạo Bot Tự Do (From Scratch)" : t("sidebar.newBot");
+  const title = defaultsMode ? t("newBot.defaults") : isCreator ? "Tạo RAI" : t("sidebar.newBot");
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3 sm:p-5" hidden={!defaultsMode && parent.state.appSettingsOpen}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-label={title} aria-busy={saving} tabIndex={-1}
       className="flex h-[min(760px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl outline-none">

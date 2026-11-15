@@ -1249,7 +1249,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           >
             <BotIcon size={16} className="text-ink-secondary" />
             <span className="flex-1 font-medium truncate">
-              {isCreator ? "Tạo Bot Tự Do (From Scratch)" : (advanced ? t("sidebar.newBot") : t("sidebar.newBotSimple"))}
+              {isCreator ? "Tạo RAI" : (advanced ? t("sidebar.newBot") : t("sidebar.newBotSimple"))}
             </span>
             {advanced && !isCreator && <ShortcutHint id="new-bot" />}
           </button>}
