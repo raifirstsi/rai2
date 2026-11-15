@@ -227,6 +227,78 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
     }
   };
 
+  const renderSharpnessPanel = (isMobileInline = false) => (
+    <div className={cn("flex flex-col gap-2.5", isMobileInline ? "w-full" : "h-full")}>
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-ink">
+          Độ Sắc Nét:
+        </span>
+        <span
+          className={cn(
+            "ui-chip border",
+            sharpness.isSharp
+              ? "bg-card text-accent-text border-hairline"
+              : "bg-card text-warning border-hairline"
+          )}
+        >
+          {sharpness.score}/100 {sharpness.isSharp ? "✓ Đạt" : "⚠ Cần sửa"}
+        </span>
+      </div>
+
+      <div className="w-full bg-control rounded-full h-1.5 overflow-hidden">
+        <div
+          className="h-full bg-accent transition-all duration-300"
+          style={{ width: `${sharpness.score}%` }}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-[12px]">
+        <div className="rounded-lg border border-hairline/40 bg-card p-2">
+          <div className="text-ink-tertiary">Số từ:</div>
+          <div className="font-semibold text-ink">
+            {sharpness.wordCount}
+          </div>
+        </div>
+        <div className="rounded-lg border border-hairline/40 bg-card p-2">
+          <div className="text-ink-tertiary">Từ/câu TB:</div>
+          <div className="font-semibold text-ink">
+            {sharpness.averageWordsPerSentence} (chuẩn 12-18)
+          </div>
+        </div>
+      </div>
+
+      {sharpness.flaggedJargon.length > 0 && (
+        <div className="rounded-lg border border-hairline/40 bg-card p-2.5 text-[12px]">
+          <div className="font-semibold text-ink-secondary mb-1">Từ sáo rỗng:</div>
+          <div className="flex flex-wrap gap-1">
+            {sharpness.flaggedJargon.map((j) => (
+              <span
+                key={j}
+                className="px-1.5 py-0.5 rounded bg-inset text-ink-secondary line-through text-[11px]"
+              >
+                {j}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="text-[13px] font-semibold text-ink mb-1">
+          Góp ý tinh chỉnh:
+        </div>
+        <ul className="text-[12px] space-y-1 text-ink-secondary">
+          {sharpness.feedback.map((f, i) => (
+            <li key={i} className="flex items-start gap-1">
+              <span className="text-accent-text">•</span>
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+
   return (
     <div
       role="dialog"
@@ -236,7 +308,7 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[92dvh] sm:max-h-[88dvh] w-full max-w-[1000px] flex-col rounded-2xl border border-hairline/60 bg-card shadow-2xl overflow-hidden outline-none"
+        className="flex h-[94dvh] sm:h-[88dvh] max-h-[860px] w-full max-w-[1050px] flex-col rounded-2xl border border-hairline/60 bg-card shadow-2xl overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header matching Voice-to-SOP (Image 3) */}
@@ -314,25 +386,22 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           </button>
         </div>
 
-        {/* Scrollable Body: Smooth, unclipped scrolling on Desktop & Mobile */}
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-          {/* Data Readiness Fuel Gauge /20 */}
-          <div className="px-3 pt-3 sm:px-5 shrink-0">
-            <DataReadinessGauge
-              vaultData={contents}
-              defaultExpanded={false}
-              onSelectPillar={(pillarId) => {
-                setViewMode("edit");
-                setActiveTab(pillarId as ContextPillarId);
-              }}
-            />
-          </div>
+        {/* Collapsible Fuel Gauge & Alerts Pinned at Top (shrink-0) */}
+        <div className="px-3 pt-2.5 sm:px-5 shrink-0 space-y-2">
+          <DataReadinessGauge
+            vaultData={contents}
+            defaultExpanded={false}
+            onSelectPillar={(pillarId) => {
+              setViewMode("edit");
+              setActiveTab(pillarId as ContextPillarId);
+            }}
+          />
 
           {/* Hard Gate Interlock (Active when fuelScore < 8/20) */}
           {readiness.totalScore < 8 && (
             <div
               data-testid="hard-gate-interlock"
-              className="mx-3 mt-2.5 sm:mx-5 rounded-xl border border-hairline/60 bg-card p-3 sm:p-3.5 space-y-2.5 shadow-xs shrink-0"
+              className="rounded-xl border border-hairline/60 bg-card p-3 sm:p-3.5 space-y-2.5 shadow-xs"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -393,23 +462,73 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
           )}
 
           {!canEdit && (
-            <div className="mx-3 sm:mx-5 mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-[12px] text-amber-300 flex items-center gap-2 shrink-0">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-[12px] text-amber-300 flex items-center gap-2">
               <span className="font-semibold shrink-0">🔒 Chế độ Xem:</span>
               <span>Chỉ Quản trị viên (Owner/Admin) mới có quyền chỉnh sửa và đồng bộ Két Sắt Context Vault cho toàn tổ chức.</span>
             </div>
           )}
+        </div>
 
-          {/* Content Body: Edit Mode */}
-          {viewMode === "edit" && (
-            <div className="flex-1 flex flex-col md:flex-row mt-3 border-t border-hairline/40 min-h-0">
-              {/* Horizontal Pillar Tabs (Mobile) / Sidebar Tabs (Desktop) */}
-              <div className="sticky top-0 z-10 flex w-full shrink-0 snap-x gap-1 overflow-x-auto border-b border-hairline/40 bg-card p-2 scrollbar-none md:sticky md:top-0 md:z-10 md:w-[240px] md:flex-col md:border-b-0 md:border-r md:p-3 md:bg-transparent md:self-start md:space-y-1 md:max-h-[calc(88dvh-130px)] md:overflow-y-auto">
-                <div className="hidden px-2 pb-2 pt-1 text-[12px] font-semibold text-ink-tertiary md:flex items-center justify-between">
-                  <span>8 Trụ Cột Tri Thức</span>
-                  <span className="text-[10px] font-mono font-medium text-ink-secondary rounded bg-control px-1.5 py-0.5">
-                    {filledPillarsCount}/8
-                  </span>
-                </div>
+        {/* Content Body: Edit Mode */}
+        {viewMode === "edit" && (
+          <div className="flex-1 min-h-0 flex flex-col md:flex-row mt-2.5 border-t border-hairline/40 overflow-hidden">
+            {/* Mobile Horizontal Pillar Tabs */}
+            <div className="flex md:hidden shrink-0 snap-x gap-1 overflow-x-auto border-b border-hairline/40 bg-card p-2 scrollbar-none">
+              {(Object.keys(CONTEXT_PILLARS) as ContextPillarId[]).map((id, idx) => {
+                const p = CONTEXT_PILLARS[id];
+                const active = activeTab === id;
+                const isFilled = (contents[id] || "").trim().length > 60;
+                const shortLabel = SHORT_PILLAR_LABELS[id] || p.title;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    className={cn(
+                      "flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[12px] transition-all",
+                      active
+                        ? "bg-accent/10 font-semibold text-accent border border-accent/25 shadow-xs"
+                        : "text-ink-secondary hover:bg-control/60 hover:text-ink border border-transparent"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-4 shrink-0 items-center justify-center rounded text-[10px] font-bold font-mono",
+                        active
+                          ? "bg-accent text-white"
+                          : isFilled
+                          ? "bg-control text-ink"
+                          : "bg-control/60 text-ink-tertiary"
+                      )}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span>{shortLabel.replace(/^\d+\.\s*/, "")}</span>
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full shrink-0",
+                        active
+                          ? "bg-accent"
+                          : isFilled
+                          ? "bg-emerald-500"
+                          : "bg-hairline/60"
+                      )}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Desktop Left Sidebar: 8 Pillars (Full Height, Unclipped) */}
+            <div className="hidden md:flex md:w-[230px] lg:w-[240px] shrink-0 border-r border-hairline/40 flex-col h-full bg-card/40">
+              <div className="px-3 py-2.5 text-[12px] font-semibold text-ink-tertiary flex items-center justify-between border-b border-hairline/30 shrink-0">
+                <span>8 Trụ Cột Tri Thức</span>
+                <span className="text-[10px] font-mono font-medium text-ink-secondary rounded bg-control px-1.5 py-0.5">
+                  {filledPillarsCount}/8
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
                 {(Object.keys(CONTEXT_PILLARS) as ContextPillarId[]).map((id, idx) => {
                   const p = CONTEXT_PILLARS[id];
                   const active = activeTab === id;
@@ -422,7 +541,7 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
                       type="button"
                       onClick={() => setActiveTab(id)}
                       className={cn(
-                        "group flex shrink-0 snap-start items-center justify-between gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-[12px] sm:text-[13px] transition-all md:whitespace-normal md:py-2.5",
+                        "group w-full flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[12px] sm:text-[13px] transition-all",
                         active
                           ? "bg-accent/10 font-semibold text-accent border border-accent/25 shadow-xs"
                           : "text-ink-secondary hover:bg-control/60 hover:text-ink border border-transparent"
@@ -458,35 +577,56 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
                   );
                 })}
               </div>
+            </div>
 
-              {/* Main Editor & Sharpness Audit */}
-              <div className="flex-1 flex flex-col lg:flex-row min-w-0">
-                {/* Textarea Area */}
-                <div className="flex-1 flex flex-col p-3.5 sm:p-4 space-y-3 min-w-0">
-                  {distillNotice && (
-                    <div className="flex items-center justify-between rounded-xl border border-hairline/40 bg-card p-2.5 text-[13px] text-ink">
-                      <span>{distillNotice}</span>
-                      <button
-                        type="button"
-                        onClick={() => setDistillNotice(null)}
-                        className="text-ink-tertiary hover:text-ink font-bold ml-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
+            {/* Center: Main Editor & Form */}
+            <div className="flex-1 min-w-0 flex flex-col h-full p-3.5 sm:p-4 overflow-y-auto space-y-3">
+              {distillNotice && (
+                <div className="flex items-center justify-between rounded-xl border border-hairline/40 bg-card p-2.5 text-[13px] text-ink">
+                  <span>{distillNotice}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDistillNotice(null)}
+                    className="text-ink-tertiary hover:text-ink font-bold ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-[13px] sm:text-[14px] text-ink">
+                    {CONTEXT_PILLARS[activeTab].title}
+                  </h3>
+                  <p className="text-[12px] text-ink-secondary">
+                    {CONTEXT_PILLARS[activeTab].subtitle}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+                    <button
+                      type="button"
+                      onClick={onOpenMarginGuard}
+                      className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                    >
+                      <ShieldAlert size={13} />
+                      <span>Margin Guard</span>
+                    </button>
                   )}
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-[13px] sm:text-[14px] text-ink">
-                        {CONTEXT_PILLARS[activeTab].title}
-                      </h3>
-                      <p className="text-[12px] text-ink-secondary">
-                        {CONTEXT_PILLARS[activeTab].subtitle}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+                  {activeTab === "sales_process" && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {onOpenFiveLevers && (
+                        <button
+                          type="button"
+                          onClick={onOpenFiveLevers}
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                        >
+                          <TrendingUp size={13} />
+                          <span>5 Đòn Bẩy P&amp;L</span>
+                        </button>
+                      )}
+                      {onOpenMarginGuard && (
                         <button
                           type="button"
                           onClick={onOpenMarginGuard}
@@ -496,188 +636,104 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
                           <span>Margin Guard</span>
                         </button>
                       )}
-                      {activeTab === "sales_process" && (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {onOpenFiveLevers && (
-                            <button
-                              type="button"
-                              onClick={onOpenFiveLevers}
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                            >
-                              <TrendingUp size={13} />
-                              <span>5 Đòn Bẩy P&amp;L</span>
-                            </button>
-                          )}
-                          {onOpenMarginGuard && (
-                            <button
-                              type="button"
-                              onClick={onOpenMarginGuard}
-                              className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
-                            >
-                              <ShieldAlert size={13} />
-                              <span>Margin Guard</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      {activeTab === "sops" && (
-                        <button
-                          type="button"
-                          onClick={() => setVoiceToSopOpen(true)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
-                        >
-                          <FileCheck size={13} />
-                          <span>Đóng gói SOP (Voice)</span>
-                        </button>
-                      )}
+                    </div>
+                  )}
+                  {activeTab === "sops" && (
+                    <button
+                      type="button"
+                      onClick={() => setVoiceToSopOpen(true)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/20 transition-colors"
+                    >
+                      <FileCheck size={13} />
+                      <span>Đóng gói SOP (Voice)</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleResetToTemplate}
+                    className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-text hover:underline"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Nạp mẫu chuẩn</span>
+                  </button>
+                </div>
+              </div>
+
+              {activeTab === "offer_breakdown" && onOpenMarginGuard && (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ShieldAlert size={15} className="text-accent shrink-0" />
+                    <span className="truncate">
+                      Biểu phí và cam kết doanh thu cần tuân thủ cầu dao <strong>Margin Guard</strong> (Biên lợi nhuận gộp &ge; 35%).
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onOpenMarginGuard}
+                    className="shrink-0 font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Tính giá sàn</span>
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+              )}
+
+              {activeTab === "sales_process" && (onOpenFiveLevers || onOpenMarginGuard) && (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <TrendingUp size={15} className="text-accent shrink-0" />
+                    <span className="truncate">
+                      Kịch bản chốt đơn cần áp dụng mô hình <strong>5 Đòn Bẩy P&amp;L</strong> và rào chắn chống mòn giá.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    {onOpenFiveLevers && (
                       <button
                         type="button"
-                        onClick={handleResetToTemplate}
-                        className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-text hover:underline"
+                        onClick={onOpenFiveLevers}
+                        className="font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
                       >
-                        <RotateCcw size={12} />
-                        <span>Nạp mẫu chuẩn</span>
+                        <span>Mô phỏng 5 Đòn Bẩy</span>
+                        <ArrowRight size={12} />
                       </button>
-                    </div>
-                  </div>
-
-                  {activeTab === "offer_breakdown" && onOpenMarginGuard && (
-                    <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <ShieldAlert size={15} className="text-accent shrink-0" />
-                        <span className="truncate">
-                          Biểu phí và cam kết doanh thu cần tuân thủ cầu dao <strong>Margin Guard</strong> (Biên lợi nhuận gộp &ge; 35%).
-                        </span>
-                      </div>
+                    )}
+                    {onOpenMarginGuard && (
                       <button
                         type="button"
                         onClick={onOpenMarginGuard}
-                        className="shrink-0 font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                        className="font-medium text-ink-secondary hover:text-ink hover:underline flex items-center gap-1 cursor-pointer"
                       >
-                        <span>Tính giá sàn</span>
-                        <ArrowRight size={12} />
+                        <span>Kiểm tra giá sàn</span>
                       </button>
-                    </div>
-                  )}
-
-                  {activeTab === "sales_process" && (onOpenFiveLevers || onOpenMarginGuard) && (
-                    <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline/60 bg-control/30 px-3 py-2 text-[12px] text-ink">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <TrendingUp size={15} className="text-accent shrink-0" />
-                        <span className="truncate">
-                          Kịch bản chốt đơn cần áp dụng mô hình <strong>5 Đòn Bẩy P&amp;L</strong> và rào chắn chống mòn giá.
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        {onOpenFiveLevers && (
-                          <button
-                            type="button"
-                            onClick={onOpenFiveLevers}
-                            className="font-medium text-accent hover:underline flex items-center gap-1 cursor-pointer"
-                          >
-                            <span>Mô phỏng 5 Đòn Bẩy</span>
-                            <ArrowRight size={12} />
-                          </button>
-                        )}
-                        {onOpenMarginGuard && (
-                          <button
-                            type="button"
-                            onClick={onOpenMarginGuard}
-                            className="font-medium text-ink-secondary hover:text-ink hover:underline flex items-center gap-1 cursor-pointer"
-                          >
-                            <span>Kiểm tra giá sàn</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <textarea
-                    value={currentContent}
-                    onChange={(e) => canEdit && handleContentChange(e.target.value)}
-                    readOnly={!canEdit}
-                    rows={12}
-                    className={cn(
-                      "min-h-[220px] sm:min-h-[280px] w-full flex-1 rounded-lg border border-hairline/40 bg-inset p-3.5 font-mono text-[13px] leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-focus/60 resize-y",
-                      !canEdit && "opacity-80 cursor-not-allowed bg-control/20"
                     )}
-                    placeholder={canEdit ? "Nhập nội dung bối cảnh..." : "Nội dung chỉ đọc (Read-only)..."}
-                  />
-                </div>
-
-                {/* Sharpness Gauge Panel */}
-                <div className="flex w-full flex-col gap-2.5 border-t border-hairline/40 p-3.5 sm:p-4 lg:w-64 lg:shrink-0 lg:border-l lg:border-t-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-semibold text-ink">
-                      Độ Sắc Nét:
-                    </span>
-                    <span
-                      className={cn(
-                        "ui-chip border",
-                        sharpness.isSharp
-                          ? "bg-card text-accent-text border-hairline"
-                          : "bg-card text-warning border-hairline"
-                      )}
-                    >
-                      {sharpness.score}/100 {sharpness.isSharp ? "✓ Đạt" : "⚠ Cần sửa"}
-                    </span>
-                  </div>
-
-                  <div className="w-full bg-control rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="h-full bg-accent transition-all duration-300"
-                      style={{ width: `${sharpness.score}%` }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[12px]">
-                    <div className="rounded-lg border border-hairline/40 bg-card p-2">
-                      <div className="text-ink-tertiary">Số từ:</div>
-                      <div className="font-semibold text-ink">
-                        {sharpness.wordCount}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-hairline/40 bg-card p-2">
-                      <div className="text-ink-tertiary">Từ/câu TB:</div>
-                      <div className="font-semibold text-ink">
-                        {sharpness.averageWordsPerSentence} (chuẩn 12-18)
-                      </div>
-                    </div>
-                  </div>
-
-                  {sharpness.flaggedJargon.length > 0 && (
-                    <div className="rounded-lg border border-hairline/40 bg-card p-2.5 text-[12px]">
-                      <div className="font-semibold text-ink-secondary mb-1">Từ sáo rỗng:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {sharpness.flaggedJargon.map((j) => (
-                          <span
-                            key={j}
-                            className="px-1.5 py-0.5 rounded bg-inset text-ink-secondary line-through text-[11px]"
-                          >
-                            {j}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="text-[13px] font-semibold text-ink mb-1">
-                      Góp ý tinh chỉnh:
-                    </div>
-                    <ul className="text-[12px] space-y-1 text-ink-secondary">
-                      {sharpness.feedback.map((f, i) => (
-                        <li key={i} className="flex items-start gap-1">
-                          <span className="text-accent-text">•</span>
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
                   </div>
                 </div>
+              )}
+
+              <textarea
+                value={currentContent}
+                onChange={(e) => canEdit && handleContentChange(e.target.value)}
+                readOnly={!canEdit}
+                rows={12}
+                className={cn(
+                  "min-h-[200px] sm:min-h-[260px] w-full flex-1 rounded-xl border border-hairline/40 bg-inset p-3.5 font-mono text-[13px] leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-focus/60 resize-y",
+                  !canEdit && "opacity-80 cursor-not-allowed bg-control/20"
+                )}
+                placeholder={canEdit ? "Nhập nội dung bối cảnh..." : "Nội dung chỉ đọc (Read-only)..."}
+              />
+
+              {/* Mobile Sharpness Audit Panel (Inline under textarea) */}
+              <div className="block md:hidden border-t border-hairline/40 pt-3">
+                {renderSharpnessPanel(true)}
               </div>
             </div>
-          )}
+
+            {/* Desktop Right Column: Sharpness Gauge */}
+            <div className="hidden md:flex md:w-[250px] lg:w-[270px] shrink-0 border-l border-hairline/40 h-full p-3.5 sm:p-4 overflow-y-auto flex-col gap-2.5 bg-control/10">
+              {renderSharpnessPanel(false)}
+            </div>
+          </div>
+        )}
 
         {/* Record First View */}
         {viewMode === "record" && (
@@ -821,7 +877,6 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
             </div>
           </div>
         )}
-        </div>
 
         {/* Sticky Action Footer CTA matching Image 3 */}
         <footer className="border-t border-hairline/50 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 shrink-0 bg-card">

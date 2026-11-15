@@ -4,7 +4,14 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 export const STARTER_PLAN = Object.freeze({ id: "starter" as const, name: "RAI² Starter", amount: 299_000, interval: "month" as const });
-export type PlanId = typeof STARTER_PLAN.id;
+export const PRO_PLAN = Object.freeze({ id: "pro" as const, name: "RAI² Pro", amount: 799_000, interval: "month" as const });
+export const TEAM_PLAN = Object.freeze({ id: "team" as const, name: "RAI² Team", amount: 1_990_000, interval: "month" as const });
+export type PlanId = "starter" | "pro" | "team";
+export const PLANS: Record<PlanId, { id: PlanId; name: string; amount: number; interval: "month" }> = Object.freeze({
+  starter: STARTER_PLAN,
+  pro: PRO_PLAN,
+  team: TEAM_PLAN,
+});
 export const ORDER_TTL_MS = 24 * 60 * 60_000;
 export const TRIAL_MS = 14 * 86_400_000;
 export const WORKSPACE_HANDLE_COOLDOWN_MS = 60 * 60_000;
@@ -126,7 +133,7 @@ export class SaasStore {
       );
       CREATE TABLE IF NOT EXISTS orders (
         id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id),
-        plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter')),
+        plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'pro', 'team')),
         code TEXT NOT NULL UNIQUE, amount INTEGER NOT NULL, status TEXT NOT NULL
           CHECK (status IN ('pending', 'paid')),
         created_at INTEGER NOT NULL, paid_at INTEGER
@@ -168,7 +175,25 @@ export class SaasStore {
       .run(Date.now());
     const orderColumns = this.#db.prepare("PRAGMA table_info(orders)").all() as Array<{ name: string }>;
     if (!orderColumns.some((column) => column.name === "plan_id")) {
-      this.#db.exec("ALTER TABLE orders ADD COLUMN plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter'))");
+      this.#db.exec("ALTER TABLE orders ADD COLUMN plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'pro', 'team'))");
+    } else {
+      const sqlRow = this.#db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'orders'").get() as { sql: string } | undefined;
+      if (sqlRow?.sql && sqlRow.sql.includes("CHECK (plan_id IN ('starter'))")) {
+        this.#db.exec(`
+          PRAGMA foreign_keys = OFF;
+          CREATE TABLE orders_new (
+            id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id),
+            plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'pro', 'team')),
+            code TEXT NOT NULL UNIQUE, amount INTEGER NOT NULL, status TEXT NOT NULL
+              CHECK (status IN ('pending', 'paid')),
+            created_at INTEGER NOT NULL, paid_at INTEGER
+          );
+          INSERT INTO orders_new SELECT id, account_id, plan_id, code, amount, status, created_at, paid_at FROM orders;
+          DROP TABLE orders;
+          ALTER TABLE orders_new RENAME TO orders;
+          PRAGMA foreign_keys = ON;
+        `);
+      }
     }
     this.#db.exec("CREATE UNIQUE INDEX IF NOT EXISTS accounts_workspace_handle ON accounts(workspace_handle) WHERE workspace_handle IS NOT NULL");
   }
@@ -399,6 +424,8 @@ export class SaasStore {
   }
 
   createOrder(accountId: string, planId: PlanId, now: number, maxWorkspaces = Infinity): Order {
+    const plan = PLANS[planId];
+    if (!plan) throw new Error("invalid plan");
     this.#db.exec("BEGIN IMMEDIATE");
     try {
       const occupied = Number.isFinite(maxWorkspaces) ? this.#occupiedWorkspaces(accountId, now) : 0;
@@ -412,13 +439,19 @@ export class SaasStore {
       const id = randomUUID();
       const code = `R2${randomBytes(8).toString("hex").toUpperCase()}`;
       this.#db.prepare(`INSERT INTO orders (id, account_id, plan_id, code, amount, status, created_at)
-        VALUES (?, ?, ?, ?, ?, 'pending', ?)`).run(id, accountId, planId, code, STARTER_PLAN.amount, now);
+        VALUES (?, ?, ?, ?, ?, 'pending', ?)`).run(id, accountId, planId, code, plan.amount, now);
       this.#db.exec("COMMIT");
-      return { id, accountId, planId, code, amount: STARTER_PLAN.amount, status: "pending", createdAt: now, paidAt: null };
+      return { id, accountId, planId, code, amount: plan.amount, status: "pending", createdAt: now, paidAt: null };
     } catch (error) {
       this.#db.exec("ROLLBACK");
       throw error;
     }
+  }
+
+  latestPaidOrder(accountId: string): Order | null {
+    const row = this.#db.prepare("SELECT * FROM orders WHERE account_id = ? AND status = 'paid' ORDER BY paid_at DESC, created_at DESC LIMIT 1")
+      .get(accountId) as OrderRow | undefined;
+    return row ? orderOf(row) : null;
   }
 
   orderForAccount(id: string, accountId: string): Order | null {

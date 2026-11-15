@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { isIP } from "node:net";
 import { fileURLToPath } from "node:url";
 import type { Account, SaasStore } from "./store.ts";
-import { normalizeWorkspaceHandle, ORDER_TTL_MS, STARTER_PLAN, TRIAL_MS, WorkspaceCapacityError,
+import { normalizeWorkspaceHandle, ORDER_TTL_MS, PLANS, type PlanId, STARTER_PLAN, TRIAL_MS, WorkspaceCapacityError,
   WorkspaceHandleCooldownError, WorkspaceHandleTakenError } from "./store.ts";
 import { tenantToken } from "./tenant-auth.ts";
 
@@ -105,7 +105,8 @@ function customerEmail(value: unknown): string | null {
   return email.length <= 254 && emailPattern.test(email) ? email : null;
 }
 
-const planId = (value: unknown) => value === STARTER_PLAN.id ? STARTER_PLAN.id : null;
+const planId = (value: unknown): PlanId | null =>
+  typeof value === "string" && (value === "starter" || value === "pro" || value === "team") ? value as PlanId : null;
 
 function paymentCode(text: string): string | null {
   const codes = [...text.toUpperCase().matchAll(orderCode)].map((match) => match[0]);
@@ -377,8 +378,11 @@ export function createSaasServer(options: SaasServerOptions): Server {
       });
     }
     if (method === "GET" && path === "/api/billing") {
+      const latestOrder = store.latestPaidOrder(account.id);
+      const currentPlan = latestOrder && PLANS[latestOrder.planId] ? PLANS[latestOrder.planId] : STARTER_PLAN;
       return json(res, 200, {
-        plan: STARTER_PLAN,
+        plan: currentPlan,
+        availablePlans: Object.values(PLANS),
         entitlement: account.paidThrough > now() ? "paid" : account.trialThrough > now() ? "trial" : "inactive",
         paidThrough: account.paidThrough,
         trialThrough: account.trialThrough,

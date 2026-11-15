@@ -13,7 +13,8 @@ if (!isAbsolute(uiSource) || !existsSync(join(source, "index.js")) || !existsSyn
   throw new Error("Build and verify the OSS server and UI before packaging");
 }
 
-const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
+const app = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const version = app.version;
 const scratch = mkdtempSync(join(tmpdir(), "rai2-runtime-package-"));
 const staged = join(scratch, "package");
 mkdirSync(staged);
@@ -42,6 +43,11 @@ try {
   writeFileSync(join(staged, "package.json"), `${JSON.stringify({
     name: "@raifirst/rai2-runtime", version, type: "module", private: false,
     bin: { rai2: "bin/rai2.mjs" },
+    dependencies: {
+      "@1password/sdk": app.dependencies["@1password/sdk"],
+      "@duckdb/node-api": app.dependencies["@duckdb/node-api"],
+      "@resvg/resvg-js": app.dependencies["@resvg/resvg-js"],
+    },
     engines: { node: ">=24" },
   }, null, 2)}\n`);
   const candidate = join(scratch, "candidate.tgz");

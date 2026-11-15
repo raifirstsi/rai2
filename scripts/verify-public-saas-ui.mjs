@@ -118,8 +118,8 @@ try {
       assert.equal(await evaluate("document.querySelector('.header-signup').getBoundingClientRect().right <= window.innerWidth"), true);
       assert.equal(await evaluate("document.querySelector('.header-signup').textContent.trim()"), "Trải nghiệm miễn phí");
       assert.equal(await evaluate("document.querySelector('.plans-grid .plan:nth-child(2) a').href"), "https://app.rai2.si/?plan=starter&checkout=1");
-      assert.equal(await evaluate("document.querySelector('.plans-grid .plan:nth-child(3) a').protocol"), "mailto:");
-      assert.equal(await evaluate("document.querySelector('.plans-grid .plan:nth-child(4) a').protocol"), "mailto:");
+      assert.equal(await evaluate("document.querySelector('.plans-grid .plan:nth-child(3) a').href"), "https://app.rai2.si/?plan=pro&checkout=1");
+      assert.equal(await evaluate("document.querySelector('.plans-grid .plan:nth-child(4) a').href"), "https://app.rai2.si/?plan=team&checkout=1");
       const logoWidth = await evaluate("document.querySelector('.logo-link').getBoundingClientRect().width");
       assert(name === "desktop" ? logoWidth >= 60 : logoWidth >= 50 && logoWidth <= 60,
         `${name} logo width is not balanced: ${logoWidth}px`);
