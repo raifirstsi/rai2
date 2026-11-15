@@ -1,4 +1,4 @@
-import { Code, Copy, Eye, Pencil, Pin, PinOff, RefreshCw, Square, Volume2 } from "lucide-react";
+import { Code, Copy, Eye, FileCheck, Pencil, Pin, PinOff, RefreshCw, Square, Volume2 } from "lucide-react";
 import { copyText } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import type { ConfigStatus, Group, Message, useStore } from "@/state/store";
@@ -44,6 +44,7 @@ export function useBotMessageMenu({
   onToggleRaw,
   onRegenerate,
   pin,
+  onExtractSop,
 }: {
   text: string;
   botId?: string;
@@ -56,6 +57,7 @@ export function useBotMessageMenu({
   onToggleRaw: () => void;
   onRegenerate?: () => void;
   pin?: PinAction;
+  onExtractSop?: () => void;
 }): MessageMenuItem[] {
   const speak = useSpeakAction({ text, botId, messageId, voiceId, tts, localVoice });
   const items: MessageMenuItem[] = [];
@@ -77,14 +79,40 @@ export function useBotMessageMenu({
       onSelect: onToggleRaw,
     });
   }
+  if (text && onExtractSop) {
+    items.push({
+      key: "extract-sop",
+      icon: <FileCheck {...ACTION_ICON} />,
+      label: "Đóng gói SOP (Voice-to-SOP)",
+      title: "Đóng gói câu trả lời này thành SOP chuẩn 4 phần nạp vào Két Sắt",
+      onSelect: onExtractSop,
+    });
+  }
   if (onRegenerate) items.push({ key: "regenerate", icon: <RefreshCw {...ACTION_ICON} />, label: t("chat.regenerate"), onSelect: onRegenerate });
   items.push(...pinItem(pin), idItem(messageId));
   return items;
 }
 
-export function userMessageMenu({ messageId, onEdit, pin }: { messageId: string; onEdit?: () => void; pin?: PinAction }): MessageMenuItem[] {
+export function userMessageMenu({
+  messageId,
+  onEdit,
+  pin,
+  onExtractSop,
+}: {
+  messageId: string;
+  onEdit?: () => void;
+  pin?: PinAction;
+  onExtractSop?: () => void;
+}): MessageMenuItem[] {
   return [
     ...(onEdit ? [{ key: "edit", icon: <Pencil {...ACTION_ICON} />, label: t("chat.editMessage"), onSelect: onEdit, idleOnly: true }] : []),
+    ...(onExtractSop ? [{
+      key: "extract-sop",
+      icon: <FileCheck {...ACTION_ICON} />,
+      label: "Đóng gói SOP (Voice-to-SOP)",
+      title: "Đóng gói nội dung này thành SOP chuẩn 4 phần",
+      onSelect: onExtractSop,
+    }] : []),
     ...pinItem(pin),
     idItem(messageId),
   ];

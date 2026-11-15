@@ -61,7 +61,13 @@ export function AutonomyGraduationModal({
       setProfiles(updated);
       saveAutonomyProfiles(updated);
 
-      if (initialBotId && updated[initialBotId]) {
+      if (initialBotId) {
+        if (!updated[initialBotId]) {
+          const found = (state.bots || []).find((b) => b.id === initialBotId);
+          if (found) {
+            updated[found.id] = createDefaultBotProfile(found.id, found.name, found.zone ?? 1);
+          }
+        }
         setSelectedBotId(initialBotId);
       } else if (enterpriseBots.length > 0) {
         setSelectedBotId(enterpriseBots[0].id);

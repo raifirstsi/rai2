@@ -5,7 +5,8 @@ import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Reply, Square, Webhook } from "lucide-react";
 import { WorkingDots } from "@/components/WorkingIndicator";
-import { ACTION_ICON, ChatBusyContext, CopyButton, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
+import { ACTION_ICON, ChatBusyContext, CopyButton, ExtractSopAction, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
+import { VoiceToSopModal } from "./VoiceToSopModal";
 import { copyText } from "@/lib/copy-text";
 import { ReactAction, ReactionChips } from "@/components/Reactions";
 import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
@@ -154,6 +155,7 @@ interface ChatRows {
   bubbleStyle?: ReturnType<typeof userBubbleStyle>;
   dispatch: Dispatch<Action>;
   onBranch: (messageId: string) => boolean;
+  onExtractSop?: (text: string) => void;
   conversational: boolean; simple?: boolean; canReact: boolean;
   openedAt: number;
 }
@@ -342,7 +344,7 @@ const Bubble = memo(function Bubble({
   replyTarget?: Message;
   onReply: (message: Message) => void;
 }) {
-  const { botId, threadId, botName, voiceId, tts, localVoice, bots, mentionPeers, mentionPerson, focus, dispatch, onBranch, bubbleStyle, conversational, simple, canReact, openedAt, speakerViewer } = useChatRows(), busy = onRegenerate || versions ? use(ChatBusyContext) : false;
+  const { botId, threadId, botName, voiceId, tts, localVoice, bots, mentionPeers, mentionPerson, focus, dispatch, onBranch, bubbleStyle, conversational, simple, canReact, openedAt, speakerViewer, onExtractSop } = useChatRows(), busy = onRegenerate || versions ? use(ChatBusyContext) : false;
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const peer = peerLine(message) ?? peerRequest(message, botId);
   const user = message.role === "user" && !peer;
@@ -366,6 +368,7 @@ const Bubble = memo(function Bubble({
     viewRaw,
     onToggleRaw: () => setViewRaw((raw) => !raw),
     onRegenerate: !busy ? onRegenerate : undefined,
+    onExtractSop: onExtractSop && text.trim() ? () => onExtractSop(text) : undefined,
     pin: remoteClient ? undefined : {
       pinned,
       onToggle: () => dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } }),
@@ -425,6 +428,7 @@ const Bubble = memo(function Bubble({
       {!simple && <ReplyAction onReply={() => onReply(message)} />}
       {canReact && !peer && <ReactAction threadId={threadId} message={message} />}
       {!simple && text && <CopyButton text={text} className={messageActionClass} />}
+      {!simple && text && onExtractSop && <ExtractSopAction onExtract={() => onExtractSop(text)} className={messageActionClass} />}
       {text && viewRaw && <RawToggleAction active onToggle={() => setViewRaw(false)} className={messageActionClass} />}
       {text && speaking && <SpeakButton text={text} botId={botId} messageId={message.id} voiceId={voiceId} tts={tts} localVoice={localVoice} className={cn(messageActionClass, "text-accent")} />}
     </MessageActions>
@@ -445,11 +449,13 @@ const Bubble = memo(function Bubble({
                 onEdit: !speaker && message.kind === "text" && !webhookView && !hasAttachments && !message.id.startsWith("optimistic-")
                   ? () => onStartEdit(message.id) : undefined,
                 pin: remoteClient ? undefined : { pinned, onToggle: togglePin },
+                onExtractSop: onExtractSop && Boolean(visibleText.trim()) ? () => onExtractSop(visibleText) : undefined,
               }),
             ]}
           >
             {!simple && <ReplyAction onReply={() => onReply(message)} />}
             {!simple && Boolean(visibleText.trim()) && <CopyButton text={visibleText} className={messageActionClass} />}
+            {!simple && Boolean(visibleText.trim()) && onExtractSop && <ExtractSopAction onExtract={() => onExtractSop(visibleText)} className={messageActionClass} />}
           </MessageActions>
         )}
         <div
@@ -910,8 +916,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const hasMore = Boolean(bot.hasMore);
   const reactor = useReactor();
   const speakerViewer = state.config?.team && reactor !== "user" ? reactor : null;
+  const [sopSourceText, setSopSourceText] = useState<string | null>(null);
   const rows = useMemo<ChatRows>(
-    () => ({ botId: bot.id, threadId: bot.threadId, botName: bot.name, botColor: bot.color, voiceId: bot.voice, tts, localVoice, hasMore, bots, mentionPeers, mentionPerson: { profileName: state.config?.profile?.name }, focus, showToolCalls, locale, dispatch, onBranch, bubbleStyle, conversational: isConversational(bot.replyStyle), simple: !advanced, canReact: canWrite !== false, openedAt, speakerViewer }),
+    () => ({ botId: bot.id, threadId: bot.threadId, botName: bot.name, botColor: bot.color, voiceId: bot.voice, tts, localVoice, hasMore, bots, mentionPeers, mentionPerson: { profileName: state.config?.profile?.name }, focus, showToolCalls, locale, dispatch, onBranch, bubbleStyle, conversational: isConversational(bot.replyStyle), simple: !advanced, canReact: canWrite !== false, openedAt, speakerViewer, onExtractSop: (sourceText: string) => setSopSourceText(sourceText) }),
     [bot.id, bot.threadId, bot.name, bot.color, bot.voice, tts, localVoice, hasMore, bots, mentionPeers, state.config?.profile?.name, focus, showToolCalls, locale, dispatch, onBranch, bubbleStyle, bot.replyStyle, advanced, canWrite, openedAt, speakerViewer],
   );
   const currentTask = bot.tasks?.find((task) => task.threadId === bot.threadId), place = effectivePlace(bot, currentTask), team = state.config?.team, privateChat = Boolean(team) && currentTask?.private === true, ownHelper = Boolean(team) && !privateChat && Boolean(bot.defaultBot?.person), sharedChat = Boolean(team) && !privateChat && !ownHelper;
@@ -1301,6 +1308,13 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       </div>
       </GlassScrollFrame>
 
+      {sopSourceText !== null && (
+        <VoiceToSopModal
+          isOpen={sopSourceText !== null}
+          initialText={sopSourceText}
+          onClose={() => setSopSourceText(null)}
+        />
+      )}
     </main>
     </ThreadLinkContext>
   );

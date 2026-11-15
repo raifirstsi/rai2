@@ -35,7 +35,8 @@ import { FailedTurnRow, MessageBoundary } from "./ChatView";
 import { SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_USER_BUBBLE } from "./chat-bubble";
 import { ReplyBlocks } from "./ReplyBlocks";
 import { useAdvancedMode } from "@/lib/interface-mode";
-import { CopyButton, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction } from "./MessageActions";
+import { CopyButton, ExtractSopAction, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction } from "./MessageActions";
+import { VoiceToSopModal } from "./VoiceToSopModal";
 import { ReactAction, ReactionChips, useCanReact } from "./Reactions";
 import { ClusterLabel } from "./RoomClusterLabel";
 import { roomPin, useBotMessageMenu, userMessageMenu } from "./message-menu";
@@ -168,6 +169,7 @@ function RoomTextMessage({
   const collapsible = user && !expanded && (display.length > USER_COLLAPSE_CHARS || display.split("\n").length > USER_COLLAPSE_LINES);
   useEffect(() => { if (focusedSearch && collapsible) setExpanded(true); }, [focusedSearch, collapsible, focus?.nonce]);
   const simple = !useAdvancedMode();
+  const [sopSourceText, setSopSourceText] = useState<string | null>(null);
   const speakerBot = members.find((member) => member.id === m.from?.botId);
   const botText = rawText; const teammates = useTeammates(); const peers = useMemo(() => [...members, ...teammates.peers], [members, teammates]);
   const pin = roomPin(group, m, dispatch);
@@ -181,6 +183,7 @@ function RoomTextMessage({
     canSpeak: true,
     viewRaw,
     onToggleRaw: () => setViewRaw((raw) => !raw),
+    onExtractSop: botText.trim() ? () => setSopSourceText(botText) : undefined,
     pin,
   });
   const replyGroup = useMemo(() => !user && botText.trim() ? replyAttachmentGroup(botText, m.attachments) : null, [user, botText, m.attachments]);
@@ -191,6 +194,7 @@ function RoomTextMessage({
       <ReplyAction onReply={() => onReply(m)} />
       {canReact && m.from && <ReactAction threadId={group.threadId} message={m} />}
       {botText && <CopyButton text={botText} className={messageActionClass} />}
+      {botText && <ExtractSopAction onExtract={() => setSopSourceText(botText)} className={messageActionClass} />}
       {botText && viewRaw && <RawToggleAction active onToggle={() => setViewRaw(false)} className={messageActionClass} />}
       {botText && speaking && <SpeakButton text={botText} botId={speakerBot?.id} messageId={m.id} voiceId={speakerBot?.voice} tts={state.config?.tts} localVoice={localSystemVoiceActive()} className={cn(messageActionClass, "text-accent")} />}
     </MessageActions>
@@ -200,9 +204,10 @@ function RoomTextMessage({
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       <div className={cn("flex w-full items-end gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
-          <MessageActions side="user" menu={userMessageMenu({ messageId: m.id, pin })}>
+          <MessageActions side="user" menu={userMessageMenu({ messageId: m.id, pin, onExtractSop: display.trim() ? () => setSopSourceText(display) : undefined })}>
             <ReplyAction onReply={() => onReply(m)} />
             {Boolean(display.trim()) && <CopyButton text={display} className={messageActionClass} />}
+            {Boolean(display.trim()) && <ExtractSopAction onExtract={() => setSopSourceText(display)} className={messageActionClass} />}
           </MessageActions>
         )}
         <div
@@ -299,6 +304,13 @@ function RoomTextMessage({
       </div>
       <ReactionChips threadId={group.threadId} message={m} bots={members} align={user ? "end" : "start"} canReact={canReact} />
       {!user && m.routedBy && <RoutedByLine routedBy={m.routedBy} />}
+      {sopSourceText !== null && (
+        <VoiceToSopModal
+          isOpen={sopSourceText !== null}
+          initialText={sopSourceText}
+          onClose={() => setSopSourceText(null)}
+        />
+      )}
     </div>
   );
 }

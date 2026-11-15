@@ -189,7 +189,17 @@ export function saveAutonomyProfiles(profiles: Record<string, BotAutonomyProfile
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
     window.localStorage.setItem(STORAGE_KEY_AUTONOMY, JSON.stringify(profiles));
+    if (typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("rai2:autonomy-updated"));
+    }
   } catch (e) {
     console.warn("Could not save autonomy profiles:", e);
   }
+}
+
+export function getBotAutonomyTier(botId: string): AutonomyTierMeta {
+  const profiles = loadSavedAutonomyProfiles();
+  const profile = profiles[botId];
+  const tierKey = profile?.currentTier ?? "TIER_1_APPRENTICE";
+  return AUTONOMY_TIERS[tierKey] ?? AUTONOMY_TIERS.TIER_1_APPRENTICE;
 }

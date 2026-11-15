@@ -1,5 +1,5 @@
 import { createContext, use, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Check, Copy, Ellipsis, Reply, X } from "lucide-react";
+import { Check, Copy, Ellipsis, FileCheck, Reply, X } from "lucide-react";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -256,6 +256,26 @@ export function CopyButton({ text, className }: { text: string; className?: stri
       )}
     >
       {state === "copied" ? <Check {...ACTION_ICON} className="text-success" /> : state === "failed" ? <X {...ACTION_ICON} className="text-danger" /> : <Copy {...ACTION_ICON} />}
+    </button>
+  );
+}
+
+export function ExtractSopAction({
+  onExtract,
+  className,
+}: {
+  onExtract: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onExtract}
+      aria-label="Đóng gói SOP"
+      title="Đóng gói thành SOP chuẩn 4 phần (Voice-to-SOP)"
+      className={cn(messageActionClass, className)}
+    >
+      <FileCheck {...ACTION_ICON} aria-hidden="true" />
     </button>
   );
 }
