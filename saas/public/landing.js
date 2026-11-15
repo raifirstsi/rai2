@@ -211,18 +211,49 @@ if (document.readyState === "loading") {
   initAppleSlider();
 }
 
+/* 7-Zone Hiring Desk Tab Switching & Mobile Dropdown */
+const zoneMeta = {
+  "1": { tag: "Z1", title: "VÙNG 1: Văn Phòng Điều Hành & Chiến Lược" },
+  "2": { tag: "Z2", title: "VÙNG 2: Phòng Marketing & Thu Hút" },
+  "3": { tag: "Z3", title: "VÙNG 3: Phòng Kinh Doanh & Chốt Hợp Đồng" },
+  "4": { tag: "Z4", title: "VÙNG 4: Phòng Thực Thi & Vận Hành" },
+  "5": { tag: "Z5", title: "VÙNG 5: Phòng Chăm Sóc & Giữ Chân" },
+  "6": { tag: "Z6", title: "VÙNG 6: Phòng Tài Chính & Dòng Tiền" },
+  "7": { tag: "Z7", title: "VÙNG 7: Phòng Nhân Sự & Đào Tạo" }
+};
 
-/* 7-Zone Hiring Desk Tab Switching */
 const initHiringDesk = () => {
   const tabButtons = document.querySelectorAll(".zone-tab-btn");
   const panels = document.querySelectorAll(".zone-panel");
+  const dropdownWrap = document.querySelector(".hiring-mobile-dropdown-wrap");
+  const dropdownTrigger = document.getElementById("zone-dropdown-trigger");
+  const triggerTag = document.getElementById("trigger-tag");
+  const triggerTitle = document.getElementById("trigger-title");
+
   if (!tabButtons.length || !panels.length) return;
+
+  // Toggle dropdown on mobile
+  if (dropdownTrigger && dropdownWrap) {
+    dropdownTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = dropdownWrap.classList.toggle("open");
+      dropdownTrigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!dropdownWrap.contains(e.target)) {
+        dropdownWrap.classList.remove("open");
+        dropdownTrigger.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
 
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const zoneId = btn.getAttribute("data-zone");
       if (!zoneId) return;
 
+      // Update active state on all buttons (both desktop sidebar and mobile dropdown items)
       tabButtons.forEach((b) => {
         if (b.getAttribute("data-zone") === zoneId) {
           b.classList.add("active");
@@ -231,6 +262,7 @@ const initHiringDesk = () => {
         }
       });
 
+      // Update panels
       panels.forEach((p) => {
         if (p.getAttribute("data-zone") === zoneId) {
           p.classList.add("active");
@@ -238,6 +270,18 @@ const initHiringDesk = () => {
           p.classList.remove("active");
         }
       });
+
+      // Update mobile trigger label
+      if (zoneMeta[zoneId] && triggerTag && triggerTitle) {
+        triggerTag.textContent = zoneMeta[zoneId].tag;
+        triggerTitle.textContent = zoneMeta[zoneId].title;
+      }
+
+      // Close mobile dropdown smoothly
+      if (dropdownWrap) {
+        dropdownWrap.classList.remove("open");
+        dropdownTrigger?.setAttribute("aria-expanded", "false");
+      }
     });
   });
 };

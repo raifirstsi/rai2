@@ -130,7 +130,7 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/landing.css?v=20261115-v12-mobile-perfect">
+    <link rel="stylesheet" href="/landing.css?v=20261115-v13-dropdown-clean">
     <style id="layout-focus-center">
       /* Bypasses any browser/CDN CSS caching: ensures focused center layout & balanced illustration image sizes */
       .site-shell {
@@ -695,8 +695,382 @@
         }
       }
 
+    
+      /* === DROPDOWN SELECTOR & CONTRAST FIXES === */
+      .zone-tab-btn.active .zone-tag,
+      .dropdown-zone-item.active .zone-tag {
+        background: #09090b !important;
+        color: #ffffff !important;
+        border: 1px solid #09090b !important;
+      }
+      [data-theme="dark"] .zone-tab-btn.active .zone-tag,
+      [data-theme="dark"] .dropdown-zone-item.active .zone-tag {
+        background: #ffffff !important;
+        color: #09090b !important;
+        border: 1px solid #ffffff !important;
+      }
+
+      .hiring-mobile-dropdown-wrap {
+        display: none !important;
+      }
+
+      .principles-synthesis {
+        max-width: 860px !important;
+        margin: 40px auto 0 !important;
+        text-align: center !important;
+        font-size: 16px !important;
+        line-height: 1.8 !important;
+        color: var(--ink) !important;
+      }
+      .synthesis-badge {
+        display: inline-block !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.08em !important;
+        text-transform: uppercase !important;
+        color: var(--muted) !important;
+        margin-bottom: 12px !important;
+      }
+      .principles-synthesis p {
+        margin: 0 !important;
+      }
+
+      @media (max-width: 860px) {
+        .hiring-zones-sidebar {
+          display: none !important;
+        }
+        .hiring-mobile-dropdown-wrap {
+          display: block !important;
+          position: relative !important;
+          margin-bottom: 20px !important;
+          width: 100% !important;
+        }
+        .hiring-dropdown-trigger {
+          width: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 12px 14px !important;
+          background: var(--bg) !important;
+          border: 1.5px solid var(--line) !important;
+          border-radius: 12px !important;
+          color: var(--ink) !important;
+          cursor: pointer !important;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+          font-family: inherit !important;
+        }
+        .hiring-dropdown-trigger:hover,
+        .hiring-mobile-dropdown-wrap.open .hiring-dropdown-trigger {
+          border-color: var(--ink) !important;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+        }
+        .dropdown-trigger-left {
+          display: flex !important;
+          align-items: center !important;
+          gap: 10px !important;
+          min-width: 0 !important;
+          text-align: left !important;
+        }
+        .trigger-zone-tag {
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          padding: 3px 7px !important;
+          border-radius: 5px !important;
+          background: #09090b !important;
+          color: #ffffff !important;
+          flex-shrink: 0 !important;
+        }
+        [data-theme="dark"] .trigger-zone-tag {
+          background: #ffffff !important;
+          color: #09090b !important;
+        }
+        .trigger-zone-title {
+          font-size: 13.5px !important;
+          font-weight: 700 !important;
+          color: var(--ink) !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .dropdown-trigger-right {
+          display: flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          flex-shrink: 0 !important;
+        }
+        .trigger-count {
+          font-size: 11px !important;
+          font-weight: 600 !important;
+          color: var(--muted) !important;
+          background: var(--panel) !important;
+          padding: 2px 7px !important;
+          border-radius: 10px !important;
+          border: 1px solid var(--line) !important;
+        }
+        .trigger-chevron {
+          color: var(--muted) !important;
+          transition: transform 0.25s ease !important;
+        }
+        .hiring-mobile-dropdown-wrap.open .trigger-chevron {
+          transform: rotate(180deg) !important;
+        }
+        .hiring-dropdown-menu {
+          display: none !important;
+          position: absolute !important;
+          top: calc(100% + 6px) !important;
+          left: 0 !important;
+          right: 0 !important;
+          z-index: 40 !important;
+          background: var(--panel) !important;
+          border: 1px solid var(--line) !important;
+          border-radius: 12px !important;
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12) !important;
+          padding: 6px !important;
+          max-height: 380px !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+        .hiring-mobile-dropdown-wrap.open .hiring-dropdown-menu {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 4px !important;
+          animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-zone-item {
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+          padding: 10px 12px !important;
+          border-radius: 8px !important;
+          border: 1px solid transparent !important;
+          background: transparent !important;
+          color: var(--ink) !important;
+          text-align: left !important;
+          cursor: pointer !important;
+          width: 100% !important;
+          transition: all 0.15s ease !important;
+        }
+        .dropdown-zone-item:hover {
+          background: var(--bg) !important;
+        }
+        .dropdown-zone-item.active {
+          background: var(--bg) !important;
+          border-color: var(--line) !important;
+        }
+        .dropdown-zone-item.active .zone-info strong {
+          color: var(--ink) !important;
+        }
+
+        /* Mobile Synthesis Block: Compact & Editorial */
+        .principles-synthesis {
+          margin: 24px auto 0 !important;
+          padding: 18px 16px !important;
+          font-size: 14px !important;
+          line-height: 1.65 !important;
+          text-align: left !important;
+          background: var(--panel) !important;
+          border: 1px solid var(--line) !important;
+          border-radius: 12px !important;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+        }
+        .principles-synthesis p {
+          text-align: left !important;
+        }
+      }
+
+    
+      /* === DROPDOWN SELECTOR & CONTRAST FIXES === */
+      .zone-tab-btn.active .zone-tag,
+      .dropdown-zone-item.active .zone-tag {
+        background: #09090b !important;
+        color: #ffffff !important;
+        border: 1px solid #09090b !important;
+      }
+      [data-theme="dark"] .zone-tab-btn.active .zone-tag,
+      [data-theme="dark"] .dropdown-zone-item.active .zone-tag {
+        background: #ffffff !important;
+        color: #09090b !important;
+        border: 1px solid #ffffff !important;
+      }
+
+      .hiring-mobile-dropdown-wrap {
+        display: none !important;
+      }
+
+      .principles-synthesis {
+        max-width: 860px !important;
+        margin: 40px auto 0 !important;
+        text-align: center !important;
+        font-size: 16px !important;
+        line-height: 1.8 !important;
+        color: var(--ink) !important;
+      }
+      .synthesis-badge {
+        display: inline-block !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.08em !important;
+        text-transform: uppercase !important;
+        color: var(--muted) !important;
+        margin-bottom: 12px !important;
+      }
+      .principles-synthesis p {
+        margin: 0 !important;
+      }
+
+      @media (max-width: 860px) {
+        .hiring-zones-sidebar {
+          display: none !important;
+        }
+        .hiring-mobile-dropdown-wrap {
+          display: block !important;
+          position: relative !important;
+          margin-bottom: 20px !important;
+          width: 100% !important;
+        }
+        .hiring-dropdown-trigger {
+          width: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 12px 14px !important;
+          background: var(--bg) !important;
+          border: 1.5px solid var(--line) !important;
+          border-radius: 12px !important;
+          color: var(--ink) !important;
+          cursor: pointer !important;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+          font-family: inherit !important;
+        }
+        .hiring-dropdown-trigger:hover,
+        .hiring-mobile-dropdown-wrap.open .hiring-dropdown-trigger {
+          border-color: var(--ink) !important;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+        }
+        .dropdown-trigger-left {
+          display: flex !important;
+          align-items: center !important;
+          gap: 10px !important;
+          min-width: 0 !important;
+          text-align: left !important;
+        }
+        .trigger-zone-tag {
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          padding: 3px 7px !important;
+          border-radius: 5px !important;
+          background: #09090b !important;
+          color: #ffffff !important;
+          flex-shrink: 0 !important;
+        }
+        [data-theme="dark"] .trigger-zone-tag {
+          background: #ffffff !important;
+          color: #09090b !important;
+        }
+        .trigger-zone-title {
+          font-size: 13.5px !important;
+          font-weight: 700 !important;
+          color: var(--ink) !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .dropdown-trigger-right {
+          display: flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          flex-shrink: 0 !important;
+        }
+        .trigger-count {
+          font-size: 11px !important;
+          font-weight: 600 !important;
+          color: var(--muted) !important;
+          background: var(--panel) !important;
+          padding: 2px 7px !important;
+          border-radius: 10px !important;
+          border: 1px solid var(--line) !important;
+        }
+        .trigger-chevron {
+          color: var(--muted) !important;
+          transition: transform 0.25s ease !important;
+        }
+        .hiring-mobile-dropdown-wrap.open .trigger-chevron {
+          transform: rotate(180deg) !important;
+        }
+        .hiring-dropdown-menu {
+          display: none !important;
+          position: absolute !important;
+          top: calc(100% + 6px) !important;
+          left: 0 !important;
+          right: 0 !important;
+          z-index: 40 !important;
+          background: var(--panel) !important;
+          border: 1px solid var(--line) !important;
+          border-radius: 12px !important;
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12) !important;
+          padding: 6px !important;
+          max-height: 380px !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+        .hiring-mobile-dropdown-wrap.open .hiring-dropdown-menu {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 4px !important;
+          animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-zone-item {
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+          padding: 10px 12px !important;
+          border-radius: 8px !important;
+          border: 1px solid transparent !important;
+          background: transparent !important;
+          color: var(--ink) !important;
+          text-align: left !important;
+          cursor: pointer !important;
+          width: 100% !important;
+          transition: all 0.15s ease !important;
+        }
+        .dropdown-zone-item:hover {
+          background: var(--bg) !important;
+        }
+        .dropdown-zone-item.active {
+          background: var(--bg) !important;
+          border-color: var(--line) !important;
+        }
+        .dropdown-zone-item.active .zone-info strong {
+          color: var(--ink) !important;
+        }
+
+        /* Mobile Synthesis Block: Compact & Editorial */
+        .principles-synthesis {
+          margin: 24px auto 0 !important;
+          padding: 18px 16px !important;
+          font-size: 14px !important;
+          line-height: 1.65 !important;
+          text-align: left !important;
+          background: var(--panel) !important;
+          border: 1px solid var(--line) !important;
+          border-radius: 12px !important;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+        }
+        .principles-synthesis p {
+          text-align: left !important;
+        }
+      }
+
     </style>
-    <script src="/landing.js?v=20261115-v12-mobile-perfect" defer></script>
+    <script src="/landing.js?v=20261115-v13-dropdown-clean" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -775,15 +1149,70 @@
               <span class="hiring-badge-7zones">7 VÙNG NGHIỆP VỤ · 14 NHÂN SỰ SỐ</span>
             </div>
 
-            <!-- Mobile Horizontal Zone Bar -->
-            <div class="hiring-mobile-zones-bar">
-              <button type="button" class="zone-tab-btn" data-zone="1">Z1 Điều Hành</button>
-              <button type="button" class="zone-tab-btn active" data-zone="2">Z2 Marketing</button>
-              <button type="button" class="zone-tab-btn" data-zone="3">Z3 Bán Hàng</button>
-              <button type="button" class="zone-tab-btn" data-zone="4">Z4 Vận Hành</button>
-              <button type="button" class="zone-tab-btn" data-zone="5">Z5 CSKH</button>
-              <button type="button" class="zone-tab-btn" data-zone="6">Z6 Tài Chính</button>
-              <button type="button" class="zone-tab-btn" data-zone="7">Z7 Nhân Sự</button>
+            <!-- Mobile Sleek Dropdown Selector (Xổ xuống mượt mà) -->
+            <div class="hiring-mobile-dropdown-wrap">
+              <button type="button" class="hiring-dropdown-trigger" id="zone-dropdown-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <div class="dropdown-trigger-left">
+                  <span class="trigger-zone-tag" id="trigger-tag">Z2</span>
+                  <span class="trigger-zone-title" id="trigger-title">VÙNG 2: Phòng Marketing & Thu Hút</span>
+                </div>
+                <div class="dropdown-trigger-right">
+                  <span class="trigger-count">2 Bot</span>
+                  <svg class="trigger-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </button>
+              
+              <div class="hiring-dropdown-menu" id="zone-dropdown-menu" role="listbox">
+                <button type="button" class="dropdown-zone-item zone-tab-btn" data-zone="1">
+                  <span class="zone-tag">Z1</span>
+                  <div class="zone-info">
+                    <strong>Văn Phòng Điều Hành</strong>
+                    <small>Chiến lược & Bắt điểm nghẽn TOC</small>
+                  </div>
+                </button>
+                <button type="button" class="dropdown-zone-item zone-tab-btn active" data-zone="2">
+                  <span class="zone-tag">Z2</span>
+                  <div class="zone-info">
+                    <strong>Phòng Marketing</strong>
+                    <small>Trực lead 30s & Sáng tạo nội dung</small>
+                  </div>
+                </button>
+                <button type="button" class="dropdown-zone-item zone-tab-btn" data-zone="3">
+                  <span class="zone-tag">Z3</span>
+                  <div class="zone-info">
+                    <strong>Phòng Kinh Doanh</strong>
+                    <small>Báo giá 3 phút & Bẻ khóa từ chối</small>
+                  </div>
+                </button>
+                <button type="button" class="dropdown-zone-item zone-tab-btn" data-zone="4">
+                  <span class="zone-tag">Z4</span>
+                  <div class="zone-info">
+                    <strong>Phòng Vận Hành</strong>
+                    <small>Giao ban 8h & Kiểm soát nghiệm thu</small>
+                  </div>
+                </button>
+                <button type="button" class="dropdown-zone-item zone-tab-btn" data-zone="5">
+                  <span class="zone-tag">Z5</span>
+                  <div class="zone-info">
+                    <strong>Phòng CSKH & Giữ Chân</strong>
+                    <small>Chăm sóc tái mua & Xoa dịu khiếu nại</small>
+                  </div>
+                </button>
+                <button type="button" class="dropdown-zone-item zone-tab-btn" data-zone="6">
+                  <span class="zone-tag">Z6</span>
+                  <div class="zone-info">
+                    <strong>Phòng Tài Chính</strong>
+                    <small>Thu hồi công nợ & Bảo vệ Margin</small>
+                  </div>
+                </button>
+                <button type="button" class="dropdown-zone-item zone-tab-btn" data-zone="7">
+                  <span class="zone-tag">Z7</span>
+                  <div class="zone-info">
+                    <strong>Phòng Nhân Sự</strong>
+                    <small>Tuyển dụng Role Redesign & Gia sư SOP</small>
+                  </div>
+                </button>
+              </div>
             </div>
 
             <!-- Main Layout: Sidebar 7 Zones + Content Panel -->
@@ -1417,8 +1846,11 @@
             <article class="principle-core"><div class="principle-core-head"><span class="principle-caio"><img src="/assets/mascots/mascot-5.png" alt="">Giám sát bởi CAIO Master</span></div><h3>Resilient AI & Trách Nhiệm Giải Trình Của CAIO</h3><p>Hệ thống có khả năng thích ứng cao, bất biến trước sự thay đổi của công nghệ. Tại RAI², mọi tác vụ số đều có Giám đốc AI (CAIO) đứng sau giám sát: chịu trách nhiệm về số liệu P&L, kiểm soát rủi ro bảo mật và cam kết kết quả đầu ra cho toàn bộ doanh nghiệp bạn.</p></article>
           </div>
 
-          <div class="principles-synthesis" style="max-width: 860px; margin: 40px auto 0; text-align: center; font-size: 16.5px; line-height: 1.75; color: var(--ink);">
-            <p style="margin: 0;">Khi nhắc đến <strong>RAI²</strong>, bạn hiểu rằng đó là <u>sự hợp nhất giữa Người và Máy là các hệ thống AI</u>, bắt buộc phải có <strong><u>MỘT NGƯỜI chịu trách nhiệm chính (RESPONSIBILITY AI)</u></strong> đứng ở giữa gỡ bỏ các chắp vá AI <strong>(<u>RETROFIT AI</u>)</strong>, sau đó tái thiết kế lại các quy trình cũ <strong>(<u>RE-ENGINEERED AI</u>)</strong> để xây dựng nên các quy trình AI đáng tin cậy <strong>(<u>RELIABLE AI</u>)</strong> khiến cả đội ngũ tin tưởng phối hợp cùng AI hướng đến mục tiêu tạo ra kết quả <strong>(<u>RESULTS-DRIVEN AI</u>)</strong>, đặc biệt là kết quả doanh thu <strong>(<u>REVENUE AI</u>)</strong>. Quan trọng nhất, hệ thống này có khả năng thích ứng cao <strong><u>(RESILIENT AI)</u></strong> bất biến trước sự thay đổi của công nghệ.</p>
+          <div class="principles-synthesis">
+            <div class="synthesis-badge">✦ BẢN CHẤT CỐT LÕI CỦA HỆ THỐNG RAI²</div>
+            <p>Khi nhắc đến <strong>RAI²</strong>, bạn hiểu rằng đó là <strong>sự hợp nhất giữa Người và Máy là các hệ thống AI</strong>, bắt buộc phải có <strong>MỘT NGƯỜI chịu trách nhiệm chính (RESPONSIBILITY AI)</strong> đứng ở giữa gỡ bỏ các chắp vá AI <strong>(RETROFIT AI)</strong>, sau đó tái thiết kế lại các quy trình cũ <strong>(RE-ENGINEERED AI)</strong> để xây dựng nên các quy trình AI đáng tin cậy <strong>(RELIABLE AI)</strong> khiến cả đội ngũ tin tưởng phối hợp cùng AI hướng đến mục tiêu tạo ra kết quả <strong>(RESULTS-DRIVEN AI)</strong>, đặc biệt là kết quả doanh thu <strong>(REVENUE AI)</strong>. Quan trọng nhất, hệ thống này có khả năng thích ứng cao <strong>(RESILIENT AI)</strong> bất biến trước sự thay đổi của công nghệ.</p>
+          </div>
+            <p>Khi nhắc đến <strong>RAI²</strong>, bạn hiểu rằng đó là <strong>sự hợp nhất giữa Người và Máy là các hệ thống AI</strong>, bắt buộc phải có <strong>MỘT NGƯỜI chịu trách nhiệm chính (RESPONSIBILITY AI)</strong> đứng ở giữa gỡ bỏ các chắp vá AI <strong>(RETROFIT AI)</strong>, sau đó tái thiết kế lại các quy trình cũ <strong>(RE-ENGINEERED AI)</strong> để xây dựng nên các quy trình AI đáng tin cậy <strong>(RELIABLE AI)</strong> khiến cả đội ngũ tin tưởng phối hợp cùng AI hướng đến mục tiêu tạo ra kết quả <strong>(RESULTS-DRIVEN AI)</strong>, đặc biệt là kết quả doanh thu <strong>(REVENUE AI)</strong>. Quan trọng nhất, hệ thống này có khả năng thích ứng cao <strong>(RESILIENT AI)</strong> bất biến trước sự thay đổi của công nghệ.</p>
           </div>
         </div>
       </section>
