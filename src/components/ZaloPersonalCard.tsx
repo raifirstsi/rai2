@@ -217,20 +217,58 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
 
       <div className="ps-[52px]">
         {connected && (
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-ink-secondary">
-            <span>Gán bot xử lý tin nhắn:</span>
-            {state.bots.filter((b) => !b.hidden).slice(0, 5).map((bot) => (
-              <button
-                key={bot.id}
-                type="button"
-                onClick={() => openBotSettings(dispatch, "access", { botId: bot.id, page: "apps" })}
-                className="inline-flex items-center gap-1 rounded-full bg-raised/80 px-2 py-0.5 text-[11px] font-medium text-ink hover:bg-raised-hover hover:text-accent-text"
-                title={`Cấu hình quyền cho bot ${bot.name}`}
-              >
-                <BotIcon size={12} className="text-accent-text" />
-                {bot.name}
-              </button>
-            ))}
+          <div className="mt-2 flex flex-col gap-2 rounded-lg bg-raised/40 p-2.5 text-[12px]">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-ink">Bot phụ trách tiếp nhận tin nhắn:</span>
+              {status?.assignedBotId && (
+                <span className="text-[11px] font-semibold text-accent-text">
+                  ✓ Đang kích hoạt
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {state.bots.filter((b) => !b.hidden).map((bot) => {
+                const isSelected = status?.assignedBotId === bot.id;
+                return (
+                  <button
+                    key={bot.id}
+                    type="button"
+                    onClick={async () => {
+                      const newBotId = isSelected ? undefined : bot.id;
+                      try {
+                        await api("/api/zalo/personal", {
+                          method: "POST",
+                          body: JSON.stringify({ assignedBotId: newBotId }),
+                        });
+                        void load();
+                      } catch {}
+                    }}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                      isSelected
+                        ? "bg-accent text-white shadow-sm"
+                        : "bg-raised/80 text-ink hover:bg-raised-hover hover:text-accent-text"
+                    }`}
+                    title={isSelected ? `Nhấp để bỏ gán bot ${bot.name}` : `Gán bot ${bot.name} nhận tin nhắn Zalo`}
+                  >
+                    <BotIcon size={12} className={isSelected ? "text-white" : "text-accent-text"} />
+                    <span>{bot.name}</span>
+                    {isSelected && <Check size={11} className="stroke-[3]" />}
+                  </button>
+                );
+              })}
+            </div>
+            {status?.assignedBotId && (
+              <div className="flex items-center justify-between pt-1 text-[11px] text-ink-secondary">
+                <span>Tin nhắn từ khách Zalo sẽ tự động chuyển vào hội thoại của bot này.</span>
+                <button
+                  type="button"
+                  onClick={() => openBotSettings(dispatch, "access", { botId: status.assignedBotId!, page: "apps" })}
+                  className="font-medium text-accent-text hover:underline"
+                >
+                  Cấu hình nâng cao →
+                </button>
+              </div>
+            )}
           </div>
         )}
 

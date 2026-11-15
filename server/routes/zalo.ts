@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { z } from "zod";
 
 import { writeFileAtomic } from "../atomic.ts";
@@ -17,19 +17,22 @@ const oaInputSchema = z.object({
 }).strict();
 
 const personalInputSchema = z.object({
-  phone: z.string().trim().max(32).optional(),
+  phone: z.string().trim().max(64).optional(),
   sessionCookie: z.string().trim().max(16384).optional(),
   secretKey: z.string().trim().max(256).optional(),
   gatewayUrl: z.string().trim().max(512).optional(),
+  assignedBotId: z.string().trim().max(128).optional(),
 }).strict();
 
 export interface ZaloRouteDeps {
   dataDir?: string;
   onOAMessage?: (senderId: string, text: string) => Promise<void> | void;
+  onPersonalMessage?: (botId: string, senderId: string, text: string, senderName?: string) => Promise<void> | void;
 }
 
 export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
   const dataDir = deps.dataDir ?? DATA_DIR;
+  const workspaceId = process.env.OMB_SIGNIN_TENANT_SLUG || basename(dirname(dataDir)) || "default";
   const oaFile = join(dataDir, "zalo-oa.json");
   const personalFile = join(dataDir, "zalo-personal.json");
 
@@ -63,6 +66,21 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
         }
       }
       return json(res, 200, { error: 0, message: "ok" });
+    }
+
+    // 2. Zalo Personal Inbound Webhook (forwarded from Zalo Gateway)
+    if (path === "/api/webhooks/zalo-personal" && method === "POST") {
+      const rawBody = await readBody(req, 1_048_576);
+      if (rawBody && typeof rawBody === "object") {
+        const payload = rawBody as { workspaceId?: string; fromId?: string; text?: string; fromName?: string };
+        const config = readPersonal();
+        if (config?.assignedBotId && deps.onPersonalMessage && payload.fromId && payload.text) {
+          try {
+            await deps.onPersonalMessage(config.assignedBotId, payload.fromId, payload.text, payload.fromName);
+          } catch {}
+        }
+      }
+      return json(res, 200, { ok: true });
     }
 
     if (!path.startsWith("/api/zalo")) return PASS;
@@ -111,11 +129,30 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
     if (path === "/api/zalo/personal") {
       if (method === "GET") {
         const config = readPersonal();
+        let gwConnected = false;
+        let liveUserInfo: { uid?: string; name?: string; phone?: string; avatar?: string } | undefined;
+
+        try {
+          const gwRes = await fetch(`http://127.0.0.1:18789/status?workspaceId=${encodeURIComponent(workspaceId)}`, { signal: AbortSignal.timeout(2000) });
+          if (gwRes.ok) {
+            const data = await gwRes.json() as { connected: boolean; userInfo?: { uid?: string; name?: string; phone?: string; avatar?: string } };
+            gwConnected = Boolean(data.connected);
+            liveUserInfo = data.userInfo;
+          }
+        } catch {}
+
+        const isConnected = (config && gwConnected) || (config && Boolean(config.phone));
+        const displayName = liveUserInfo?.name && liveUserInfo.name !== "Zalo User"
+          ? `${liveUserInfo.name}${liveUserInfo.phone ? ` (${liveUserInfo.phone})` : ""}`
+          : (config?.phone ? `Zalo (${config.phone})` : undefined);
+
         const status: ZaloPersonalStatus = {
-          state: config ? "connected" : "not-connected",
-          phone: config?.phone,
-          displayName: config?.phone ? `Zalo (${config.phone})` : undefined,
-          gatewayConnected: Boolean(config?.gatewayUrl),
+          state: isConnected ? "connected" : "not-connected",
+          phone: liveUserInfo?.phone || config?.phone,
+          displayName,
+          avatarUrl: liveUserInfo?.avatar,
+          assignedBotId: config?.assignedBotId,
+          gatewayConnected: gwConnected,
           lastConnectedAt: config?.configuredAt ?? null,
         };
         return json(res, 200, status);
@@ -126,7 +163,12 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
       if (method === "POST") {
         const parsed = personalInputSchema.safeParse(await readBody(req, 32_768));
         if (!parsed.success) return json(res, 400, { error: "Invalid Zalo Personal configuration parameters" });
-        const config: ZaloPersonalConfig = { ...parsed.data, configuredAt: Date.now() };
+        const existing = readPersonal();
+        const config: ZaloPersonalConfig = {
+          ...existing,
+          ...parsed.data,
+          configuredAt: Date.now(),
+        };
         writeFileAtomic(personalFile, JSON.stringify(config, null, 2), { mode: 0o600 });
         return json(res, 200, { ok: true });
       }
@@ -134,6 +176,11 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
       if (method === "DELETE") {
         try {
           if (existsSync(personalFile)) unlinkSync(personalFile);
+          await fetch("http://127.0.0.1:18789/disconnect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workspaceId }),
+          });
         } catch {}
         return json(res, 200, { ok: true });
       }
@@ -147,27 +194,38 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
 
       if (method === "POST") {
         try {
-          await fetch("http://127.0.0.1:18789/login-qr", { method: "POST" });
+          const webhookPort = process.env.OMB_WEBHOOK_PORT || 8811;
+          await fetch("http://127.0.0.1:18789/login-qr", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workspaceId,
+              webhookUrl: `http://127.0.0.1:${webhookPort}/api/webhooks/zalo-personal`,
+            }),
+          });
         } catch {}
         return json(res, 200, { ok: true, status: "started" });
       }
 
       if (method === "GET") {
         try {
-          const gwRes = await fetch("http://127.0.0.1:18789/status", { signal: AbortSignal.timeout(3000) });
+          const gwRes = await fetch(`http://127.0.0.1:18789/status?workspaceId=${encodeURIComponent(workspaceId)}`, { signal: AbortSignal.timeout(3000) });
           const gwData = await gwRes.json() as {
+            workspaceId?: string;
             connected: boolean;
             qrStatus: string;
             qrData: string | null;
-            userInfo?: { id?: string; name?: string; avatar?: string };
+            userInfo?: { uid?: string; name?: string; phone?: string; avatar?: string };
             error?: string | null;
           };
 
           if (gwData.connected || gwData.qrStatus === "ready") {
+            const existing = readPersonal();
             const config: ZaloPersonalConfig = {
-              phone: gwData.userInfo?.id || "Zalo User",
+              phone: gwData.userInfo?.phone || gwData.userInfo?.name || existing?.phone || "Zalo User",
               gatewayUrl: "http://127.0.0.1:18789",
-              configuredAt: Date.now(),
+              assignedBotId: existing?.assignedBotId,
+              configuredAt: existing?.configuredAt || Date.now(),
             };
             writeFileAtomic(personalFile, JSON.stringify(config, null, 2), { mode: 0o600 });
           }
@@ -184,6 +242,29 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
       }
 
       return json(res, 405, { error: "method not allowed" });
+    }
+
+    // Send Outbound Zalo Message
+    if (path === "/api/zalo/personal/send" && method === "POST") {
+      if (!auth.scopes.includes("admin")) return json(res, 403, { error: "Admin only" });
+      const body = (await readBody(req, 65_536)) as { toId?: string; text?: string };
+      if (!body?.toId || !body?.text) return json(res, 400, { error: "toId and text are required" });
+
+      try {
+        const gwRes = await fetch("http://127.0.0.1:18789/send-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceId,
+            toId: body.toId,
+            text: body.text,
+          }),
+        });
+        const gwData = await gwRes.json();
+        return json(res, gwRes.status, gwData);
+      } catch (e) {
+        return json(res, 500, { error: (e as Error).message || "Failed to reach Zalo Gateway" });
+      }
     }
 
     return json(res, 404, { error: "not found" });
