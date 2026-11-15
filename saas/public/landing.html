@@ -130,7 +130,57 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/landing.css?v=20261115-content-refresh1">
+    <link rel="stylesheet" href="/landing.css?v=20261115-v7-center980-img480">
+    <style id="layout-focus-center">
+      /* Bypasses any browser/CDN CSS caching: ensures focused center layout & balanced illustration image sizes */
+      .site-shell {
+        width: min(100% - 48px, 980px) !important;
+        margin-inline: auto !important;
+      }
+      .section-intro {
+        max-width: 760px !important;
+        margin-bottom: 40px !important;
+      }
+      .section-intro.centered {
+        margin-inline: auto !important;
+        text-align: center !important;
+      }
+      .method-image-wrap {
+        max-width: 480px !important;
+        width: 100% !important;
+        margin: 24px auto !important;
+        text-align: center !important;
+      }
+      .method-image-wrap img {
+        max-width: 480px !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        display: block !important;
+        border-radius: 8px !important;
+        border: 1px solid var(--line) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+      }
+      .comparison-wrap {
+        max-width: 920px !important;
+        margin-inline: auto !important;
+      }
+      .testimonial-avatar-empty {
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 50% !important;
+        background: #f1f5f9 !important;
+        border: 1.5px dashed #cbd5e1 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+      }
+      [data-theme="dark"] .testimonial-avatar-empty {
+        background: #1e293b !important;
+        border-color: #475569 !important;
+      }
+    </style>
     <script src="/landing.js?v=20261114-theme-sync1" defer></script>
   </head>
   <body>
@@ -229,8 +279,8 @@
             <p>Hãy thành thật với nhau một câu: Bạn đã mua bao nhiêu tài khoản ChatGPT Plus cho nhân viên? Bao nhiêu phần mềm AI được ca tụng trên mạng đã được cắm vào công ty bạn? Và cuối tháng, lợi nhuận ròng trên bảng P&L của bạn có tăng lên đồng nào không, hay chỉ thấy chi phí phình to và nhân viên ngày càng lười suy nghĩ?</p>
           </div>
 
-          <figure class="method-image-wrap">
-            <img src="/assets/news/rai2-os-google-ai-first.webp" alt="Google Search: AI first là gì" loading="lazy">
+          <figure class="method-image-wrap" style="max-width: 480px; width: 100%; margin: 24px auto; text-align: center;">
+            <img src="/assets/news/rai2-os-google-ai-first.webp" alt="Google Search: AI first là gì" loading="lazy" style="max-width: 480px; width: 100%; height: auto; margin: 0 auto; display: block; border-radius: 8px; border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
             <figcaption>Cơn ác mộng AI-First bắt đầu khi mọi người ném AI vào quy trình rách nát cũ</figcaption>
           </figure>
 
@@ -249,8 +299,8 @@
             </article>
           </div>
 
-          <figure class="method-image-wrap">
-            <img src="/assets/news/rai2-os-ai2-actual-intelligence.webp" alt="AI² = ARTIFICIAL INTELLIGENCE + ACTUAL INTELLIGENCE" loading="lazy">
+          <figure class="method-image-wrap" style="max-width: 480px; width: 100%; margin: 24px auto; text-align: center;">
+            <img src="/assets/news/rai2-os-ai2-actual-intelligence.webp" alt="AI² = ARTIFICIAL INTELLIGENCE + ACTUAL INTELLIGENCE" loading="lazy" style="max-width: 480px; width: 100%; height: auto; margin: 0 auto; display: block; border-radius: 8px; border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
             <figcaption>AI² = Trí tuệ Nhân tạo + Trí tuệ Thật sự của Con người</figcaption>
           </figure>
 
@@ -261,8 +311,8 @@
             </p>
           </div>
 
-          <figure class="method-image-wrap">
-            <img src="/assets/news/rai2-os-7-nguyen-tac-cot-tu.webp" alt="Sơ đồ 7 Nguyên tắc cốt tử của RAI²" loading="lazy">
+          <figure class="method-image-wrap" style="max-width: 480px; width: 100%; margin: 24px auto; text-align: center;">
+            <img src="/assets/news/rai2-os-7-nguyen-tac-cot-tu.webp" alt="Sơ đồ 7 Nguyên tắc cốt tử của RAI²" loading="lazy" style="max-width: 480px; width: 100%; height: auto; margin: 0 auto; display: block; border-radius: 8px; border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
             <figcaption>Sơ đồ 7 Nguyên tắc cốt tử của Hệ điều hành RAI² First OS</figcaption>
           </figure>
 
@@ -287,8 +337,8 @@
             <p>Bản thiết kế giúp chuyển giao tri thức từ cái đầu của người chủ thành quy trình thực chiến chuẩn hóa cho nhân sự số tự động vận hành.</p>
           </div>
 
-          <figure class="method-image-wrap">
-            <img src="/assets/news/rai2-os-operating-system-definition.webp" alt="Định nghĩa Hệ điều hành từ Google" loading="lazy">
+          <figure class="method-image-wrap" style="max-width: 480px; width: 100%; margin: 24px auto; text-align: center;">
+            <img src="/assets/news/rai2-os-operating-system-definition.webp" alt="Định nghĩa Hệ điều hành từ Google" loading="lazy" style="max-width: 480px; width: 100%; height: auto; margin: 0 auto; display: block; border-radius: 8px; border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
             <figcaption>Định nghĩa Hệ điều hành từ gốc rễ khoa học công nghệ</figcaption>
           </figure>
 
@@ -302,8 +352,8 @@
             </ul>
           </div>
 
-          <figure class="method-image-wrap">
-            <img src="/assets/news/rai2-os-so-do-he-dieu-hanh.webp" alt="Sơ đồ cấu trúc Hệ điều hành RAI² First OS" loading="lazy">
+          <figure class="method-image-wrap" style="max-width: 480px; width: 100%; margin: 24px auto; text-align: center;">
+            <img src="/assets/news/rai2-os-so-do-he-dieu-hanh.webp" alt="Sơ đồ cấu trúc Hệ điều hành RAI² First OS" loading="lazy" style="max-width: 480px; width: 100%; height: auto; margin: 0 auto; display: block; border-radius: 8px; border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
             <figcaption>Sơ đồ cấu trúc Hệ điều hành RAI² First OS giúp doanh nghiệp tự hành</figcaption>
           </figure>
 
