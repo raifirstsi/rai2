@@ -74,9 +74,10 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
       if (rawBody && typeof rawBody === "object") {
         const payload = rawBody as { workspaceId?: string; fromId?: string; text?: string; fromName?: string };
         const config = readPersonal();
-        if (config?.assignedBotId && deps.onPersonalMessage && payload.fromId && payload.text) {
+        const assigned = config?.assignedBotId || "";
+        if (deps.onPersonalMessage && payload.fromId && payload.text) {
           try {
-            await deps.onPersonalMessage(config.assignedBotId, payload.fromId, payload.text, payload.fromName, payload.workspaceId || workspaceId);
+            await deps.onPersonalMessage(assigned, payload.fromId, payload.text, payload.fromName, payload.workspaceId || workspaceId);
           } catch {}
         }
       }

@@ -12189,17 +12189,39 @@ ROUTES.push(createBotLifecycleRoutes({
 }));
 ROUTES.push(createBotSkillsRoutes({ store, cfg, listBotSkills, readBotSkillFile, stagedSkillListing }));
 ROUTES.push(createEmailRoutes({ service: emailService }));
-const zaloPendingRecipients = new Map<string, { senderId: string; workspaceId: string }>();
+async function dispatchZaloOutbound(workspaceId: string, toId: string, messageText: string): Promise<void> {
+  const CHUNK_LIMIT = 1800;
+  if (messageText.length <= CHUNK_LIMIT) {
+    await fetch("http://127.0.0.1:18789/send-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId, toId, text: messageText }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    return;
+  }
+  for (let offset = 0; offset < messageText.length; offset += CHUNK_LIMIT) {
+    const chunk = messageText.slice(offset, offset + CHUNK_LIMIT);
+    await fetch("http://127.0.0.1:18789/send-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId, toId, text: chunk }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (offset + CHUNK_LIMIT < messageText.length) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+}
 
 ROUTES.push(createZaloRoutes({
   dataDir: DATA_DIR,
   onPersonalMessage: async (botId, senderId, text, senderName, wsId) => {
-    const targetBot = store.bot(botId);
+    const targetBot = (botId ? store.bot(botId) : null) || store.bots[0];
     if (!targetBot) return;
     const author = senderName ? `${senderName} (${senderId})` : senderId;
-    const prompt = `[Tin nhắn từ Zalo - ${author}]: ${text}`;
     const targetWs = wsId || process.env.OMB_SIGNIN_TENANT_SLUG || basename(dirname(DATA_DIR)) || "default";
-    zaloPendingRecipients.set(targetBot.threadId, { senderId, workspaceId: targetWs });
+    const prompt = `[Tin nhắn từ Zalo - ${author} | ws:${targetWs} | from:${senderId}]:\n${text}`;
     try {
       await startOrQueueDirectMessage(
         targetBot.id,
@@ -12218,25 +12240,34 @@ ROUTES.push(createZaloRoutes({
 
 bus.subscribe((event: RuntimeEvent) => {
   if (shouldIgnoreProviderEvent(event)) return;
-  if (event.type !== "turn.completed" || !event.turnId || !event.ok) return;
-  const zaloRecipient = zaloPendingRecipients.get(event.threadId);
-  if (!zaloRecipient) return;
+  if (event.type !== "turn.completed" || !event.turnId) return;
   const msgs = store.activePath(event.threadId);
-  const reply = msgs.findLast((m) => m.role === "bot" && m.kind === "text" && m.turnId === event.turnId);
-  if (!reply?.text) return;
-  const userMsg = msgs.findLast((m) => m.role === "user" && (m.turnId === event.turnId || m.text?.startsWith("[Tin nhắn từ Zalo")));
-  if (!userMsg?.text?.startsWith("[Tin nhắn từ Zalo")) return;
+  const replyAt = msgs.findLastIndex((m) => m.role === "bot" && m.kind === "text" && m.turnId === event.turnId);
+  const asked = replyAt >= 0
+    ? msgs.slice(0, replyAt).findLast((m) => m.role === "user" && m.kind === "text")
+    : msgs.findLast((m) => m.role === "user" && m.kind === "text");
+  if (!asked?.text) return;
 
-  void fetch("http://127.0.0.1:18789/send-message", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      workspaceId: zaloRecipient.workspaceId,
-      toId: zaloRecipient.senderId,
-      text: reply.text,
-    }),
-  }).catch((err) => {
-    console.warn(`[zalo-personal] outbound send failed for ${zaloRecipient.senderId}:`, err);
+  const match = /\[Tin nhắn từ Zalo.*?\| ws:([^\s|\]]+) \| from:([^\s|\]]+)\]:\n?([\s\S]*)/.exec(asked.text);
+  if (!match) return;
+  const [, wsId, toId] = match;
+
+  if (!event.ok) {
+    void dispatchZaloOutbound(
+      wsId,
+      toId,
+      "Dạ, hiện tại bot đang gặp sự cố tạm thời khi xử lý. Bạn vui lòng thử lại sau giây lát nhé.",
+    ).catch((err) => {
+      console.warn(`[zalo-personal] error notice failed for ${toId}:`, err);
+    });
+    return;
+  }
+
+  const replyText = replyAt >= 0 ? msgs[replyAt]?.text : null;
+  if (!replyText) return;
+
+  void dispatchZaloOutbound(wsId, toId, replyText).catch((err) => {
+    console.warn(`[zalo-personal] outbound send failed for ${toId}:`, err);
   });
 });
 ROUTES.push(phones.routes);
