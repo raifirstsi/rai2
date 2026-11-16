@@ -11,9 +11,9 @@
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
   --header-bg: rgb(255 255 255 / 0.85);
-  --brand-primary: #0099ff;
-  --brand-primary-hover: #0088ee;
-  --brand-primary-light: #e0f2fe;
+  --brand-primary: #000000;
+  --brand-primary-hover: #262626;
+  --brand-primary-light: #f1f5f9;
   --success: #10b981;
   --success-bg: #ecfdf5;
   --success-border: #a7f3d0;
@@ -44,9 +44,9 @@
   --text-muted: #999999;
   --text-subtle: #666666;
   --header-bg: rgb(0 0 0 / 0.85);
-  --brand-primary: #0099ff;
-  --brand-primary-hover: #0088ee;
-  --brand-primary-light: #0d1a25;
+  --brand-primary: #ffffff;
+  --brand-primary-hover: #e2e8f0;
+  --brand-primary-light: #161616;
   --success: #10b981;
   --success-bg: rgba(16, 185, 129, 0.12);
   --success-border: rgba(16, 185, 129, 0.28);
@@ -182,7 +182,7 @@ body:not(.auth-pending) #auth-loading {
   gap: 8px;
 }
 
-.brand img, .signin-brand img {
+.brand img {
   height: 24px;
   width: auto;
 }
@@ -205,15 +205,28 @@ body:not(.auth-pending) #auth-loading {
   height: 34px;
   padding: 0 14px;
   border-radius: var(--radius-full);
-  background: var(--brand-primary);
+  background: #000000;
   color: #ffffff;
+  border: 1px solid #000000;
   font-size: 13px;
   font-weight: 600;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .header-workspace-btn:hover {
-  background: var(--brand-primary-hover);
+  background: #262626;
+  border-color: #262626;
+}
+
+[data-theme="dark"] .header-workspace-btn {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+[data-theme="dark"] .header-workspace-btn:hover {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
 }
 
 .theme-toggle {
@@ -268,18 +281,41 @@ body:not(.auth-pending) #auth-loading {
 .signin-brand {
   display: none;
   justify-content: center;
-  margin-top: 48px;
-  margin-bottom: 24px;
+  margin-top: 64px;
+  margin-bottom: 28px;
 }
 
-body:not(.auth-pending):has(#signin:not([hidden])) .signin-brand {
+.signin-brand img {
+  height: 42px;
+  width: auto;
+}
+
+@media (max-width: 640px) {
+  .signin-brand {
+    margin-top: 48px;
+    margin-bottom: 20px;
+  }
+  .signin-brand img {
+    height: 34px;
+  }
+}
+
+body:not(.auth-pending):has(#signin:not([hidden])) .signin-brand,
+body.is-unauth:not(.auth-pending) .signin-brand {
   display: flex;
 }
 
-body:has(#signin:not([hidden])) .page-heading {
-  display: none;
+body.is-unauth .site-header,
+body:has(#signin:not([hidden])) .site-header {
+  display: none !important;
 }
 
+body.is-unauth .page-heading,
+body:has(#signin:not([hidden])) .page-heading {
+  display: none !important;
+}
+
+body.is-unauth .page-shell,
 body:has(#signin:not([hidden])) .page-shell {
   max-width: 440px;
 }
@@ -291,7 +327,7 @@ body:has(#signin:not([hidden])) .page-shell {
 
 .eyebrow {
   margin-bottom: 6px;
-  color: var(--brand-primary);
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -562,18 +598,32 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   gap: 8px;
   height: 40px;
   padding: 0 20px;
-  background: var(--brand-primary);
+  background: #000000;
   color: #ffffff;
+  border: 1px solid #000000;
   font-size: 14px;
   font-weight: 600;
   border-radius: var(--radius-full);
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.15s ease;
   cursor: pointer;
 }
 
 .primary.ui-button:hover {
-  background: var(--brand-primary-hover);
-  box-shadow: 0 2px 8px rgba(0, 153, 255, 0.25);
+  background: #262626;
+  border-color: #262626;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .primary.ui-button {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+[data-theme="dark"] .primary.ui-button:hover {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
 }
 
 .workspace-handle-form {
@@ -633,12 +683,30 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 .workspace-save {
   height: 34px;
   padding: 0 14px;
-  background: var(--brand-primary);
+  background: #000000;
   color: #ffffff;
+  border: 1px solid #000000;
   font-size: 13px;
   font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.workspace-save:hover {
+  background: #262626;
+  border-color: #262626;
+}
+
+[data-theme="dark"] .workspace-save {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+[data-theme="dark"] .workspace-save:hover {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
 }
 
 .cancel-btn {
@@ -801,14 +869,16 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .amount-accent {
-  color: var(--brand-primary) !important;
+  color: var(--text-main) !important;
   font-size: 15px;
+  font-weight: 700;
 }
 
 .memo-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  background: var(--brand-primary-light);
-  color: var(--brand-primary);
+  background: var(--bg-surface-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -975,11 +1045,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .signin-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 6px;
-  text-align: center;
+  display: none !important;
 }
 
 .signin-intro {
@@ -1015,8 +1081,13 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .form-row input:focus {
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.15);
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+}
+
+[data-theme="dark"] .form-row input:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15);
 }
 
 .signin-card .ui-button {
@@ -1158,9 +1229,9 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   gap: 6px;
   padding: 6px 14px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--brand-primary);
+  border: 1px solid var(--border-strong);
   background: transparent;
-  color: var(--brand-primary);
+  color: var(--text-main);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1168,8 +1239,15 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .header-upgrade-btn:hover {
-  background: var(--brand-primary);
+  background: #000000;
+  border-color: #000000;
   color: #ffffff;
+}
+
+[data-theme="dark"] .header-upgrade-btn:hover {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
 }
 
 .plan-btn-group {
@@ -1300,15 +1378,15 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .upgrade-plan-card.featured {
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 1px var(--brand-primary);
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 1px var(--text-main);
 }
 
 .upgrade-plan-badge {
   position: absolute;
   top: -10px;
   right: 16px;
-  background: var(--brand-primary);
+  background: #000000;
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
@@ -1316,6 +1394,11 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   padding: 2px 8px;
   border-radius: var(--radius-full);
   text-transform: uppercase;
+}
+
+[data-theme="dark"] .upgrade-plan-badge {
+  background: #ffffff;
+  color: #000000;
 }
 
 .upgrade-plan-tier {
@@ -1395,6 +1478,44 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   border-radius: var(--radius-md);
   cursor: pointer;
   text-align: center;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface-subtle);
+  color: var(--text-main);
+  transition: all 0.15s ease;
+}
+
+.upgrade-action-select:hover {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+[data-theme="dark"] .upgrade-action-select:hover {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.upgrade-action-select.primary {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.upgrade-action-select.primary:hover {
+  background: #262626;
+  border-color: #262626;
+}
+
+[data-theme="dark"] .upgrade-action-select.primary {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+[data-theme="dark"] .upgrade-action-select.primary:hover {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
 }
 
 .upgrade-action-select.current {

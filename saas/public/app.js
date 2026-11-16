@@ -88,8 +88,8 @@ const copy = {
 };
 
 const byId = (id) => document.getElementById(id);
-const show = (id, value) => { byId(id).hidden = !value; };
-const setText = (id, value) => { byId(id).textContent = value; };
+const show = (id, value) => { const el = byId(id); if (el) el.hidden = !value; };
+const setText = (id, value) => { const el = byId(id); if (el) el.textContent = value; };
 const finishAuthBootstrap = () => {
   document.body.classList.remove("auth-pending");
   show("auth-loading", false);
@@ -354,6 +354,7 @@ const refresh = async () => {
     const signinEl = byId("signin-container");
     if (appSurface) appSurface.hidden = false;
     if (signinEl) signinEl.hidden = true;
+    document.body.classList.remove("is-unauth");
     show("signin", false);
     show("account", true);
     show("logout", true);
@@ -365,7 +366,9 @@ const refresh = async () => {
     if (waiting && !readyTimer) readyTimer = setInterval(() => void refresh(), 3000);
     else if (!waiting && readyTimer) { clearInterval(readyTimer); readyTimer = null; }
   } catch (error) {
+    console.error("refresh failed:", error);
     account = null;
+    document.body.classList.add("is-unauth");
     const appSurface = byId("app-surface");
     const signinEl = byId("signin-container");
     if (appSurface) appSurface.hidden = true;
