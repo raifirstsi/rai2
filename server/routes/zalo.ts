@@ -27,7 +27,7 @@ const personalInputSchema = z.object({
 export interface ZaloRouteDeps {
   dataDir?: string;
   onOAMessage?: (senderId: string, text: string) => Promise<void> | void;
-  onPersonalMessage?: (botId: string, senderId: string, text: string, senderName?: string) => Promise<void> | void;
+  onPersonalMessage?: (botId: string, senderId: string, text: string, senderName?: string, workspaceId?: string) => Promise<void> | void;
 }
 
 export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
@@ -76,7 +76,7 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
         const config = readPersonal();
         if (config?.assignedBotId && deps.onPersonalMessage && payload.fromId && payload.text) {
           try {
-            await deps.onPersonalMessage(config.assignedBotId, payload.fromId, payload.text, payload.fromName);
+            await deps.onPersonalMessage(config.assignedBotId, payload.fromId, payload.text, payload.fromName, payload.workspaceId || workspaceId);
           } catch {}
         }
       }

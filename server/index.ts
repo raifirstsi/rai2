@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { rm as removeDirectory } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ToolResults, TOOL_RESULT_MAX_CHARS } from "./tool-results.ts";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { authorizeExternalRuntime, externalRuntimeIsActive, type ExternalRuntimeGrant } from "./external-runtime.ts";
 import { z } from "zod";
 import { selectReplay, replayToolCalls, DEFAULT_REBUILD_BYTES, MAX_SUMMARY_BYTES } from "./context-rebuild.ts";
@@ -12189,19 +12189,56 @@ ROUTES.push(createBotLifecycleRoutes({
 }));
 ROUTES.push(createBotSkillsRoutes({ store, cfg, listBotSkills, readBotSkillFile, stagedSkillListing }));
 ROUTES.push(createEmailRoutes({ service: emailService }));
+const zaloPendingRecipients = new Map<string, { senderId: string; workspaceId: string }>();
+
 ROUTES.push(createZaloRoutes({
   dataDir: DATA_DIR,
-  onPersonalMessage: async (botId, senderId, text, senderName) => {
+  onPersonalMessage: async (botId, senderId, text, senderName, wsId) => {
     const targetBot = store.bot(botId);
     if (!targetBot) return;
     const author = senderName ? `${senderName} (${senderId})` : senderId;
-    store.appendMessage(targetBot.threadId, {
-      role: "user",
-      kind: "text",
-      text: `[Tin nhắn từ Zalo - ${author}]: ${text}`,
-    });
+    const prompt = `[Tin nhắn từ Zalo - ${author}]: ${text}`;
+    const targetWs = wsId || process.env.OMB_SIGNIN_TENANT_SLUG || basename(dirname(DATA_DIR)) || "default";
+    zaloPendingRecipients.set(targetBot.threadId, { senderId, workspaceId: targetWs });
+    try {
+      await startOrQueueDirectMessage(
+        targetBot.id,
+        targetBot.threadId,
+        prompt,
+        undefined,
+        undefined,
+        { name: author },
+        { kind: "user", label: "zalo-personal" },
+      );
+    } catch (err) {
+      console.warn("[zalo-personal] dispatch failed:", err);
+    }
   },
 }));
+
+bus.subscribe((event: RuntimeEvent) => {
+  if (shouldIgnoreProviderEvent(event)) return;
+  if (event.type !== "turn.completed" || !event.turnId || !event.ok) return;
+  const zaloRecipient = zaloPendingRecipients.get(event.threadId);
+  if (!zaloRecipient) return;
+  const msgs = store.activePath(event.threadId);
+  const reply = msgs.findLast((m) => m.role === "bot" && m.kind === "text" && m.turnId === event.turnId);
+  if (!reply?.text) return;
+  const userMsg = msgs.findLast((m) => m.role === "user" && (m.turnId === event.turnId || m.text?.startsWith("[Tin nhắn từ Zalo")));
+  if (!userMsg?.text?.startsWith("[Tin nhắn từ Zalo")) return;
+
+  void fetch("http://127.0.0.1:18789/send-message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      workspaceId: zaloRecipient.workspaceId,
+      toId: zaloRecipient.senderId,
+      text: reply.text,
+    }),
+  }).catch((err) => {
+    console.warn(`[zalo-personal] outbound send failed for ${zaloRecipient.senderId}:`, err);
+  });
+});
 ROUTES.push(phones.routes);
 ROUTES.push(createSkillShareRoutes({ enabled: () => skillsHost.mode() !== "off", botExists: (id) => Boolean(store.bot(id)),
   cardRefusal: (auth, threadId, requestId) => cardAnswerRefusal(auth, threadId, requestId, "allow"), shareFromReceipt: skillsHost.shareFromReceipt, shareFromBot: skillsHost.shareFromBot }));
