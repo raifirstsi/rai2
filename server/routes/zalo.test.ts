@@ -111,6 +111,33 @@ describe("server/routes/zalo - Multi-Tenant Zalo Integration", () => {
     );
   });
 
+  it("dispatches inbound zalo webhook message even if assignedBotId is not set", async () => {
+    const onPersonalMessage = vi.fn();
+    const call = createCaller({ onPersonalMessage });
+
+    const [status, data] = await call({
+      path: "/api/webhooks/zalo-personal",
+      method: "POST",
+      body: {
+        workspaceId: "test-workspace",
+        fromId: "zalo-user-456",
+        fromName: "Tran Van B",
+        text: "Hoi thong tin",
+        timestamp: Date.now(),
+      },
+    });
+
+    expect(status).toBe(200);
+    expect(data).toEqual({ ok: true });
+    expect(onPersonalMessage).toHaveBeenCalledWith(
+      "",
+      "zalo-user-456",
+      "Hoi thong tin",
+      "Tran Van B",
+      "test-workspace",
+    );
+  });
+
   it("deletes configuration on DELETE and signals gateway", async () => {
     const call = createCaller();
 
