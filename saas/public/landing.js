@@ -19,25 +19,53 @@ const syncTheme = () => {
   if (location.hostname === "rai2.si" || location.hostname.endsWith(".rai2.si")) {
     document.cookie = `rai2_theme=${root.dataset.theme}; Domain=rai2.si; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
   }
+  document.cookie = `rai2_theme=${root.dataset.theme}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+
+  const currentTheme = root.dataset.theme || "light";
+  document.querySelectorAll('a[href*="app.rai2.si"]').forEach((a) => {
+    try {
+      const u = new URL(a.href, window.location.href);
+      u.searchParams.set("theme", currentTheme);
+      a.href = u.toString();
+    } catch (e) {}
+  });
 };
 
 if (toggle) {
   toggle.addEventListener("click", () => {
     root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
     localStorage.setItem("rai2_landing_theme", root.dataset.theme);
+    localStorage.setItem("rai2_theme_choice", root.dataset.theme);
     syncTheme();
   });
 }
 syncTheme();
 
+document.addEventListener("click", (e) => {
+  const a = e.target && e.target.closest ? e.target.closest('a[href*="app.rai2.si"]') : null;
+  if (a) {
+    try {
+      const u = new URL(a.href, window.location.href);
+      u.searchParams.set("theme", root.dataset.theme || "light");
+      a.href = u.toString();
+    } catch (err) {}
+  }
+}, true);
+
 const syncLandingSession = (signedIn) => {
-  const workspaceHref = signedIn ? "https://app.rai2.si/?open=1" : "https://app.rai2.si/";
+  const currentTheme = root.dataset.theme || "light";
+  const workspaceHref = signedIn ? `https://app.rai2.si/?open=1&theme=${currentTheme}` : `https://app.rai2.si/?theme=${currentTheme}`;
   document.querySelectorAll(".session-cta").forEach((link) => {
     link.href = workspaceHref;
     link.textContent = signedIn ? "Truy cập RAI²" : "Trải nghiệm miễn phí";
   });
   document.querySelectorAll(".desktop-login-link, .mobile-login-link").forEach((link) => {
     link.textContent = signedIn ? "Quản lí tài khoản" : "Đăng nhập";
+    try {
+      const u = new URL(link.href, window.location.href);
+      u.searchParams.set("theme", currentTheme);
+      link.href = u.toString();
+    } catch (e) {}
   });
 };
 syncLandingSession(/(?:^|;\s*)rai2_signed_in=1(?:;|$)/.test(document.cookie));
