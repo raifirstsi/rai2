@@ -19,8 +19,8 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/app.css?v=20261114-clean-borders1">
-    <script src="/app.js?v=20261114-clean-borders1" defer></script>
+    <link rel="stylesheet" href="/app.css?v=20261116-monochrome1">
+    <script src="/app.js?v=20261116-monochrome1" defer></script>
   </head>
   <body class="auth-pending">
     <header class="site-header">
@@ -76,7 +76,7 @@
 
       <!-- Sign In Card -->
       <section id="signin" class="settings-card signin-card" hidden aria-labelledby="signin-title">
-        <h2 id="signin-title" class="signin-title" data-i18n="signinTitle">Bắt Đầu Với RAI²</h2>
+        <h2 id="signin-title" class="signin-title sr-only" data-i18n="signinTitle">Bắt Đầu Với RAI²</h2>
         <p class="signin-intro" data-i18n="signinIntro">Xác minh email để truy cập workspace của riêng bạn</p>
         <p id="trial-full" class="capacity-note" data-i18n="trialFull" hidden>Suất dùng thử đang đầy. Tài khoản cũ vẫn có thể đăng nhập.</p>
         <form id="email-form">
@@ -180,7 +180,7 @@
         <div class="card-body">
           <div class="plan-row">
             <div class="plan-info">
-              <h3 class="plan-name" data-i18n="planName">RAI² Starter</h3>
+              <h3 id="plan-name" class="plan-name" data-i18n="planName">RAI² Starter</h3>
               <p class="muted plan-desc" data-i18n="planDetail">Một workspace riêng · Tự kết nối khóa API AI</p>
               <p id="paid-through" class="plan-expiry-line" hidden></p>
               <p id="trial-through" class="plan-expiry-line" hidden></p>
