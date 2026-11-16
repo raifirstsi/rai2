@@ -27,7 +27,7 @@ const syncTheme = () => {
       const u = new URL(a.href, window.location.href);
       u.searchParams.set("theme", currentTheme);
       a.href = u.toString();
-    } catch (e) {}
+    } catch {}
   });
 };
 
@@ -48,7 +48,7 @@ document.addEventListener("click", (e) => {
       const u = new URL(a.href, window.location.href);
       u.searchParams.set("theme", root.dataset.theme || "light");
       a.href = u.toString();
-    } catch (err) {}
+    } catch {}
   }
 }, true);
 
@@ -65,7 +65,7 @@ const syncLandingSession = (signedIn) => {
       const u = new URL(link.href, window.location.href);
       u.searchParams.set("theme", currentTheme);
       link.href = u.toString();
-    } catch (e) {}
+    } catch {}
   });
 };
 syncLandingSession(/(?:^|;\s*)rai2_signed_in=1(?:;|$)/.test(document.cookie));
