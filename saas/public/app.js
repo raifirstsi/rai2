@@ -3,7 +3,7 @@ const copy = {
     title: "Tài khoản RAI²", logout: "Đăng xuất", eyebrow: "TÀI KHOẢN",
     themeDark: "Bật giao diện tối", themeLight: "Bật giao diện sáng",
     heading: "Không gian RAI² của bạn", signinTitle: "Bắt Đầu Với RAI²",
-    signinIntro: "Xác minh email để truy cập workspace của riêng bạn",
+    signinIntro: "Xác minh email để truy cập workspace của riêng\u00A0bạn",
     emailLabel: "Email của bạn",
     previewNote: "Bản xem trước riêng · Chưa mở thanh toán",
     sendCode: "Gửi mã xác nhận", emailPlaceholder: "", codeLabel: "Mã xác nhận", codePlaceholder: "8 chữ số",
@@ -208,13 +208,10 @@ const renderAccount = () => {
     : (effectiveTrialThrough > 0 || account.trialThrough) ? "trialExpired" : "unpaid"));
 
   show("workspace-row", active);
-  show("header-workspace-cta", active);
   if (active) {
     const host = new URL(account.workspaceUrl).host;
     byId("workspace-link").href = "/api/workspace/open";
     setText("workspace-address", host);
-    const headerCta = byId("header-workspace-cta");
-    if (headerCta) headerCta.href = "/api/workspace/open";
     if (!handleEditorOpen) byId("workspace-handle").value = accountHandle();
     updateHandleSave();
   }
@@ -228,7 +225,6 @@ const renderAccount = () => {
   setText("order-button", say(paid ? "renew" : "firstPayment"));
   show("order-button", paymentsEnabled && (!paid || active));
   show("upgrade-button", paymentsEnabled);
-  show("header-upgrade-btn", paymentsEnabled && entitled);
   show("setup-note", entitled && !active);
   if (entitled && !active) setText("setup-note", say(account.workspaceState === "error" ? "setupFailed" : "setupPending"));
 
@@ -593,9 +589,6 @@ const openUpgradeModal = () => {
 const closeUpgradeModal = () => {
   show("upgrade-modal", false);
 };
-
-const headerUpgradeBtn = byId("header-upgrade-btn");
-if (headerUpgradeBtn) headerUpgradeBtn.addEventListener("click", openUpgradeModal);
 
 const upgradeBtn = byId("upgrade-button");
 if (upgradeBtn) upgradeBtn.addEventListener("click", openUpgradeModal);
