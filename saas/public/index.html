@@ -19,8 +19,8 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/app.css?v=20261116-opt1">
-    <script src="/app.js?v=20261116-opt1" defer></script>
+    <link rel="stylesheet" href="/app.css?v=20261116-split-v1">
+    <script src="/app.js?v=20261116-split-v1" defer></script>
   </head>
   <body class="auth-pending">
     <header class="site-header">
@@ -52,12 +52,7 @@
         <p>Đang kiểm tra phiên đăng nhập…</p>
       </div>
 
-      <a class="signin-brand" href="https://rai2.si/" aria-label="RAI² - Trang chủ">
-        <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
-        <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
-      </a>
-
-      <!-- Page Heading -->
+      <!-- Page Heading (Only shown in dashboard) -->
       <div class="page-heading">
         <p class="eyebrow" data-i18n="eyebrow">TÀI KHOẢN</p>
         <h1 data-i18n="heading">Không gian RAI² của bạn</h1>
@@ -65,28 +60,117 @@
         <p id="preview-note" class="preview-note" data-i18n="previewNote" hidden>Bản xem trước riêng · Chưa mở thanh toán</p>
       </div>
 
-      <p id="message" class="message" role="status" aria-live="polite" hidden></p>
+      <!-- Sign In Split Layout (Monochrome, Desktop Split / Mobile Optimized) -->
+      <section id="signin" class="auth-split-wrapper" hidden aria-labelledby="signin-heading">
+        <div class="auth-split-grid">
+          <!-- LEFT COLUMN: Brand Showcase -->
+          <aside class="auth-showcase-col">
+            <div class="showcase-topbar">
+              <a class="auth-app-badge" href="https://rai2.si/" aria-label="RAI² Cloud">
+                <div class="app-icon-squircle">
+                  <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
+                  <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
+                </div>
+                <div class="app-badge-meta">
+                  <span class="app-badge-name">RAI²</span>
+                  <span class="app-badge-sub">Cloud</span>
+                </div>
+              </a>
+            </div>
 
-      <!-- Sign In Card -->
-      <section id="signin" class="settings-card signin-card" hidden aria-labelledby="signin-title">
-        <h2 id="signin-title" class="signin-title sr-only" data-i18n="signinTitle">Bắt Đầu Với RAI²</h2>
-        <p class="signin-intro" data-i18n="signinIntro">Xác minh email để truy cập workspace của riêng&nbsp;bạn</p>
-        <p id="trial-full" class="capacity-note" data-i18n="trialFull" hidden>Suất dùng thử đang đầy. Tài khoản cũ vẫn có thể đăng nhập.</p>
-        <form id="email-form">
-          <div class="form-row">
-            <label for="email" data-i18n="emailLabel">Email của bạn</label>
-            <input id="email" type="email" autocomplete="email" required maxlength="254" placeholder="name@company.com">
+            <div class="showcase-main">
+              <div class="showcase-emblem-wrap">
+                <div class="showcase-emblem-squircle" aria-hidden="true">
+                  <svg class="showcase-emblem-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 36V12H26C31.5228 12 36 16.4772 36 22C36 27.5228 31.5228 32 26 32H14M24 32L35 40" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="39" cy="11" r="3.5" fill="currentColor"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="showcase-text-group">
+                <p class="showcase-eyebrow" data-i18n="showcaseEyebrow">RAI² CLOUD</p>
+                <h1 class="showcase-headline" data-i18n="showcaseHeadline">Tài khoản Cloud của riêng bạn.</h1>
+                <p class="showcase-desc" data-i18n="showcaseDesc">Workspace riêng, ứng dụng AI kết nối và quản lý tài khoản, tất cả tại một nơi. Quyền làm chủ dữ liệu luôn thuộc về bạn.</p>
+              </div>
+
+              <div class="showcase-stepper">
+                <div class="stepper-item">
+                  <span class="step-num">1</span>
+                  <span class="step-label" data-i18n="step1">Nhập email của bạn</span>
+                </div>
+                <div class="stepper-item">
+                  <span class="step-num">2</span>
+                  <span class="step-label" data-i18n="step2">Xác thực mã đăng nhập</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="showcase-footer">
+              <span class="showcase-footer-brand">RAI² Cloud</span>
+            </div>
+          </aside>
+
+          <!-- RIGHT COLUMN: Authentication Card Panel -->
+          <div class="auth-form-col">
+            <div class="auth-card-panel">
+              <div class="auth-card-topbar">
+                <a class="auth-app-badge" href="https://rai2.si/" aria-label="RAI² Cloud">
+                  <div class="app-icon-squircle">
+                    <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
+                    <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
+                  </div>
+                  <div class="app-badge-meta">
+                    <span class="app-badge-name">RAI²</span>
+                    <span class="app-badge-sub">Cloud</span>
+                  </div>
+                </a>
+              </div>
+
+              <div class="auth-card-header">
+                <h2 id="signin-heading" class="auth-card-title" data-i18n="signinTitle">Đăng nhập RAI² Cloud</h2>
+                <p class="auth-card-subtitle" data-i18n="signinIntro">Chúng tôi sẽ gửi mã đăng nhập qua email. Không cần mật khẩu.</p>
+                <p id="trial-full" class="capacity-note" data-i18n="trialFull" hidden>Suất dùng thử đang đầy. Tài khoản cũ vẫn có thể đăng nhập.</p>
+              </div>
+
+              <p id="message" class="message" role="status" aria-live="polite" hidden></p>
+
+              <!-- Email Form -->
+              <form id="email-form" class="auth-form-body">
+                <div class="form-row">
+                  <label for="email" data-i18n="emailLabel">Địa chỉ email</label>
+                  <input id="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com" data-i18n-placeholder="emailPlaceholder">
+                </div>
+                <button type="submit" class="primary ui-button auth-submit-btn">
+                  <span data-i18n="sendCode">Gửi mã đăng nhập</span>
+                  <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+                </button>
+              </form>
+
+              <!-- Verification Code Form -->
+              <form id="code-form" class="auth-form-body" hidden>
+                <div class="form-row">
+                  <label for="code" data-i18n="codeLabel">Mã xác nhận</label>
+                  <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" maxlength="8" required placeholder="8 chữ số" data-i18n-placeholder="codePlaceholder">
+                </div>
+                <button type="submit" class="primary ui-button auth-submit-btn">
+                  <span data-i18n="verify">Xác nhận &amp; Tiếp tục</span>
+                  <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+                </button>
+                <button id="change-email" type="button" class="quiet-btn auth-back-btn" data-i18n="changeEmail">← Đổi email</button>
+              </form>
+
+              <div class="auth-card-divider"></div>
+
+              <p class="auth-disclaimer" data-i18n="authDisclaimer">Đăng nhập không tự động bắt đầu gói thuê bao, không tự động chuyển dữ liệu riêng tư.</p>
+
+              <div class="auth-security-badge">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span data-i18n="authSecurityNote">Không cần mật khẩu · Xác thực an toàn</span>
+              </div>
+            </div>
           </div>
-          <button type="submit" class="primary ui-button" data-i18n="sendCode">Gửi mã xác nhận</button>
-        </form>
-        <form id="code-form" hidden>
-          <div class="form-row">
-            <label for="code" data-i18n="codeLabel">Mã xác nhận</label>
-            <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" maxlength="8" required placeholder="8 chữ số" data-i18n-placeholder="codePlaceholder">
-          </div>
-          <button type="submit" class="primary ui-button" data-i18n="verify">Xác nhận</button>
-          <button id="change-email" type="button" class="quiet-btn" data-i18n="changeEmail">Đổi email</button>
-        </form>
+        </div>
       </section>
 
       <!-- Dashboard Card 1: Account & Workspace -->
