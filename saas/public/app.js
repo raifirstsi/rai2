@@ -2,15 +2,15 @@ const copy = {
   vi: {
     title: "Tài khoản RAI²", logout: "Đăng xuất", eyebrow: "TÀI KHOẢN",
     themeDark: "Bật giao diện tối", themeLight: "Bật giao diện sáng",
-    heading: "Không gian RAI² của bạn", signinTitle: "Đăng nhập RAI² Cloud",
+    heading: "Không gian RAI² của bạn", signinTitle: "Đăng nhập RAI²",
     signinIntro: "Chúng tôi sẽ gửi mã đăng nhập qua email. Không cần mật khẩu.",
     emailLabel: "Địa chỉ email",
     emailPlaceholder: "you@example.com",
     previewNote: "Bản xem trước riêng · Chưa mở thanh toán",
     sendCode: "Gửi mã đăng nhập", codeLabel: "Mã xác nhận", codePlaceholder: "8 chữ số",
     verify: "Xác nhận & Tiếp tục", changeEmail: "← Đổi email", accountTitle: "Tài khoản",
-    showcaseEyebrow: "RAI² CLOUD",
-    showcaseHeadline: "Tài khoản Cloud của riêng bạn.",
+    showcaseEyebrow: "RAI²",
+    showcaseHeadline: "Không gian làm việc riêng của bạn.",
     showcaseDesc: "Workspace riêng, ứng dụng AI kết nối và quản lý tài khoản, tất cả tại một nơi. Quyền làm chủ dữ liệu luôn thuộc về bạn.",
     step1: "Nhập email của bạn",
     step2: "Xác thực mã đăng nhập",
@@ -53,16 +53,16 @@ const copy = {
   en: {
     title: "RAI² account", logout: "Sign out", eyebrow: "ACCOUNT",
     themeDark: "Switch to dark theme", themeLight: "Switch to light theme",
-    heading: "Your RAI² workspace", signinTitle: "Sign in to RAI² Cloud",
+    heading: "Your RAI² workspace", signinTitle: "Sign in to RAI²",
     signinIntro: "We'll send you a sign-in code. No password needed.",
     emailLabel: "Email address",
     emailPlaceholder: "you@example.com",
     previewNote: "Private preview · Payments are not open",
     sendCode: "Email me a code", codeLabel: "Verification code", codePlaceholder: "8 digits",
     verify: "Verify & Continue", changeEmail: "← Change email", accountTitle: "Account",
-    showcaseEyebrow: "RAI² CLOUD",
-    showcaseHeadline: "Your personal Cloud account.",
-    showcaseDesc: "Your Cloud, its plan and the apps signed in to it, in one place. Your local app stays yours.",
+    showcaseEyebrow: "RAI²",
+    showcaseHeadline: "Your personal workspace.",
+    showcaseDesc: "Your workspace, AI apps and account management, all in one place. Your data always stays yours.",
     step1: "Enter your email",
     step2: "Verify your code",
     authDisclaimer: "Signing in doesn't start a subscription, connect an AI account or move your local chats.",
@@ -171,8 +171,10 @@ const setTheme = (value) => {
   theme = value === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = theme;
   const themeLabel = say(theme === "light" ? "themeDark" : "themeLight");
-  byId("theme-toggle").setAttribute("aria-label", themeLabel);
-  byId("theme-toggle").title = themeLabel;
+  document.querySelectorAll(".theme-toggle").forEach((btn) => {
+    btn.setAttribute("aria-label", themeLabel);
+    btn.title = themeLabel;
+  });
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.content = theme === "light" ? "#f8fafd" : "#000000";
   localStorage.setItem("rai2_landing_theme", theme);
@@ -408,7 +410,9 @@ const refresh = async () => {
 };
 
 byId("language").addEventListener("change", (event) => setLocale(event.target.value));
-byId("theme-toggle").addEventListener("click", () => applyThemeChoice(theme === "light" ? "dark" : "light"));
+document.querySelectorAll(".theme-toggle").forEach((btn) => {
+  btn.addEventListener("click", () => applyThemeChoice(theme === "light" ? "dark" : "light"));
+});
 
 byId("email-form").addEventListener("submit", async (event) => {
   event.preventDefault();
