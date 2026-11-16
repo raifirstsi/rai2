@@ -165,8 +165,10 @@ const openWhenReady = new URLSearchParams(location.search).get("open") === "1";
 const requestedPlan = ["starter", "pro", "team"].includes(new URLSearchParams(location.search).get("plan")) ? new URLSearchParams(location.search).get("plan") : null;
 const requestedCheckout = new URLSearchParams(location.search).get("checkout") === "1";
 const requestedBilling = new URLSearchParams(location.search).get("billing") === "1";
+const urlTheme = new URLSearchParams(location.search).get("theme");
 const themeCookie = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie)?.[1];
-let theme = themeCookie || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice") || "dark";
+const sharedTheme = (urlTheme === "dark" || urlTheme === "light") ? urlTheme : themeCookie;
+let theme = sharedTheme || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice") || "dark";
 const setTheme = (value) => {
   theme = value === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = theme;
@@ -178,9 +180,11 @@ const setTheme = (value) => {
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.content = theme === "light" ? "#f8fafd" : "#000000";
   localStorage.setItem("rai2_landing_theme", theme);
+  localStorage.setItem("rai2_theme_choice", theme);
   if (location.hostname === "rai2.si" || location.hostname.endsWith(".rai2.si")) {
     document.cookie = `rai2_theme=${theme}; Domain=rai2.si; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
   }
+  document.cookie = `rai2_theme=${theme}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
 };
 
 const say = (key) => copy[locale][key];
@@ -633,8 +637,7 @@ document.querySelectorAll("[data-plan-target]").forEach((btn) => {
 
 byId("transactions-refresh").addEventListener("click", () => void loadBilling());
 
-// Theme choice handling: cookie across *.rai2.si takes highest priority for cross-domain sync
-const sharedTheme = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie)?.[1];
+// Theme choice handling: cookie & URL param across *.rai2.si takes highest priority for cross-domain sync
 let themeChoice = sharedTheme || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice") || "dark";
 const applyThemeChoice = (choice) => {
   themeChoice = choice;

@@ -10,17 +10,26 @@
     <script>
       (function() {
         try {
+          var p = new URLSearchParams(window.location.search).get("theme");
           var c = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie);
-          var t = (c && c[1]) || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice");
+          var t = (p === "dark" || p === "light" ? p : null) || (c && c[1]) || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice");
           if (t === "system" || !t) {
             t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
           }
           document.documentElement.dataset.theme = t || "dark";
+          if (p === "dark" || p === "light") {
+            try {
+              document.cookie = "rai2_theme=" + p + "; Domain=rai2.si; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+              document.cookie = "rai2_theme=" + p + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+              localStorage.setItem("rai2_landing_theme", p);
+              localStorage.setItem("rai2_theme_choice", p);
+            } catch (err) {}
+          }
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/app.css?v=20261116-glow-v2">
-    <script src="/app.js?v=20261116-glow-v2" defer></script>
+    <link rel="stylesheet" href="/app.css?v=20261116-glow-v3">
+    <script src="/app.js?v=20261116-glow-v3" defer></script>
   </head>
   <body class="auth-pending">
     <header class="site-header">
