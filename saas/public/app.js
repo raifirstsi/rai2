@@ -346,6 +346,10 @@ const refresh = async () => {
   try {
     account = await request("/api/me");
     markLandingSession(true);
+    if (openWhenReady && account.workspaceUrl) {
+      location.replace("/api/workspace/open");
+      return;
+    }
     const appSurface = byId("app-surface");
     const signinEl = byId("signin-container");
     if (appSurface) appSurface.hidden = false;
@@ -356,10 +360,6 @@ const refresh = async () => {
     renderAccount();
     await loadBilling();
     if (requestedBilling) byId("billing").scrollIntoView({ behavior: "smooth" });
-    if (openWhenReady && account.workspaceUrl) {
-      location.replace("/api/workspace/open");
-      return;
-    }
     const waiting = Math.max(account.paidThrough, account.trialThrough) > Date.now() &&
       account.workspaceState !== "active" && account.workspaceState !== "error";
     if (waiting && !readyTimer) readyTimer = setInterval(() => void refresh(), 3000);
@@ -386,7 +386,9 @@ const refresh = async () => {
     show("payment", false);
     show("logout", false);
   } finally {
-    finishAuthBootstrap();
+    if (!(openWhenReady && account?.workspaceUrl)) {
+      finishAuthBootstrap();
+    }
   }
 };
 

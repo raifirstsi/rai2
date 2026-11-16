@@ -143,7 +143,9 @@ button:disabled {
 
 body.auth-pending .site-header,
 body.auth-pending .page-shell .settings-card,
-body.auth-pending .page-heading {
+body.auth-pending .page-heading,
+body.auth-pending .signin-brand,
+body.auth-pending #message {
   display: none !important;
 }
 
@@ -270,7 +272,7 @@ body:not(.auth-pending) #auth-loading {
   margin-bottom: 24px;
 }
 
-body:has(#signin:not([hidden])) .signin-brand {
+body:not(.auth-pending):has(#signin:not([hidden])) .signin-brand {
   display: flex;
 }
 
