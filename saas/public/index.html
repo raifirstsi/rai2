@@ -19,8 +19,8 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/app.css?v=20261116-split-v1">
-    <script src="/app.js?v=20261116-split-v1" defer></script>
+    <link rel="stylesheet" href="/app.css?v=20261116-clean-login2">
+    <script src="/app.js?v=20261116-clean-login2" defer></script>
   </head>
   <body class="auth-pending">
     <header class="site-header">
@@ -63,34 +63,18 @@
       <!-- Sign In Split Layout (Monochrome, Desktop Split / Mobile Optimized) -->
       <section id="signin" class="auth-split-wrapper" hidden aria-labelledby="signin-heading">
         <div class="auth-split-grid">
+          <!-- Subtle Floating Theme Toggle on Auth Screen -->
+          <button id="auth-theme-toggle" class="theme-toggle auth-theme-toggle" type="button" aria-label="Bật giao diện tối" title="Bật giao diện tối">
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-15.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+
           <!-- LEFT COLUMN: Brand Showcase -->
           <aside class="auth-showcase-col">
-            <div class="showcase-topbar">
-              <a class="auth-app-badge" href="https://rai2.si/" aria-label="RAI² Cloud">
-                <div class="app-icon-squircle">
-                  <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
-                  <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
-                </div>
-                <div class="app-badge-meta">
-                  <span class="app-badge-name">RAI²</span>
-                  <span class="app-badge-sub">Cloud</span>
-                </div>
-              </a>
-            </div>
-
             <div class="showcase-main">
-              <div class="showcase-emblem-wrap">
-                <div class="showcase-emblem-squircle" aria-hidden="true">
-                  <svg class="showcase-emblem-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14 36V12H26C31.5228 12 36 16.4772 36 22C36 27.5228 31.5228 32 26 32H14M24 32L35 40" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="39" cy="11" r="3.5" fill="currentColor"/>
-                  </svg>
-                </div>
-              </div>
-
               <div class="showcase-text-group">
-                <p class="showcase-eyebrow" data-i18n="showcaseEyebrow">RAI² CLOUD</p>
-                <h1 class="showcase-headline" data-i18n="showcaseHeadline">Tài khoản Cloud của riêng bạn.</h1>
+                <p class="showcase-eyebrow" data-i18n="showcaseEyebrow">RAI²</p>
+                <h1 class="showcase-headline" data-i18n="showcaseHeadline">Không gian làm việc riêng của bạn.</h1>
                 <p class="showcase-desc" data-i18n="showcaseDesc">Workspace riêng, ứng dụng AI kết nối và quản lý tài khoản, tất cả tại một nơi. Quyền làm chủ dữ liệu luôn thuộc về bạn.</p>
               </div>
 
@@ -107,7 +91,7 @@
             </div>
 
             <div class="showcase-footer">
-              <span class="showcase-footer-brand">RAI² Cloud</span>
+              <span class="showcase-footer-brand">RAI²</span>
             </div>
           </aside>
 
@@ -115,20 +99,14 @@
           <div class="auth-form-col">
             <div class="auth-card-panel">
               <div class="auth-card-topbar">
-                <a class="auth-app-badge" href="https://rai2.si/" aria-label="RAI² Cloud">
-                  <div class="app-icon-squircle">
-                    <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
-                    <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
-                  </div>
-                  <div class="app-badge-meta">
-                    <span class="app-badge-name">RAI²</span>
-                    <span class="app-badge-sub">Cloud</span>
-                  </div>
+                <a class="auth-brand" href="https://rai2.si/" aria-label="RAI² - Trang chủ">
+                  <img class="brand-dark" src="/assets/rai-core-white.png" alt="RAI²">
+                  <img class="brand-light" src="/assets/rai-core-black.png" alt="RAI²">
                 </a>
               </div>
 
               <div class="auth-card-header">
-                <h2 id="signin-heading" class="auth-card-title" data-i18n="signinTitle">Đăng nhập RAI² Cloud</h2>
+                <h2 id="signin-heading" class="auth-card-title" data-i18n="signinTitle">Đăng nhập RAI²</h2>
                 <p class="auth-card-subtitle" data-i18n="signinIntro">Chúng tôi sẽ gửi mã đăng nhập qua email. Không cần mật khẩu.</p>
                 <p id="trial-full" class="capacity-note" data-i18n="trialFull" hidden>Suất dùng thử đang đầy. Tài khoản cũ vẫn có thể đăng nhập.</p>
               </div>

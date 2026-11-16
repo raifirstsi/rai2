@@ -1035,6 +1035,38 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
+  position: relative;
+}
+
+.auth-theme-toggle {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.auth-theme-toggle:hover {
+  color: var(--text-main);
+  background: var(--bg-surface-subtle);
+  border-color: var(--border-strong);
+}
+
+[data-theme="dark"] .auth-theme-toggle {
+  background: #111111;
+  border-color: #262626;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .auth-split-grid {
@@ -1043,6 +1075,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  position: relative;
 }
 
 /* LEFT COLUMN: Brand Showcase */
@@ -1051,114 +1084,36 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 48px 64px;
-  position: relative;
-}
-
-.showcase-topbar {
-  display: flex;
-  align-items: center;
-}
-
-.auth-app-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-}
-
-.app-icon-squircle {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.app-icon-squircle img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
-.app-badge-meta {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.app-badge-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: -0.01em;
-}
-
-.app-badge-sub {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
+  padding: 64px 64px;
+  position: relative;
 }
 
 .showcase-main {
   max-width: 440px;
-  margin: 40px 0;
-}
-
-.showcase-emblem-wrap {
-  margin-bottom: 28px;
-}
-
-.showcase-emblem-squircle {
-  width: 68px;
-  height: 68px;
-  border-radius: 18px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-main);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-}
-
-[data-theme="dark"] .showcase-emblem-squircle {
-  background: #161616;
-  border-color: #262626;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.showcase-emblem-svg {
-  width: 40px;
-  height: 40px;
+  margin: 0;
 }
 
 .showcase-eyebrow {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .showcase-headline {
   font-size: 34px;
   font-weight: 800;
   letter-spacing: -0.025em;
-  line-height: 1.18;
+  line-height: 1.2;
   color: var(--text-main);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .showcase-desc {
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.6;
   color: var(--text-muted);
   margin-bottom: 32px;
@@ -1198,13 +1153,16 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .showcase-footer {
-  padding-top: 20px;
+  position: absolute;
+  bottom: 36px;
+  left: 64px;
 }
 
 .showcase-footer-brand {
-  font-size: 12px;
-  color: var(--text-subtle);
-  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 /* RIGHT COLUMN: Authentication Form */
@@ -1225,7 +1183,24 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 }
 
 .auth-card-topbar {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+}
+
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.auth-brand img {
+  height: 38px;
+  width: auto;
+}
+
+@media (max-width: 640px) {
+  .auth-brand img {
+    height: 32px;
+  }
 }
 
 .auth-card-header {
@@ -1403,24 +1378,28 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
     border-right: none;
     border-top: 1px solid var(--border-subtle);
     padding: 36px 20px 48px;
-  }
-
-  .showcase-topbar {
-    display: none;
+    position: static;
   }
 
   .showcase-main {
     max-width: 100%;
-    margin: 12px 0 24px;
+    margin: 12px 0 20px;
   }
 
   .showcase-headline {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .showcase-desc {
     font-size: 14px;
     margin-bottom: 24px;
+  }
+
+  .showcase-footer {
+    position: static;
+    margin-top: 24px;
+    left: auto;
+    bottom: auto;
   }
 }
 
