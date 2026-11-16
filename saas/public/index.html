@@ -11,16 +11,16 @@
       (function() {
         try {
           var c = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie);
-          var t = (c && c[1]) || localStorage.getItem("rai2_theme_choice") || localStorage.getItem("rai2_landing_theme");
+          var t = (c && c[1]) || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice");
           if (t === "system" || !t) {
             t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
           }
-          document.documentElement.dataset.theme = t;
+          document.documentElement.dataset.theme = t || "dark";
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/app.css?v=20261116-clean-login2">
-    <script src="/app.js?v=20261116-clean-login2" defer></script>
+    <link rel="stylesheet" href="/app.css?v=20261116-glow-v2">
+    <script src="/app.js?v=20261116-glow-v2" defer></script>
   </head>
   <body class="auth-pending">
     <header class="site-header">
@@ -73,7 +73,6 @@
           <aside class="auth-showcase-col">
             <div class="showcase-main">
               <div class="showcase-text-group">
-                <p class="showcase-eyebrow" data-i18n="showcaseEyebrow">RAI²</p>
                 <h1 class="showcase-headline" data-i18n="showcaseHeadline">Không gian làm việc riêng của bạn.</h1>
                 <p class="showcase-desc" data-i18n="showcaseDesc">Workspace riêng, ứng dụng AI kết nối và quản lý tài khoản, tất cả tại một nơi. Quyền làm chủ dữ liệu luôn thuộc về bạn.</p>
               </div>
@@ -88,10 +87,6 @@
                   <span class="step-label" data-i18n="step2">Xác thực mã đăng nhập</span>
                 </div>
               </div>
-            </div>
-
-            <div class="showcase-footer">
-              <span class="showcase-footer-brand">RAI²</span>
             </div>
           </aside>
 
