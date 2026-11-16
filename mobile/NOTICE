@@ -1,0 +1,39 @@
+RAI² Mobile Companion (iOS & Android)
+Copyright (c) 2026 RAIFIRST (https://raifirst.si). All rights reserved.
+
+This product is a derivative work developed for the RAI² First OS ecosystem (https://rai2.si),
+licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the
+License at: http://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+ORIGINAL WORK ATTRIBUTION
+--------------------------------------------------------------------------------
+This software incorporates and adapts code from OpenMausBot:
+Copyright (c) 2026 Milind Soni and OpenMausBot contributors.
+Originally licensed under the Apache License, Version 2.0.
+
+In accordance with Section 6 of the Apache License, Version 2.0, the names "MausBot",
+"OpenMausBot", and associated original logos/mascots are trademarks of their respective owners.
+This derivative project operates under the independent trademarks "RAI²" and "RAIFIRST".
+
+--------------------------------------------------------------------------------
+BUNDLED THIRD-PARTY SOFTWARE NOTICES
+--------------------------------------------------------------------------------
+1. Android Companion WebRTC SDK:
+   Bundles prebuilt WebRTC library for Live calls (io.github.webrtc-sdk:android),
+   built from the WebRTC project.
+   Copyright (c) 2011, The WebRTC project authors.
+   Used under the BSD 3-Clause License. WebRTC includes third-party components
+   under their own licenses, listed with the library.
+
+2. iOS Companion WebRTC Framework:
+   Bundles prebuilt WebRTC library for Live calls (stasel/WebRTC),
+   built from the WebRTC project.
+   Copyright (c) 2011, The WebRTC project authors.
+   Used under the BSD 3-Clause License. WebRTC includes third-party components
+   under their own licenses, listed with the library.
+
+3. Secure Phone Credential Transport (HPKE):
+   Uses @hpke/core and @hpke/common from hpke-js.
+   Copyright (c) 2023-2024 Ajitomi Daisuke.
+   Used under the MIT License.
