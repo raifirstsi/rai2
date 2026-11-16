@@ -166,7 +166,7 @@ const requestedPlan = ["starter", "pro", "team"].includes(new URLSearchParams(lo
 const requestedCheckout = new URLSearchParams(location.search).get("checkout") === "1";
 const requestedBilling = new URLSearchParams(location.search).get("billing") === "1";
 const themeCookie = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie)?.[1];
-let theme = themeCookie || localStorage.getItem("rai2_landing_theme") || "dark";
+let theme = themeCookie || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice") || "dark";
 const setTheme = (value) => {
   theme = value === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = theme;
@@ -633,8 +633,9 @@ document.querySelectorAll("[data-plan-target]").forEach((btn) => {
 
 byId("transactions-refresh").addEventListener("click", () => void loadBilling());
 
-// Theme choice handling: system, light, dark
-let themeChoice = localStorage.getItem("rai2_theme_choice") || themeCookie || localStorage.getItem("rai2_landing_theme") || "system";
+// Theme choice handling: cookie across *.rai2.si takes highest priority for cross-domain sync
+const sharedTheme = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie)?.[1];
+let themeChoice = sharedTheme || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice") || "dark";
 const applyThemeChoice = (choice) => {
   themeChoice = choice;
   localStorage.setItem("rai2_theme_choice", choice);

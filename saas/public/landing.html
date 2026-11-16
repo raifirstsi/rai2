@@ -122,11 +122,11 @@
       (function() {
         try {
           var c = /(?:^|;\s*)rai2_theme=(light|dark)(?:;|$)/.exec(document.cookie);
-          var t = (c && c[1]) || localStorage.getItem("rai2_theme_choice") || localStorage.getItem("rai2_landing_theme");
+          var t = (c && c[1]) || localStorage.getItem("rai2_landing_theme") || localStorage.getItem("rai2_theme_choice");
           if (t === "system" || !t) {
             t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
           }
-          document.documentElement.dataset.theme = t;
+          document.documentElement.dataset.theme = t || "light";
         } catch (e) {}
       })();
     </script>
@@ -1282,7 +1282,7 @@
       }
 
     </style>
-    <script src="/landing.js?v=20261116-v15-footer-slim-fixed" defer></script>
+    <script src="/landing.js?v=20261116-v16-theme-sync" defer></script>
   </head>
   <body>
     <header class="site-header">

@@ -84,11 +84,19 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   background-color: var(--bg-page);
+  background-image:
+    radial-gradient(ellipse 72% 58% at 50% 0%, rgb(0 153 255 / 0.14) 0%, rgb(0 153 255 / 0.055) 43%, transparent 74%);
+  background-repeat: no-repeat;
   color: var(--text-main);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(ellipse 72% 58% at 50% 0%, rgb(0 153 255 / 0.17) 0%, rgb(0 153 255 / 0.045) 43%, transparent 74%);
 }
 
 a {
@@ -1036,6 +1044,15 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   min-height: 100dvh;
   display: flex;
   position: relative;
+  background:
+    radial-gradient(ellipse 72% 58% at 50% 0%, rgb(0 153 255 / 0.14) 0%, rgb(0 153 255 / 0.055) 43%, transparent 74%),
+    var(--bg-page);
+}
+
+[data-theme="dark"] .auth-split-wrapper {
+  background:
+    radial-gradient(ellipse 72% 58% at 50% 0%, rgb(0 153 255 / 0.17) 0%, rgb(0 153 255 / 0.045) 43%, transparent 74%),
+    var(--bg-page);
 }
 
 .auth-theme-toggle {
@@ -1046,8 +1063,8 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   color: var(--text-muted);
   background: var(--bg-surface);
@@ -1055,6 +1072,11 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.auth-theme-toggle svg {
+  width: 16px;
+  height: 16px;
 }
 
 .auth-theme-toggle:hover {
@@ -1080,7 +1102,9 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 
 /* LEFT COLUMN: Brand Showcase */
 .auth-showcase-col {
-  background: var(--bg-surface-subtle);
+  background: rgba(241, 245, 249, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -1089,18 +1113,14 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   position: relative;
 }
 
+[data-theme="dark"] .auth-showcase-col {
+  background: rgba(18, 18, 18, 0.65);
+  border-color: var(--border-subtle);
+}
+
 .showcase-main {
   max-width: 440px;
   margin: 0;
-}
-
-.showcase-eyebrow {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 14px;
 }
 
 .showcase-headline {
@@ -1109,6 +1129,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   letter-spacing: -0.025em;
   line-height: 1.2;
   color: var(--text-main);
+  margin-top: 0;
   margin-bottom: 16px;
 }
 
@@ -1152,22 +1173,9 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   color: var(--text-main);
 }
 
-.showcase-footer {
-  position: absolute;
-  bottom: 36px;
-  left: 64px;
-}
-
-.showcase-footer-brand {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
 /* RIGHT COLUMN: Authentication Form */
 .auth-form-col {
-  background: var(--bg-surface);
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1353,6 +1361,19 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
 
 /* Responsive Split Layout: Prioritize Login Form First on Mobile */
 @media (max-width: 959px) {
+  .auth-theme-toggle {
+    top: 36px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .auth-theme-toggle svg {
+    width: 14px;
+    height: 14px;
+  }
+
   .auth-split-grid {
     display: flex;
     flex-direction: column;
@@ -1363,6 +1384,7 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
     order: 1; /* Prioritize form on mobile so users don't have to scroll */
     padding: 36px 20px 32px;
     width: 100%;
+    background: transparent;
   }
 
   .auth-card-panel {
@@ -1379,6 +1401,13 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
     border-top: 1px solid var(--border-subtle);
     padding: 36px 20px 48px;
     position: static;
+    background: rgba(241, 245, 249, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  [data-theme="dark"] .auth-showcase-col {
+    background: rgba(18, 18, 18, 0.65);
   }
 
   .showcase-main {
@@ -1393,13 +1422,6 @@ h1 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing:
   .showcase-desc {
     font-size: 14px;
     margin-bottom: 24px;
-  }
-
-  .showcase-footer {
-    position: static;
-    margin-top: 24px;
-    left: auto;
-    bottom: auto;
   }
 }
 
