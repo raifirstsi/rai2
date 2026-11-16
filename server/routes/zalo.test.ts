@@ -106,7 +106,8 @@ describe("server/routes/zalo - Multi-Tenant Zalo Integration", () => {
       "bot-rai-sales",
       "zalo-user-123",
       "Xin chao bot tu van",
-      "Nguyen Van A"
+      "Nguyen Van A",
+      "test-workspace",
     );
   });
 
