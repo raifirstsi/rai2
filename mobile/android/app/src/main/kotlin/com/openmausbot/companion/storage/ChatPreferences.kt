@@ -48,6 +48,17 @@ class ChatPreferences(
     private val _rosterDensity = MutableStateFlow(RosterDensity.fromWire(prefs.getString(ROSTER_DENSITY, null)))
     val rosterDensity: StateFlow<RosterDensity> = _rosterDensity.asStateFlow()
 
+    private val _selectedLanguage = MutableStateFlow(
+        prefs.getString(SELECTED_LANGUAGE, "vi") ?: "vi",
+    )
+    val selectedLanguage: StateFlow<String> = _selectedLanguage.asStateFlow()
+
+    fun setSelectedLanguage(lang: String) {
+        if (_selectedLanguage.value == lang && prefs.contains(SELECTED_LANGUAGE)) return
+        prefs.edit().putString(SELECTED_LANGUAGE, lang).commit()
+        _selectedLanguage.value = lang
+    }
+
     fun setActivityDetail(detail: ActivityDetail) {
         if (_activityDetail.value == detail && prefs.contains(ACTIVITY_DETAIL)) return
         // The value is small and changed only from Settings. Commit makes a
@@ -111,6 +122,7 @@ class ChatPreferences(
         private const val QUICK_REPLIES = "companion.prefs.quickReplies"
         private const val APPEARANCE_SKIN = "companion.prefs.appearanceSkin"
         private const val ROSTER_DENSITY = "companion.prefs.rosterDensity"
+        private const val SELECTED_LANGUAGE = "companion.prefs.selectedLanguage"
 
         private fun threadKey(connectionId: String, botId: String): String =
             "thread.last-opened.${connectionId.length}:$connectionId$botId"

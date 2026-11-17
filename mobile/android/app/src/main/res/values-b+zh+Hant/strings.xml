@@ -2,13 +2,13 @@
 <resources>
     <string name="notification_channel_blocking">核准與問題</string>
     <string name="notification_channel_blocking_desc">需要及時回覆的提示</string>
-    <string name="notification_channel_done">機器人訊息</string>
-    <string name="notification_channel_done_desc">機器人回覆或完成回合時提醒，並像一般訊息一樣播放提示音</string>
+    <string name="notification_channel_done">RAI訊息</string>
+    <string name="notification_channel_done_desc">RAI回覆或完成回合時提醒，並像一般訊息一樣播放提示音</string>
     <string name="notification_channel_routine">例行工作失敗</string>
     <string name="notification_channel_routine_desc">排定的例行工作失敗時提醒</string>
     <string name="notification_channel_always_on">背景連線</string>
-    <string name="notification_channel_always_on_desc">OpenMausBot 在背景保持連線時顯示</string>
-    <string name="always_on_notification_title">MausBot 正在保持連線</string>
+    <string name="notification_channel_always_on_desc">RAI² 在背景保持連線時顯示</string>
+    <string name="always_on_notification_title">RAI² 正在保持連線</string>
     <string name="always_on_notification_text">即使 App 關閉，你仍會收到通知</string>
     <string name="mobile_text_da39a3ee"></string>
     <string name="mobile_answeredcount_of_questions_size_91c7d963">已回答 %1$s/%2$s 個問題</string>
@@ -27,9 +27,9 @@
     <string name="mobile_threads_3e761c97">/threads</string>
     <string name="mobile_text_c984aed0">000000</string>
     <string name="mobile_step_29869c51">1 個步驟</string>
-    <string name="mobile_open_openmausbot_settings_phone_38cfc5bb">1. 開啟 OpenMausBot → 設定 → 手機</string>
+    <string name="mobile_open_openmausbot_settings_phone_38cfc5bb">1. 開啟 RAI² → 設定 → 手機</string>
     <string name="mobile_choose_set_up_a_phone_8fd474a9">2. 選擇「設定手機」</string>
-    <string name="mobile_a_frame_of_this_bot_s_computer_39b6a5bb">此機器人電腦畫面的一格</string>
+    <string name="mobile_a_frame_of_this_bot_s_computer_39b6a5bb">此RAI電腦畫面的一格</string>
     <string name="mobile_account_alias_8cf27ca0">帳戶別名</string>
     <string name="mobile_account_details_are_unavailable_fr_d9d62172">此提供者無法取得帳戶詳細資料。授權完成後請重新整理。</string>
     <string name="mobile_accounts_could_not_be_re_checked_6727be8f">無法重新檢查帳戶</string>
@@ -42,7 +42,7 @@
     <string name="mobile_adds_to_existing_section_731f1f94">會加入現有區段</string>
     <string name="mobile_advanced_4d064726">進階</string>
     <string name="mobile_agent_5ce2e6f4">代理程式</string>
-    <string name="mobile_agent_notifications_a3bd8bd0">機器人通知</string>
+    <string name="mobile_agent_notifications_a3bd8bd0">RAI通知</string>
     <string name="mobile_alignment_time_ca919bd7">對齊時間</string>
     <string name="mobile_always_allow_this_tool_2ce82a7e">永遠允許此工具</string>
     <string name="mobile_an_alias_makes_the_account_explici_725873b3">當代理程式使用多個 %1$s 帳戶時，別名可明確標示所用帳戶。</string>
@@ -50,21 +50,21 @@
     <string name="mobile_archived_eddc813f">已封存</string>
     <string name="mobile_art_direction_52d878a2">美術方向</string>
     <string name="mobile_back_b52b36b7">返回</string>
-    <string name="mobile_bot_settings_7092a294">機器人設定</string>
-    <string name="mobile_bot_threads_ec81acf2">機器人對話</string>
-    <string name="mobile_bots_4ca88ea4">機器人</string>
+    <string name="mobile_bot_settings_7092a294">RAI設定</string>
+    <string name="mobile_bot_threads_ec81acf2">RAI對話</string>
+    <string name="mobile_bots_4ca88ea4">RAI</string>
     <string name="mobile_computer_9e47da19">電腦</string>
     <string name="mobile_camera_access_needed_28a22fc4">需要相機權限</string>
     <string name="mobile_cancel_77dfd213">取消</string>
     <string name="mobile_choose_file_54a2a841">選擇檔案</string>
-    <string name="mobile_choose_a_bot_or_channel_da2a8cc1">選擇機器人或頻道</string>
+    <string name="mobile_choose_a_bot_or_channel_da2a8cc1">選擇RAI或頻道</string>
     <string name="mobile_choose_a_computer_f361ffc3">選擇電腦</string>
     <string name="mobile_choose_a_custom_repeat_interval_8a1bd1da">選擇自定義重複間隔</string>
     <string name="mobile_choose_a_different_computer_9e2a62ed">選擇其他電腦</string>
     <string name="mobile_choose_a_repeat_interval_f59b3f71">選擇重複間隔</string>
     <string name="mobile_choose_all_that_apply_5a20d235">可複選</string>
-    <string name="mobile_choose_an_agent_faaaf2b4">選擇機器人</string>
-    <string name="mobile_choose_an_agent_voice_e284a527">選擇機器人語音</string>
+    <string name="mobile_choose_an_agent_faaaf2b4">選擇RAI</string>
+    <string name="mobile_choose_an_agent_voice_e284a527">選擇RAI語音</string>
     <string name="mobile_clear_search_67300d0f">清除搜尋</string>
     <string name="mobile_close_slash_commands_5ff49abb">關閉斜線指令</string>
     <string name="mobile_collapse_9cf188d3">收起</string>
@@ -87,7 +87,7 @@
     <string name="mobile_copy_all_9da9f044">全部複製</string>
     <string name="mobile_create_6e157c5d">建立</string>
     <string name="mobile_creates_a_new_section_9da73eb0">會建立新區段</string>
-    <string name="mobile_current_agent_voice_4e95cc5f">目前的機器人語音</string>
+    <string name="mobile_current_agent_voice_4e95cc5f">目前的RAI語音</string>
     <string name="mobile_custom_081ae3fd">自訂</string>
     <string name="mobile_custom_interval_1eea7679">自訂間隔</string>
     <string name="mobile_data_table_54baf78e">資料表</string>
@@ -132,7 +132,7 @@
     <string name="mobile_move_down_260ff8ae">下移</string>
     <string name="mobile_move_up_b4f57cd0">上移</string>
     <string name="mobile_name_709a2322">名稱</string>
-    <string name="mobile_new_bot_66d3c052">新增機器人</string>
+    <string name="mobile_new_bot_66d3c052">新增RAI</string>
     <string name="mobile_new_group_f9850c0b">新增群組</string>
     <string name="mobile_new_quick_reply_c5c6238d">新增快速回復</string>
     <string name="mobile_new_routine_32809dc6">新增例行工作</string>
@@ -153,7 +153,7 @@
     <string name="mobile_no_limit_10850b93">無上限</string>
     <string name="mobile_not_now_e4571490">暫時不要</string>
     <string name="mobile_ok_9ce3bd42">好</string>
-    <string name="mobile_old_proposal_hint">此提案由較舊版本建立，無法安全啟用。請拒絕此提案，並要求機器人重新建立。</string>
+    <string name="mobile_old_proposal_hint">此提案由較舊版本建立，無法安全啟用。請拒絕此提案，並要求RAI重新建立。</string>
     <string name="mobile_card_waiting_on_you">%1$s 正在等你處理</string>
     <string name="mobile_card_send_to_app">傳送到 %1$s？</string>
     <string name="mobile_card_send_on_your_behalf">以你的名義傳送？</string>
@@ -173,10 +173,10 @@
     <string name="mobile_open_desktop_cd6f8218">開啟桌面</string>
     <string name="mobile_open_the_chat_to_review_skill_md_6225775b">開啟聊天以檢查 SKILL.md</string>
     <string name="mobile_open_updates_2c80d633">開啟更新</string>
-    <string name="mobile_openmausbot_befe710d">OpenMausBot</string>
+    <string name="mobile_openmausbot_befe710d">RAI²</string>
     <string name="mobile_or_enter_the_address_f74dcf1c">或輸入位址</string>
-    <string name="mobile_organize_bots_08f4197e">整理機器人</string>
-    <string name="mobile_organize_bots_into_a_section_9293c5af">將機器人整理至區段</string>
+    <string name="mobile_organize_bots_08f4197e">整理RAI</string>
+    <string name="mobile_organize_bots_into_a_section_9293c5af">將RAI整理至區段</string>
     <string name="mobile_other_6e6a6f20">其他</string>
     <string name="mobile_other_ways_to_connect_d9e8585d">其他連線方式</string>
     <string name="mobile_pair_discovery_empty">尚未找到電腦。請確認此手機與電腦已連上相同的 Wi-Fi 網路 — 訪客網路通常會阻止裝置彼此搜尋。你也可以直接在下方輸入位址。</string>
@@ -209,7 +209,7 @@
     <string name="mobile_requesting_camera_access_30e104c0">正在要求相機權限…</string>
     <string name="mobile_reset_44c57abd">重設</string>
     <string name="mobile_reset_quick_replies_4d3d1256">要重設快速回覆嗎？</string>
-    <string name="mobile_respond_when_a_bot_needs_you_96973325">在機器人需要你時回覆</string>
+    <string name="mobile_respond_when_a_bot_needs_you_96973325">在RAI需要你時回覆</string>
     <string name="mobile_resume_b3bd0b5a">繼續</string>
     <string name="mobile_retry_9f5cd8a2">重試</string>
     <string name="mobile_retry_send_6a2d9259">重試發送</string>
@@ -236,14 +236,14 @@
     <string name="mobile_selected_days_7890ff6e">已選日期</string>
     <string name="mobile_send_9bc2575c">傳送</string>
     <string name="mobile_send_to_b98cc23a">傳送至</string>
-    <string name="mobile_send_to_openmausbot_4dffcb75">傳送至 OpenMausBot</string>
+    <string name="mobile_send_to_openmausbot_4dffcb75">傳送至 RAI²</string>
     <string name="mobile_settings_c7f73bb5">設定</string>
     <string name="mobile_share_09ca55ca">分享</string>
     <string name="mobile_share_as_json_df80c8e6">以 JSON 分享</string>
     <string name="mobile_share_transcript_004e223a">分享逐字稿</string>
     <string name="mobile_show_d97d1ee3">顯示</string>
     <string name="mobile_show_full_address_889be5c7">顯示完整位址</string>
-    <string name="mobile_showing_what_was_connected_last_ti_62107fa4">顯示上次連線的項目。你的電腦目前無法開啟憑證儲存區，因此無法重新檢查這些帳戶。沒有任何連線遭到中斷 — 通常重新啟動電腦上的 OpenMausBot 即可解決。</string>
+    <string name="mobile_showing_what_was_connected_last_ti_62107fa4">顯示上次連線的項目。你的電腦目前無法開啟憑證儲存區，因此無法重新檢查這些帳戶。沒有任何連線遭到中斷 — 通常重新啟動電腦上的 RAI² 即可解決。</string>
     <string name="mobile_slash_commands_efce77da">斜線指令</string>
     <string name="mobile_something_went_wrong_8d886c0b">發生錯誤</string>
     <string name="mobile_source_skill_source_unknown_6370895d">來源：%1$s</string>
@@ -282,12 +282,12 @@
     <string name="mobile_waiting_on_you_edab5b72">等待你處理</string>
     <string name="mobile_watch_chat_name_s_computer_92efc119">查看 %1$s 的電腦畫面</string>
     <string name="mobile_watch_computer_c96208ca">查看電腦畫面</string>
-    <string name="mobile_what_should_the_agent_do_b9526063">你希望機器人執行什麼工作？</string>
-    <string name="mobile_what_this_agent_does_82aa1b56">此機器人的工作內容</string>
+    <string name="mobile_what_should_the_agent_do_b9526063">你希望RAI執行什麼工作？</string>
+    <string name="mobile_what_this_agent_does_82aa1b56">此RAI的工作內容</string>
     <string name="mobile_work_personal_client_7d6a18a4">工作、個人、客戶…</string>
     <string name="mobile_workspace_default_b81e277f">工作區預設值</string>
     <string name="mobile_your_chats_in_your_pocket_91291d76">聊天隨身帶著走</string>
-    <string name="mobile_your_computer_could_not_open_its_c_fa640d75">你的電腦無法開啟憑證儲存區，因此無法確認哪些帳戶已連線。沒有任何連線遭到中斷 — 通常重新啟動電腦上的 OpenMausBot 即可解決。</string>
+    <string name="mobile_your_computer_could_not_open_its_c_fa640d75">你的電腦無法開啟憑證儲存區，因此無法確認哪些帳戶已連線。沒有任何連線遭到中斷 — 通常重新啟動電腦上的 RAI² 即可解決。</string>
     <string name="mobile_https_mac_example_or_192_168_1_42__e277eb2d">https://mac.example 或 192.168.1.42:8810</string>
     <string name="mobile_minutes_be2e2bb6">分鐘</string>
     <string name="mobile_minutes_starting_288a3d24">分鐘後開始</string>
@@ -305,7 +305,7 @@
     <string name="mobile_a11y_summary_collapsed">%1$s，已收合</string>
     <string name="mobile_a11y_open_chat_settings">開啟 %1$s 的設定</string>
     <string name="mobile_a11y_threads_current">對話，%1$s</string>
-    <string name="mobile_a11y_room_header">%1$s，%2$d 個機器人</string>
+    <string name="mobile_a11y_room_header">%1$s，%2$d 個RAI</string>
     <string name="mobile_a11y_close">關閉</string>
     <string name="mobile_a11y_choose_custom_repeat_interval">選擇自訂重複間隔</string>
     <string name="mobile_a11y_repeat_interval">重複間隔：%1$s 分鐘</string>
@@ -322,10 +322,10 @@
     <string name="mobile_pairing_failed">配對失敗。</string>
     <string name="mobile_pairing_no_address">這部電腦沒有回傳位址。請改為輸入其「手機」設定中顯示的位址。</string>
     <string name="mobile_pairing_invalid_address">請輸入安全的 https:// 位址、192.168.1.42:8810，或 macbook.tail1234.ts.net 這類名稱。</string>
-    <string name="mobile_pairing_invalid_qr">這不是 OpenMausBot 配對 QR Code。</string>
+    <string name="mobile_pairing_invalid_qr">這不是 RAI² 配對 QR Code。</string>
     <string name="mobile_pairing_other_addresses">以及這部電腦的另外 %1$d 個位址</string>
-    <string name="mobile_camera_permission_description">允許使用相機掃描 OpenMausBot 顯示的配對 QR Code。</string>
-    <string name="mobile_camera_permission_denied">允許使用相機掃描 OpenMausBot 顯示的配對 QR Code，或返回手動輸入位址與代碼。</string>
+    <string name="mobile_camera_permission_description">允許使用相機掃描 RAI² 顯示的配對 QR Code。</string>
+    <string name="mobile_camera_permission_denied">允許使用相機掃描 RAI² 顯示的配對 QR Code，或返回手動輸入位址與代碼。</string>
 
     <string name="mobile_settings_name">名稱</string>
     <string name="mobile_settings_other_computers">其他電腦</string>
@@ -338,13 +338,13 @@
     <string name="mobile_settings_only_while_open">僅在應用程式開啟時</string>
     <string name="mobile_settings_turn_off">關閉</string>
     <string name="mobile_settings_turn_on">開啟</string>
-    <string name="mobile_settings_background_on_description">開啟後，OpenMausBot 會持續顯示通知，因此即使應用程式完全關閉，你也能收到排程提醒和例行工作結果。</string>
+    <string name="mobile_settings_background_on_description">開啟後，RAI² 會持續顯示通知，因此即使應用程式完全關閉，你也能收到排程提醒和例行工作結果。</string>
     <string name="mobile_settings_background_off_description">只有在應用程式開啟或最近切至背景時才會收到通知。如果你需要稍後收到排程例行工作的通知，請開啟此選項；它會持續顯示一則低優先順序通知，並稍微增加耗電。</string>
     <string name="mobile_settings_change_activity_detail">變更活動詳細程度</string>
     <string name="mobile_settings_not_here">此處不提供</string>
-    <string name="mobile_settings_notifications_footer">MausBot 連線期間會顯示待處理的核准和已完成的工作，也包括短暫切至背景後補播的更新。應用程式關閉後的推播通知需要另外推出推播中繼功能，目前尚未提供。</string>
+    <string name="mobile_settings_notifications_footer">RAI² 連線期間會顯示待處理的核准和已完成的工作，也包括短暫切至背景後補播的更新。應用程式關閉後的推播通知需要另外推出推播中繼功能，目前尚未提供。</string>
     <string name="mobile_settings_workspace_footer">你可以在此安全地管理例行工作排程。提供者金鑰、Webhook 密鑰、配對、撤銷、本機虛擬機和代理程式執行原則仍由電腦管理。</string>
-    <string name="mobile_settings_unpair_footer">這只會移除此手機上的配對。如要完全阻止手機連線電腦，請在 OpenMausBot → 設定 → 手機中移除此裝置。</string>
+    <string name="mobile_settings_unpair_footer">這只會移除此手機上的配對。如要完全阻止手機連線電腦，請在 RAI² → 設定 → 手機中移除此裝置。</string>
     <string name="mobile_settings_not_here_body">API 金鑰、配對和本機虛擬機均由電腦管理。此手機無法變更這些設定。</string>
     <string name="mobile_settings_unpair_confirm_title">取消此手機的配對？</string>
     <string name="mobile_settings_unpair_confirm_message">如要重新連線，你需要新的配對碼。</string>
@@ -360,18 +360,18 @@
     <string name="mobile_settings_enable_notifications">啟用通知</string>
     <string name="mobile_settings_open_notification_settings">開啟通知設定</string>
     <string name="mobile_settings_troubleshooting_live">此電腦已連線，運作正常。</string>
-    <string name="mobile_settings_troubleshooting_connecting">OpenMausBot 正在自動嘗試已儲存的連線。</string>
+    <string name="mobile_settings_troubleshooting_connecting">RAI² 正在自動嘗試已儲存的連線。</string>
     <string name="mobile_settings_troubleshooting_unpaired">此手機已從電腦移除。請重新配對以連線。</string>
     <string name="mobile_settings_troubleshooting_not_paired">此手機尚未與電腦配對。</string>
     <string name="mobile_settings_use_computer">使用 %1$s</string>
     <string name="mobile_settings_remove_computer">移除 %1$s</string>
-    <string name="mobile_onboarding_welcome_title">隨時隨地使用你的機器人</string>
+    <string name="mobile_onboarding_welcome_title">隨時隨地使用你的RAI</string>
     <string name="mobile_onboarding_welcome_subtitle">在手機上查看對話、核准操作並傳送新工作。</string>
     <string name="mobile_onboarding_welcome_connect">連接我的電腦</string>
     <string name="mobile_onboarding_not_now">暫不</string>
     <string name="mobile_onboarding_unpaired_title">準備好後再連線</string>
-    <string name="mobile_onboarding_unpaired_body">將此手機與 OpenMausBot 配對，即可查看對話並回覆機器人。</string>
-    <string name="mobile_onboarding_unpaired_hint">在電腦上開啟 OpenMausBot → 設定 → 手機。</string>
+    <string name="mobile_onboarding_unpaired_body">將此手機與 RAI² 配對，即可查看對話並回覆RAI。</string>
+    <string name="mobile_onboarding_unpaired_hint">在電腦上開啟 RAI² → 設定 → 手機。</string>
     <string name="mobile_onboarding_connect_computer">連接電腦</string>
     <string name="mobile_onboarding_notifications_title">隨時掌握動態</string>
     <string name="mobile_onboarding_notifications_approvals">等待你處理的核准</string>
@@ -381,7 +381,7 @@
     <string name="mobile_onboarding_approvals">不必回到桌前也能檢視核准事項。</string>
     <string name="mobile_onboarding_trusted_computer">由你選擇此手機要連線的可信任電腦。</string>
     <string name="mobile_activity_full">完整</string>
-    <string name="mobile_activity_full_caption">顯示機器人的每一步操作。</string>
+    <string name="mobile_activity_full_caption">顯示RAI的每一步操作。</string>
     <string name="mobile_activity_reduced">精簡</string>
     <string name="mobile_activity_reduced_caption">將步驟合併為一行。失敗資訊一律顯示。</string>
     <string name="mobile_activity_hidden">隱藏</string>
@@ -407,7 +407,7 @@
     <string name="mobile_voice_note_seek">語音留言進度</string>
     <string name="mobile_activity_success">成功</string>
     <string name="mobile_activity_error">錯誤</string>
-    <string name="mobile_question_agent_composed">由機器人撰寫的問題</string>
+    <string name="mobile_question_agent_composed">由RAI撰寫的問題</string>
     <string name="mobile_queued_edit">編輯這則佇列中的訊息</string>
     <string name="mobile_search_hit_yours">你的訊息</string>
     <string name="mobile_search_hit_from">來自 %1$s 的訊息</string>
@@ -430,28 +430,28 @@
     <string name="mobile_claude_update_updated">Claude 已更新至 %1$s。請重新傳送你的訊息。</string>
     <string name="mobile_claude_update_manual">請在電腦的終端機中執行以下指令，然後重新傳送你的訊息：</string>
     <string name="mobile_claude_update_try_again">再次嘗試更新</string>
-    <string name="mobile_tasks_agent_threads">機器人對話</string>
+    <string name="mobile_tasks_agent_threads">RAI對話</string>
     <string name="mobile_tasks_group_threads">群組對話</string>
     <string name="mobile_tasks_context_footer">一個對話就是一次交談及其結果。每個例行工作都會把結果保存在同一個對話中。</string>
     <string name="mobile_routines_header_thread">對話 = 一次交談及其結果</string>
     <string name="mobile_routines_header_routine">例行工作 = 排定的工作，結果集中在一個對話中</string>
-    <string name="mobile_routines_header_footer">無需 cron 語法。每次執行都使用機器人現有的模型、工具、權限、電腦和已連線的應用程式。時間以已配對電腦的本機時區為準。</string>
+    <string name="mobile_routines_header_footer">無需 cron 語法。每次執行都使用RAI現有的模型、工具、權限、電腦和已連線的應用程式。時間以已配對電腦的本機時區為準。</string>
     <string name="mobile_routine_waiting_on_you">此對話正在等待你的回答。</string>
-    <string name="mobile_routine_unknown_schedule_note">此例行工作使用較新版 OpenMausBot 新增的排程。儲存前請選擇「單次」、「指定日期」或「每隔 X 分鐘」。</string>
+    <string name="mobile_routine_unknown_schedule_note">此例行工作使用較新版 RAI² 新增的排程。儲存前請選擇「單次」、「指定日期」或「每隔 X 分鐘」。</string>
     <string name="mobile_routines_webhooks_footer">建立或輪替 webhook 會變更可從網際網路連線的觸發器與簽署密鑰，因此 webhook 管理仍須在已配對的電腦上進行。Webhook 執行回執仍會顯示於上方。</string>
     <string name="mobile_overview_failed">無法載入概覽。</string>
-    <string name="mobile_profile_connected_apps_footer">工具授權由電腦上的 OpenMausBot 指派。此手機僅以唯讀方式顯示。</string>
+    <string name="mobile_profile_connected_apps_footer">工具授權由電腦上的 RAI² 指派。此手機僅以唯讀方式顯示。</string>
     <string name="mobile_profile_preview_during_call">即時通話期間已關閉語音預覽。</string>
     <string name="mobile_computer_vnc_note">互動式 VNC 工作階段。必須在電腦的「手機」設定中為此手機啟用存取權。</string>
     <string name="mobile_computer_confirm_message">這會讓此手機完全控制雲端電腦，包括已在其中登入的任何帳戶。</string>
-    <string name="mobile_live_call_disclosure">即時通話會將你的語音連同聊天的近期訊息、機器人的回答，以及它請求的任何核准的詳細資訊一起傳送至 OpenAI。OpenAI 金鑰會保留在你的電腦上。</string>
+    <string name="mobile_live_call_disclosure">即時通話會將你的語音連同聊天的近期訊息、RAI的回答，以及它請求的任何核准的詳細資訊一起傳送至 OpenAI。OpenAI 金鑰會保留在你的電腦上。</string>
     <string name="mobile_discovery_access_off">區域網路存取權已關閉。請開啟「鄰近裝置」權限，或在下方輸入 Tailscale 位址。</string>
     <string name="mobile_discovery_unavailable">區域網路探索目前無法使用。請在下方輸入「手機」設定中顯示的位址。</string>
     <string name="mobile_discovery_keeps_failing">此手機上的區域網路探索一再中斷。請在下方輸入「手機」設定中顯示的位址。</string>
 
-    <string name="mobile_roster_no_bots_yet">還沒有機器人</string>
+    <string name="mobile_roster_no_bots_yet">還沒有RAI</string>
     <string name="mobile_roster_nothing_matches">沒有符合項目</string>
-    <string name="mobile_roster_empty_description">你在電腦上建立的機器人會顯示在這裡。</string>
+    <string name="mobile_roster_empty_description">你在電腦上建立的RAI會顯示在這裡。</string>
     <string name="mobile_roster_no_thread_matches">沒有符合「%1$s」的對話。</string>
     <string name="mobile_roster_needs_attention">需要處理</string>
     <string name="mobile_roster_pinned">已釘選</string>
@@ -477,11 +477,11 @@
     <string name="mobile_slash_steer_description">引導並調整正在執行的工作</string>
 
     <string name="mobile_section_ready">%1$s 已就緒</string>
-    <string name="mobile_section_add_more_bots">為其他區段選擇更多機器人，或點選「完成」。</string>
+    <string name="mobile_section_add_more_bots">為其他區段選擇更多RAI，或點選「完成」。</string>
     <string name="mobile_section_chief_conflict">一個區段只能有一個 Chief。請返回並選擇一個 Chief，或使用不指定 Chief 的區段。</string>
-    <string name="mobile_section_pinned_stays">已釘選的機器人會一直留在「已釘選」中，直到你取消釘選。</string>
+    <string name="mobile_section_pinned_stays">已釘選的RAI會一直留在「已釘選」中，直到你取消釘選。</string>
     <string name="mobile_section_at_limit">已選取 100 個，已達區段上限。</string>
-    <string name="mobile_section_under_limit">一個區段最多可選取 100 個機器人。</string>
+    <string name="mobile_section_under_limit">一個區段最多可選取 100 個RAI。</string>
 
     <string name="mobile_all_quiet_889fd4f7">目前沒有待處理事項</string>
 
@@ -495,7 +495,7 @@
 
     <string name="mobile_choose_a_png_jpeg_gif_or_webp_image_1f68957d">請選擇 PNG、JPEG、GIF 或 WebP 圖片。</string>
 
-    <string name="mobile_choose_an_available_provider_to_change_t_a1efc697">選擇可用的提供者以變更此機器人的模型。</string>
+    <string name="mobile_choose_an_available_provider_to_change_t_a1efc697">選擇可用的提供者以變更此RAI的模型。</string>
 
     <string name="mobile_circle_1cc7820a">圓形</string>
 
@@ -519,11 +519,11 @@
 
     <string name="mobile_default_808d7dca">預設</string>
 
-    <string name="mobile_deleted_agent_ff6eff9d">已刪除機器人</string>
+    <string name="mobile_deleted_agent_ff6eff9d">已刪除RAI</string>
 
     <string name="mobile_dictation_isn_t_available_for_this_langu_1a6b15c5">此語言無法使用聽寫。</string>
 
-    <string name="mobile_dictation_needs_microphone_access_enable_e9addded">聽寫功能需要麥克風權限。請前往「設定 → OpenMausMobile」啟用。</string>
+    <string name="mobile_dictation_needs_microphone_access_enable_e9addded">聽寫功能需要麥克風權限。請前往「設定 → RAI²」啟用。</string>
 
     <string name="mobile_does_0ae736c9">執行方式</string>
 
@@ -583,9 +583,9 @@
 
     <string name="mobile_paused_c7dfb6f1">已暫停</string>
 
-    <string name="mobile_pick_a_voice_for_this_agent_before_enabl_121cdfed">啟用語音前，請先為此機器人選擇語音。</string>
+    <string name="mobile_pick_a_voice_for_this_agent_before_enabl_121cdfed">啟用語音前，請先為此RAI選擇語音。</string>
 
-    <string name="mobile_pick_an_agent_voice_or_configure_a_works_1f464020">請先選擇機器人語音，或在電腦上設定工作區預設語音。</string>
+    <string name="mobile_pick_an_agent_voice_or_configure_a_works_1f464020">請先選擇RAI語音，或在電腦上設定工作區預設語音。</string>
 
     <string name="mobile_preparing_attachments_343475f3">正在準備附件…</string>
 
@@ -611,7 +611,7 @@
 
     <string name="mobile_schedule_0a8adac9">排程</string>
 
-    <string name="mobile_schedule_recurring_or_one_time_agent_wor_3c7526bf">排定週期性或單次的機器人工作。</string>
+    <string name="mobile_schedule_recurring_or_one_time_agent_wor_3c7526bf">排定週期性或單次的RAI工作。</string>
 
     <string name="mobile_sending_cf765512">傳送中…</string>
 
@@ -623,7 +623,7 @@
 
     <string name="mobile_stop_dictation_96ad53f1">停止語音輸入</string>
 
-    <string name="mobile_stop_this_bot_before_changing_its_model_df92a917">變更模型前請先停止此機器人。</string>
+    <string name="mobile_stop_this_bot_before_changing_its_model_df92a917">變更模型前請先停止此RAI。</string>
 
     <string name="mobile_that_image_is_larger_than_10_mb_baaf657b">該圖片超過 10 MB。</string>
 
@@ -631,7 +631,7 @@
 
     <string name="mobile_the_generated_audio_could_not_be_played_fc933657">無法播放產生的音訊。</string>
 
-    <string name="mobile_this_bot_s_computer_is_only_captured_whi_df844363">只有在此機器人工作時，才會擷取其電腦畫面。</string>
+    <string name="mobile_this_bot_s_computer_is_only_captured_whi_df844363">只有在此RAI工作時，才會擷取其電腦畫面。</string>
 
     <string name="mobile_this_computer_4ccce6f4">此電腦</string>
 
@@ -643,7 +643,7 @@
 
     <string name="mobile_use_mascot_0de90a12">使用吉祥物</string>
 
-    <string name="mobile_uses_this_agent_s_selected_model_and_com_a3de7cdb">使用已配對電腦上此機器人所選的模型與電腦設定。</string>
+    <string name="mobile_uses_this_agent_s_selected_model_and_com_a3de7cdb">使用已配對電腦上此RAI所選的模型與電腦設定。</string>
 
     <string name="mobile_view_diff_39f85d34">檢視差異</string>
 
@@ -651,11 +651,11 @@
 
     <string name="mobile_webhooks_fdfe2da7">Webhook</string>
 
-    <string name="mobile_what_this_bot_does_7a664f47">此機器人的工作內容</string>
+    <string name="mobile_what_this_bot_does_7a664f47">此RAI的工作內容</string>
 
     <string name="mobile_what_s_next_3d4b36bc">接下來呢？</string>
 
-    <string name="mobile_when_a_bot_stops_for_an_answer_is_mid_ta_6141a0c8">機器人等待回答、正在執行任務或完成工作時，都會顯示於此。</string>
+    <string name="mobile_when_a_bot_stops_for_an_answer_is_mid_ta_6141a0c8">RAI等待回答、正在執行任務或完成工作時，都會顯示於此。</string>
 
     <string name="mobile_where_does_it_run_6e4a5297">執行位置？</string>
 
@@ -669,23 +669,23 @@
 
     <string name="mobile_model_settings_footer">提供者帳戶和 API 金鑰會保留在電腦上。預設選項不會傳送推理層級，由提供者決定。</string>
     <string name="mobile_model_none_available">沒有可用的模型提供者</string>
-    <string name="mobile_model_busy_note">變更模型前請先停止此機器人。</string>
-    <string name="mobile_model_unavailable_note">選擇可用的提供者來變更此機器人的模型。</string>
+    <string name="mobile_model_busy_note">變更模型前請先停止此RAI。</string>
+    <string name="mobile_model_unavailable_note">選擇可用的提供者來變更此RAI的模型。</string>
     <string name="mobile_model_unavailable">無法使用</string>
     <string name="mobile_profile_avatar_footer">支援 PNG、JPEG、GIF 或 WebP，最大 10 MB。圖片會儲存在已配對的電腦上，並透過此手機的配對權杖載入。</string>
     <string name="mobile_profile_generate_ready">圖像生成會使用電腦上設定的共用圖像提供者。此手機不會傳送或儲存提供者金鑰。</string>
-    <string name="mobile_profile_generate_blocked">如要產生圖像，請在電腦上的 OpenMausBot 中設定共用圖像提供者。無法透過手機新增提供者金鑰。</string>
+    <string name="mobile_profile_generate_blocked">如要產生圖像，請在電腦上的 RAI² 中設定共用圖像提供者。無法透過手機新增提供者金鑰。</string>
     <string name="mobile_profile_elevenlabs_unconfigured">尚未設定 ElevenLabs</string>
     <string name="mobile_profile_builtin_voices_unavailable">電腦的內建語音無法使用</string>
     <string name="mobile_profile_voice_unconfigured_footer">請在電腦上此代理程式的個人檔案中新增共用 ElevenLabs 金鑰。該金鑰不會傳回此手機。</string>
-    <string name="mobile_profile_system_voice_unconfigured_footer">電腦的內建語音不需要金鑰，但目前沒有可用語音。請在電腦的 OpenMausBot 中切換語音引擎以恢復語音功能。</string>
+    <string name="mobile_profile_system_voice_unconfigured_footer">電腦的內建語音不需要金鑰，但目前沒有可用語音。請在電腦的 RAI² 中切換語音引擎以恢復語音功能。</string>
     <string name="mobile_profile_elevenlabs_no_default_footer">尚未選擇工作區預設語音。請在上方選擇代理程式專用語音；語音合成仍會使用電腦上的共用 ElevenLabs 金鑰。</string>
     <string name="mobile_profile_fish_unconfigured">尚未設定 Fish Audio</string>
-    <string name="mobile_profile_fish_voice_unconfigured_footer">請在電腦上的 OpenMausBot 中新增共用 Fish Audio API 金鑰。該金鑰不會傳回此手機。</string>
+    <string name="mobile_profile_fish_voice_unconfigured_footer">請在電腦上的 RAI² 中新增共用 Fish Audio API 金鑰。該金鑰不會傳回此手機。</string>
     <string name="mobile_profile_fish_no_default_footer">尚未選擇工作區預設語音。請在上方選擇代理程式專用語音；語音合成仍會使用電腦上的 Fish Audio。</string>
     <string name="mobile_profile_system_no_default_footer">尚未選擇工作區預設語音。請在上方選擇代理程式專用語音；語音合成仍會使用電腦的內建語音。</string>
     <string name="mobile_profile_chatterbox_unconfigured">尚未連線 Chatterbox 伺服器</string>
-    <string name="mobile_profile_chatterbox_voice_unconfigured_footer">請在電腦上的 OpenMausBot 中新增 Chatterbox 伺服器位址以恢復語音功能。</string>
+    <string name="mobile_profile_chatterbox_voice_unconfigured_footer">請在電腦上的 RAI² 中新增 Chatterbox 伺服器位址以恢復語音功能。</string>
     <string name="mobile_profile_chatterbox_no_default_footer">尚未選擇工作區預設語音。請在上方選擇代理程式專用語音；語音合成仍會使用 Chatterbox 伺服器。</string>
     <string name="mobile_profile_voice_ready_footer">語音選擇屬於此代理程式。工作區預設語音會使用你在電腦上選取的共用語音。</string>
     <string name="mobile_profile_pick_voice">啟用語音前，請先為此代理程式選擇語音。</string>
@@ -751,26 +751,26 @@
     <string name="mobile_share_route_automatic">自動</string>
     <string name="mobile_share_route_secure_https">安全 HTTPS</string>
     <string name="mobile_share_route_local_network">本機網路</string>
-    <string name="mobile_share_bot">機器人</string>
+    <string name="mobile_share_bot">RAI</string>
     <string name="mobile_share_channel">頻道</string>
-    <string name="mobile_share_bot_thread">機器人 · %1$s</string>
+    <string name="mobile_share_bot_thread">RAI · %1$s</string>
     <string name="mobile_share_channel_thread">頻道 · %1$s</string>
     <string name="mobile_share_instruction_limit">選填指示請控制在 20,000 個字元以內。</string>
-    <string name="mobile_share_channel_image_compatibility">此頻道中可能回覆的所有機器人都必須使用支援圖像的模型。</string>
-    <string name="mobile_share_bot_image_compatibility">%1$s 目前使用的模型不支援圖像。請選擇其他機器人，或不要附上圖像再分享。</string>
-    <string name="mobile_share_not_paired">更新後請先開啟一次 OpenMausBot。如果此手機仍未連線，請先完成配對再分享。</string>
-    <string name="mobile_share_no_destinations">目前沒有可傳送內容的機器人或頻道。請先在電腦上建立一個。</string>
-    <string name="mobile_share_image_support_unavailable">請先更新此電腦上的 OpenMausBot，再分享圖像。</string>
-    <string name="mobile_share_offline">無法連線至 %1$s。請保持 OpenMausBot 開啟並啟用手機存取，然後再試一次。</string>
+    <string name="mobile_share_channel_image_compatibility">此頻道中可能回覆的所有RAI都必須使用支援圖像的模型。</string>
+    <string name="mobile_share_bot_image_compatibility">%1$s 目前使用的模型不支援圖像。請選擇其他RAI，或不要附上圖像再分享。</string>
+    <string name="mobile_share_not_paired">更新後請先開啟一次 RAI²。如果此手機仍未連線，請先完成配對再分享。</string>
+    <string name="mobile_share_no_destinations">目前沒有可傳送內容的RAI或頻道。請先在電腦上建立一個。</string>
+    <string name="mobile_share_image_support_unavailable">請先更新此電腦上的 RAI²，再分享圖像。</string>
+    <string name="mobile_share_offline">無法連線至 %1$s。請保持 RAI² 開啟並啟用手機存取，然後再試一次。</string>
     <string name="mobile_share_nothing_supported">沒有可傳送的文字、連結、圖像或支援的文件。</string>
     <string name="mobile_share_too_many_items">一次最多傳送 4 個項目。</string>
     <string name="mobile_share_too_much_text">文字內容過長，無法分享。請縮短選取內容。</string>
     <string name="mobile_share_too_large">%1$s 大於 %2$d MB。</string>
     <string name="mobile_share_unsupported_document">%1$s 不是支援的文件格式。請嘗試 PDF、文字、Word、Excel 或 PowerPoint。</string>
-    <string name="mobile_share_unreadable">OpenMausBot 無法讀取 %1$s。請先將其匯出至「檔案」。</string>
+    <string name="mobile_share_unreadable">RAI² 無法讀取 %1$s。請先將其匯出至「檔案」。</string>
     <string name="mobile_share_send_timed_out">傳送逾時。請檢查連線後再試一次。</string>
-    <string name="mobile_share_generic_error">OpenMausBot 無法傳送此內容，請再試一次。</string>
-    <string name="mobile_share_pairing_expired">此手機的配對已過期。請開啟 OpenMausBot 並重新配對。</string>
+    <string name="mobile_share_generic_error">RAI² 無法傳送此內容，請再試一次。</string>
+    <string name="mobile_share_pairing_expired">此手機的配對已過期。請開啟 RAI² 並重新配對。</string>
     <string name="mobile_share_one_item_omitted">已略過 1 個不支援的項目。</string>
     <string name="mobile_share_items_omitted">已略過 %1$d 個不支援的項目。</string>
     <string name="mobile_share_link">連結</string>
@@ -793,7 +793,7 @@
     <string name="mobile_file_no_share_app">此手機上沒有可以分享 %1$s 的 App。</string>
 
     <string name="mobile_pairing_notice_https">只有在這是你剛掃描 QR 碼的電腦時才繼續。確認後會建立經過驗證的 HTTPS 配套連線。</string>
-    <string name="mobile_pairing_notice_scan">只有在這是你剛掃描 QR 碼的電腦時才繼續。確認後會建立經過驗證的配套連線。請使用可信任的 Wi-Fi 網路或 tailnet；OpenMausBot 不會加密本機 Wi-Fi 流量。</string>
+    <string name="mobile_pairing_notice_scan">只有在這是你剛掃描 QR 碼的電腦時才繼續。確認後會建立經過驗證的配套連線。請使用可信任的 Wi-Fi 網路或 tailnet；RAI² 不會加密本機 Wi-Fi 流量。</string>
     <string name="mobile_pairing_enter_code_notice">請輸入電腦上顯示的 6 位數代碼：</string>
     <string name="mobile_pairing_rescan_notice">配對完成前，應用程式已重新啟動。該一次性代碼絕不會重複使用，因為它可能已被兌換。請在電腦上重新開始配對，並掃描新的 QR 碼。</string>
 
@@ -847,8 +847,8 @@
     <string name="mobile_change_list_density">變更列表密度</string>
     <string name="mobile_density_comfortable">寬鬆</string>
     <string name="mobile_density_compact">緊湊</string>
-    <string name="mobile_density_comfortable_caption">頭像更大，機器人名稱下會顯示最新訊息。</string>
-    <string name="mobile_density_compact_caption">每個機器人佔一行。擁有多個活躍對話的機器人會顯示對話數量；點按數字即可列出對話。</string>
+    <string name="mobile_density_comfortable_caption">頭像更大，RAI名稱下會顯示最新訊息。</string>
+    <string name="mobile_density_compact_caption">每個RAI佔一行。擁有多個活躍對話的RAI會顯示對話數量；點按數字即可列出對話。</string>
     <string name="mobile_mention_someone">提及某人</string>
     <string name="mobile_mention_everyone">此對話中的所有人</string>
     <string name="mobile_live_call_bcf57db6">即時通話</string>
@@ -877,7 +877,7 @@
     <string name="mobile_the_browser_stream_stopped_8c601f57">瀏覽器畫面已停止。</string>
     <string name="mobile_open_browser_4f505ae5">開啟瀏覽器</string>
     <string name="mobile_set_up_live_calls_on_your_7c1804c5">請先在電腦上設定即時通話。</string>
-    <string name="mobile_live_calls_need_microphone_access_enable_f2aafa6d">即時通話需要麥克風權限。請在「設定 → MausBot」中開啟。</string>
+    <string name="mobile_live_calls_need_microphone_access_enable_f2aafa6d">即時通話需要麥克風權限。請在「設定 → RAI²」中開啟。</string>
     <string name="mobile_could_not_connect_the_call_audio_847141e6">無法連接通話音訊。</string>
     <string name="mobile_call_dropped_the_audio_could_not_ab5c1792">通話已中斷：音訊無法連接。</string>
     <string name="mobile_could_not_start_the_call_cf866fcf">無法開始通話。</string>
@@ -888,12 +888,12 @@
     <string name="mobile_call_ended_ad3bb04c">通話已結束。</string>
     <string name="mobile_call_dropped_81b41938">通話已中斷。</string>
     <string name="mobile_takes_effect_on_the_next_call_8adda04e">下次通話時生效。</string>
-    <string name="mobile_when_this_is_off_messages_you_e87ef334">關閉後，通話期間你輸入的訊息及機器人對它們的回覆不會傳送給 OpenAI。</string>
+    <string name="mobile_when_this_is_off_messages_you_e87ef334">關閉後，通話期間你輸入的訊息及RAI對它們的回覆不會傳送給 OpenAI。</string>
     <string name="mobile_call_ended_after_a_long_silence_5ffe4ae2">長時間無人說話，通話已結束。</string>
     <string name="mobile_call_ended_it_reached_openais_time_fcb83c06">通話已結束：已達到 OpenAI 的時間上限。</string>
     <string name="mobile_openai_ended_the_call_under_its_3d25b7aa">OpenAI 依其內容規範結束了通話。</string>
     <string name="mobile_call_ended_the_chat_was_deleted_e0c3ee2c">通話已結束：聊天已被刪除。</string>
-    <string name="mobile_call_ended_openmausbot_restarted_2e993461">通話已結束：OpenMausBot 已重新啟動。</string>
+    <string name="mobile_call_ended_openmausbot_restarted_2e993461">通話已結束：RAI² 已重新啟動。</string>
     <string name="mobile_from_your_computer_7f368610">來自你的電腦</string>
     <string name="mobile_from_an_iphone_6588e9c4">來自一支 iPhone</string>
     <string name="mobile_from_another_phone_619cc34e">來自另一支手機</string>
@@ -909,4 +909,8 @@
     <string name="mobile_1_minute_62957ecf">1 分鐘</string>
     <string name="mobile_minutes_count">%1$d 分鐘</string>
     <string name="mobile_chief_of_staff_ab970bed">幕僚長</string>
+    <string name="mobile_language_section">語言</string>
+    <string name="mobile_language_label">目前語言</string>
+    <string name="mobile_language_change">變更語言</string>
+    <string name="mobile_language_dialog_title">選擇語言</string>
 </resources>

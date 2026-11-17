@@ -2,7 +2,10 @@ package com.openmausbot.companion.ui
 
 import androidx.compose.ui.res.stringResource
 
+import android.app.Activity
 import android.content.ClipData
+import androidx.compose.ui.platform.LocalContext
+import com.openmausbot.companion.storage.LanguageHelper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -85,6 +88,8 @@ fun SettingsScreen(
     val activityDetail by environment.chatPreferences.activityDetail.collectAsState()
     val appearanceSkin by environment.chatPreferences.appearanceSkin.collectAsState()
     val rosterDensity by environment.chatPreferences.rosterDensity.collectAsState()
+    val selectedLanguage by environment.chatPreferences.selectedLanguage.collectAsState()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
     val haptics = rememberHaptics()
@@ -101,6 +106,7 @@ fun SettingsScreen(
     var choosingActivity by remember { mutableStateOf(false) }
     var choosingAppearance by remember { mutableStateOf(false) }
     var choosingDensity by remember { mutableStateOf(false) }
+    var choosingLanguage by remember { mutableStateOf(false) }
     var editingQuickReplies by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -254,6 +260,14 @@ fun SettingsScreen(
             SettingsSection(stringResource(R.string.mobile_settings_appearance)) {
                 SettingsRow(stringResource(R.string.mobile_settings_skin), appearanceSkin.label)
                 SettingsButton(stringResource(R.string.mobile_settings_choose_skin)) { choosingAppearance = true }
+            }
+
+            SettingsSection(stringResource(R.string.mobile_language_section)) {
+                SettingsRow(
+                    stringResource(R.string.mobile_language_label),
+                    LanguageHelper.labelFor(selectedLanguage),
+                )
+                SettingsButton(stringResource(R.string.mobile_language_change)) { choosingLanguage = true }
             }
 
             // Routine schedules live on the computer this phone is bound to.
@@ -448,6 +462,42 @@ fun SettingsScreen(
             },
             confirmButton = {},
             dismissButton = { TextButton(onClick = { choosingAppearance = false }) { Text(stringResource(R.string.mobile_cancel_77dfd213)) } },
+        )
+    }
+
+    if (choosingLanguage) {
+        AlertDialog(
+            onDismissRequest = { choosingLanguage = false },
+            title = { Text(stringResource(R.string.mobile_language_dialog_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LanguageHelper.options.forEach { opt ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = MIN_TOUCH_TARGET)
+                                .selectable(
+                                    selected = opt.tag == selectedLanguage,
+                                    role = Role.RadioButton,
+                                    onClick = {
+                                        environment.chatPreferences.setSelectedLanguage(opt.tag)
+                                        LanguageHelper.applyLocale(context, opt.tag)
+                                        choosingLanguage = false
+                                        (context as? Activity)?.recreate()
+                                    },
+                                )
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = opt.tag == selectedLanguage, onClick = null)
+                            Text(opt.label, modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { choosingLanguage = false }) { Text(stringResource(R.string.mobile_cancel_77dfd213)) } },
         )
     }
 

@@ -22,6 +22,7 @@ import com.openmausbot.companion.notifications.notificationTarget
 import com.openmausbot.companion.browser.CloudDesktopBrowser
 import com.openmausbot.companion.sharing.TranscriptSharing
 import com.openmausbot.companion.storage.ChatPreferences
+import com.openmausbot.companion.storage.LanguageHelper
 import android.os.PowerManager
 import com.openmausbot.companion.ui.CameraPermissionController
 import com.openmausbot.companion.ui.ChatDraftHolder
@@ -45,6 +46,12 @@ import com.openmausbot.companion.ui.PendingThreadNavigation
  * `ProcessLifecycleOwner`, which is the Android shape of iOS's `scenePhase`.
  */
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val prefs = newBase.getSharedPreferences(ChatPreferences.NAME, android.content.Context.MODE_PRIVATE)
+        val lang = prefs.getString("companion.prefs.selectedLanguage", "vi") ?: "vi"
+        super.attachBaseContext(LanguageHelper.wrapContext(newBase, lang))
+    }
+
     private val app: OpenMausApp
         get() = application as OpenMausApp
 

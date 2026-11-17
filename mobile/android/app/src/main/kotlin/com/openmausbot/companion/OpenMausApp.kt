@@ -17,7 +17,9 @@ import com.openmausbot.companion.notifications.LocalNotificationPoster
 import com.openmausbot.companion.permissions.CompanionPermissions
 import com.openmausbot.companion.sharing.ShareInbox
 import com.openmausbot.companion.storage.AlwaysOnPreferences
+import com.openmausbot.companion.storage.ChatPreferences
 import com.openmausbot.companion.storage.DataStoreConnectionStore
+import com.openmausbot.companion.storage.LanguageHelper
 import com.openmausbot.companion.storage.OnboardingPreferences
 import com.openmausbot.companion.storage.KeystoreTokenStore
 import com.openmausbot.companion.ui.FilePreviews
@@ -67,8 +69,17 @@ class OpenMausApp : Application() {
     lateinit var alwaysOn: AlwaysOnPreferences
         private set
 
+    override fun attachBaseContext(base: android.content.Context) {
+        val prefs = base.getSharedPreferences(ChatPreferences.NAME, android.content.Context.MODE_PRIVATE)
+        val lang = prefs.getString("companion.prefs.selectedLanguage", "vi") ?: "vi"
+        super.attachBaseContext(LanguageHelper.wrapContext(base, lang))
+    }
+
     override fun onCreate() {
         super.onCreate()
+        val prefs = getSharedPreferences(ChatPreferences.NAME, android.content.Context.MODE_PRIVATE)
+        val lang = prefs.getString("companion.prefs.selectedLanguage", "vi") ?: "vi"
+        LanguageHelper.applyLocale(this, lang)
         shareInbox = ShareInbox()
         ShareInbox.cleanStale(cacheDir)
         // Launch stays non-blocking. The preview store awaits the shared
