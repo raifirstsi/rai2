@@ -1,5 +1,8 @@
 package com.openmausbot.companion.ui
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -789,7 +792,12 @@ private fun RoomFaces(members: List<Bot>, size: Dp) {
     Box(modifier = Modifier.size(size)) {
         val first = members.getOrNull(0)
         if (first == null) {
-            MausAvatar(color = ROOM_COLOR, size = size, state = MausState.HAPPY, animated = false)
+            Image(
+                painter = painterResource(R.drawable.bot_mascot_circle),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(size).clip(CircleShape),
+            )
         } else {
             BotAvatar(
                 bot = first,

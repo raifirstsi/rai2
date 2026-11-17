@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.sp
 
 /** The sentences these screens are made of, named so a test can look them up. */
 object OnboardingCopy {
-    const val WELCOME_TITLE = "Take your bots with you"
+    const val WELCOME_TITLE = "Take your RAI with you"
     const val WELCOME_SUBTITLE =
         "Open chats, approve actions, and send new work from your phone."
     const val WELCOME_CONNECT = "Connect my computer"
@@ -62,9 +62,9 @@ object OnboardingCopy {
 
     const val UNPAIRED_HOME_TITLE = "Connect when you're ready"
     const val UNPAIRED_HOME_BODY =
-        "Pair this phone with OpenMausBot to see your chats and respond to your bots."
+        "Pair this phone with RAI² to see your chats and respond to your RAI."
     const val UNPAIRED_HOME_HINT =
-        "On your computer, open OpenMausBot → Settings → Phone."
+        "On your computer, open RAI² → Settings → Phone."
     const val UNPAIRED_HOME_CONNECT = "Connect computer"
 
     const val NOTIFICATIONS_TITLE = "Stay in the loop"

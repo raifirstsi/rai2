@@ -4,6 +4,10 @@ import com.openmausbot.companion.R
 
 import androidx.compose.ui.res.stringResource
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -168,7 +172,12 @@ internal fun MascotStack(colors: List<String>, size: Dp = 28.dp, overlap: Dp = 1
                     .background(MaterialTheme.colorScheme.surface, CircleShape)
                     .padding(2.dp),
             ) {
-                MausAvatar(color = color, size = size, state = MausState.IDLE, animated = false)
+                Image(
+                    painter = painterResource(R.drawable.bot_mascot_circle),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(size).clip(CircleShape),
+                )
             }
         }
     }

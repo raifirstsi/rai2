@@ -22,6 +22,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.openmausbot.companion.avatar.AvatarImageRules
+import com.openmausbot.companion.avatar.RaiMascots
+import androidx.compose.ui.res.painterResource
+import com.openmausbot.companion.R
 import com.openmausbot.companion.core.AvatarCrop
 import com.openmausbot.companion.core.Bot
 import com.openmausbot.companion.core.Chat
@@ -93,13 +96,12 @@ internal fun BotAvatar(
             modifier = named.size(size).clip(BotAvatarRules.shape(crop, size)),
         )
     } else {
-        MausAvatar(
-            color = bot.color,
-            bodyId = bot.mascotBody,
-            size = size,
-            state = state,
-            animated = animated,
-            modifier = named,
+        val mascotRes = remember(bot.id, bot.name, bot.color) { RaiMascots.getMascotDrawable(bot) }
+        Image(
+            painter = painterResource(mascotRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = named.size(size).clip(CircleShape),
         )
     }
 }
@@ -123,12 +125,11 @@ internal fun ChatAvatar(
             contentDescription = contentDescription,
             modifier = modifier,
         )
-        is Chat.RoomChat -> MausAvatar(
-            color = "blue",
-            size = size,
-            state = state,
-            animated = animated,
-            modifier = modifier,
+        is Chat.RoomChat -> Image(
+            painter = painterResource(R.drawable.bot_mascot_circle),
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = modifier.size(size).clip(CircleShape),
         )
     }
 }

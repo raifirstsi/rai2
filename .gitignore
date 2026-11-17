@@ -45,3 +45,5 @@ deploy/podman/.env.*
 tunnel-token.txt
 __pycache__/
 *.pyc
+
+*.apk

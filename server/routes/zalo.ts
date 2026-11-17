@@ -142,7 +142,7 @@ export function createZaloRoutes(deps: ZaloRouteDeps = {}): RouteHandler {
           }
         } catch {}
 
-        const isConnected = (config && gwConnected) || (config && Boolean(config.phone));
+        const isConnected = gwConnected;
         const displayName = liveUserInfo?.name && liveUserInfo.name !== "Zalo User"
           ? `${liveUserInfo.name}${liveUserInfo.phone ? ` (${liveUserInfo.phone})` : ""}`
           : (config?.phone ? `Zalo (${config.phone})` : undefined);

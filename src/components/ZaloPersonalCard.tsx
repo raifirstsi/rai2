@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Loader2, MoreHorizontal, QrCode, KeyRound, TriangleAlert, User, Bot as BotIcon } from "lucide-react";
+import { Check, Loader2, MoreHorizontal, QrCode, KeyRound, TriangleAlert, User, Bot as BotIcon, RotateCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 import { api, useStore } from "@/state/store";
@@ -33,6 +33,8 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
   const [mode, setMode] = useState<"qr" | "session">("qr");
   const [busy, setBusy] = useState<"qr" | "save" | "disconnect" | null>(null);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [qrPhase, setQrPhase] = useState<"idle" | "generating" | "waiting" | "scanned" | "ready" | "expired">("idle");
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [phone, setPhone] = useState("");
@@ -84,6 +86,8 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
   const requestQr = async () => {
     setBusy("qr");
     setError(null);
+    setQrCodeData(null);
+    setQrPhase("generating");
     try {
       await api("/api/zalo/personal/qr", { method: "POST" });
       
@@ -101,20 +105,37 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
           if (res.qrData) {
             setQrCodeData(res.qrData);
           }
+          if (res.qrStatus === "scanned") {
+            setQrPhase("scanned");
+          } else if (res.qrStatus === "waiting") {
+            setQrPhase("waiting");
+          } else if (res.qrStatus === "expired") {
+            setQrPhase("expired");
+            setQrCodeData(null);
+            if (pollTimer.current) {
+              clearInterval(pollTimer.current);
+              pollTimer.current = null;
+            }
+          }
           if (res.connected || res.qrStatus === "ready") {
             if (pollTimer.current) {
               clearInterval(pollTimer.current);
               pollTimer.current = null;
             }
+            setQrPhase("ready");
+            setQrCodeData(null);
+            setIsEditing(false);
+            setSuccessNotice("Kết nối Zalo thành công! Hãy chọn Bot phụ trách xử lý tin nhắn bên dưới.");
             void load();
           }
-          if (res.error) {
+          if (res.error && res.qrStatus !== "waiting" && res.qrStatus !== "scanned") {
             setError(res.error);
           }
         } catch {}
-      }, 2000);
+      }, 1500);
     } catch (cause) {
       if (mounted.current) {
+        setQrPhase("idle");
         setError(cause instanceof Error ? cause.message : "Không thể khởi tạo mã QR đăng nhập");
       }
     } finally {
@@ -216,6 +237,15 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
       </div>
 
       <div className="ps-[52px]">
+        {successNotice && (
+          <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-500/15 p-2.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-300">
+            <span>🎉 {successNotice}</span>
+            <button type="button" onClick={() => setSuccessNotice(null)} className="text-[11px] font-semibold hover:underline">
+              Đóng
+            </button>
+          </div>
+        )}
+
         {connected && (
           <div className="mt-2 flex flex-col gap-2 rounded-lg bg-raised/40 p-2.5 text-[12px]">
             <div className="flex items-center justify-between">
@@ -226,6 +256,11 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
                 </span>
               )}
             </div>
+            {!status?.assignedBotId && (
+              <div className="rounded-md bg-amber-500/10 p-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                ⚠️ <strong>Chưa gán Bot:</strong> Nhấp chọn một Bot bên dưới để kích hoạt tính năng tự động trả lời tin nhắn Zalo.
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-1.5">
               {state.bots.filter((b) => !b.hidden).map((bot) => {
                 const isSelected = status?.assignedBotId === bot.id;
@@ -308,17 +343,39 @@ export function ZaloPersonalCard({ refreshKey = 0, onConnection }: {
               <div className="flex flex-col items-center gap-3 py-2 text-center">
                 {qrCodeData ? (
                   <>
-                    <div className="overflow-hidden rounded-lg bg-white p-2 shadow-md">
+                    <div className="overflow-hidden rounded-xl bg-white p-3 shadow-md ring-1 ring-hairline/20">
                       {qrCodeData.startsWith("data:image/") ? (
                         <img src={qrCodeData} alt="Mã QR Zalo" className="size-48 object-contain" />
                       ) : (
                         <QRCodeSVG value={qrCodeData} size={180} level="M" />
                       )}
                     </div>
-                    <div className="text-[12px] text-ink-secondary">
-                      Mở ứng dụng <strong className="text-ink">Zalo trên điện thoại</strong> → Bấm icon <strong>Quét mã QR</strong> để đăng nhập.
-                    </div>
+                    {qrPhase === "scanned" ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-2 text-[12px] font-semibold text-blue-600 dark:text-blue-400">
+                        <Check size={14} className="stroke-[3]" />
+                        <span>Đã quét mã! Vui lòng bấm <strong>Xác nhận đăng nhập</strong> trên điện thoại.</span>
+                      </div>
+                    ) : (
+                      <div className="text-[12px] text-ink-secondary">
+                        Mở ứng dụng <strong className="text-ink">Zalo trên điện thoại</strong> → Bấm icon <strong>Quét mã QR</strong> để đăng nhập.
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void requestQr()}
+                      disabled={busy === "qr" || qrPhase === "generating"}
+                      className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-accent-text hover:underline"
+                    >
+                      <RotateCw size={12} className={busy === "qr" ? "animate-spin" : ""} />
+                      Làm mới / Tạo lại mã QR
+                    </button>
                   </>
+                ) : qrPhase === "generating" ? (
+                  <div className="flex flex-col items-center justify-center gap-2.5 py-6">
+                    <Loader2 size={26} className="animate-spin text-accent" />
+                    <p className="text-[13px] font-semibold text-ink">Đang tạo mã QR đăng nhập Zalo...</p>
+                    <p className="text-[11px] text-ink-secondary">Hệ thống đang kết nối Gateway, vui lòng chờ trong giây lát.</p>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2 py-4">
                     <p className="text-[12px] text-ink-secondary">Tạo mã QR để đăng nhập trực tiếp tài khoản Zalo cá nhân</p>
