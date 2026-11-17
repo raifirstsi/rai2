@@ -91,7 +91,7 @@ private val appVersionCode = run {
 }
 
 android {
-    namespace = "com.raifirst.rai2.companion"
+    namespace = "com.openmausbot.companion"
     compileSdk = 37
 
     defaultConfig {
