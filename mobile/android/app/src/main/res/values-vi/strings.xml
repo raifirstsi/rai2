@@ -483,7 +483,7 @@
     <string name="mobile_checking_cloud_vm_availability_b07ff23f">Đang kiểm tra tính khả dụng của Cloud VM…</string>
     <string name="mobile_choose_a_png_jpeg_gif_or_webp_image_1f68957d">Chọn hình ảnh PNG, JPEG, GIF hoặc WebP.</string>
     <string name="mobile_choose_an_available_provider_to_change_t_a1efc697">Chọn một nhà cung cấp có sẵn để thay đổi mô hình của RAI này.</string>
-    <string name="mobile_circle_1cc7820a">Vòng tròn</string>
+    <string name="mobile_circle_1cc7820a">Hình tròn</string>
     <string name="mobile_cloud_vm_26ca291f">Máy ảo đám mây</string>
     <string name="mobile_cloud_vm_status_is_unavailable_32c78491">Trạng thái máy ảo đám mây không khả dụng</string>
     <string name="mobile_completed_1798b3ba">Đã hoàn thành</string>
@@ -533,7 +533,7 @@
     <string name="mobile_preview_voice_560a6fec">Xem trước giọng nói</string>
     <string name="mobile_primary_account_32f2184e">Tài khoản chính</string>
     <string name="mobile_recent_changes_1bfd2320">Những thay đổi gần đây</string>
-    <string name="mobile_rounded_c5aa340f">Làm tròn</string>
+    <string name="mobile_rounded_c5aa340f">Bo góc</string>
     <string name="mobile_routines_a445e5ad">Thói quen</string>
     <string name="mobile_run_all_automated_tests_4032d93f">Chạy tất cả các bài kiểm tra tự động</string>
     <string name="mobile_run_receipts_9115568f">Chạy biên lai</string>
@@ -543,7 +543,7 @@
     <string name="mobile_schedule_recurring_or_one_time_agent_wor_3c7526bf">Lên lịch làm việc định kỳ hoặc đại lý một lần.</string>
     <string name="mobile_sending_cf765512">Đang gửi…</string>
     <string name="mobile_show_diff_78016e77">Hiển thị sự khác biệt</string>
-    <string name="mobile_square_82810cb9">Quảng trường</string>
+    <string name="mobile_square_82810cb9">Hình vuông</string>
     <string name="mobile_start_dictation_ee00527b">Bắt đầu đọc chính tả</string>
     <string name="mobile_stop_dictation_96ad53f1">Dừng đọc chính tả</string>
     <string name="mobile_stop_this_bot_before_changing_its_model_df92a917">Dừng RAI này trước khi thay đổi mô hình của nó.</string>
@@ -678,7 +678,7 @@
     <string name="mobile_pairing_notice_scan">Chỉ tiếp tục nếu đây là máy tính có mã QR bạn vừa quét. Việc xác nhận sẽ thiết lập kết nối đồng hành đã được xác thực. Sử dụng mạng Wi-Fi đáng tin cậy hoặc tailnet; RAI² không mã hóa lưu lượng truy cập Wi-Fi cục bộ.</string>
     <string name="mobile_pairing_enter_code_notice">Nhập mã gồm 6 chữ số hiển thị trên màn hình của bạn:</string>
     <string name="mobile_pairing_rescan_notice">Ứng dụng này đã khởi động lại trước khi quá trình ghép nối kết thúc. Mã một lần đó không bao giờ được sử dụng lại vì nó có thể đã được đổi. Bắt đầu ghép nối lại trên máy tính của bạn và quét mã QR mới.</string>
-    <string name="mobile_composer_ask_bot">Hỏi%1$s</string>
+    <string name="mobile_composer_ask_bot">Hỏi %1$s</string>
     <string name="mobile_composer_answer_bot">Trả lời%1$s…</string>
     <string name="mobile_type_your_answer">Nhập câu trả lời của bạn</string>
     <string name="mobile_composer_sends_into_turn">Gửi vào lượt này</string>
