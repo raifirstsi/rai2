@@ -5,6 +5,21 @@ import { EMAIL_INSTRUCTIONS } from "./email/instructions.ts";
 import { PHONE_INSTRUCTIONS, PHONE_RECOVERY } from "./phones/instructions.ts";
 import { HARNESS_PROXY_TIMEOUT_MS, HARNESS_PROXY_TIMEOUTS_MS } from "./harness-budget.ts";
 import { capToolListResult } from "./tool-count-limit.ts";
+import { ToolLoopGuard } from "./agent/loop-guard.ts";
+
+const loopGuards = new Map<string, ToolLoopGuard>();
+function getLoopGuardForToken(token: string): ToolLoopGuard {
+  let guard = loopGuards.get(token);
+  if (!guard) {
+    guard = new ToolLoopGuard(3, 5, 200);
+    loopGuards.set(token, guard);
+    if (loopGuards.size > 200) {
+      const oldest = loopGuards.keys().next().value;
+      if (oldest !== undefined) loopGuards.delete(oldest);
+    }
+  }
+  return guard;
+}
 
 export const MAX_INPUT_BYTES = 1_048_576;
 export const MAX_OUTPUT_BYTES = 16_777_216;
@@ -80,6 +95,18 @@ export async function harnessMcpRequest(
   };
   if (message.method === "ping") return { jsonrpc: "2.0", id, result: {} };
   if (message.method !== "tools/list" && message.method !== "tools/call") return failure(id, message.method, "Method not found.", -32601);
+  if (message.method === "tools/call") {
+    const params = message.params as { name?: unknown; arguments?: unknown } | undefined;
+    const toolName = typeof params?.name === "string" ? params.name : "unknown";
+    const toolArgs = typeof params?.arguments === "object" && params.arguments !== null
+      ? (params.arguments as Record<string, unknown>)
+      : typeof params?.arguments === "string" ? params.arguments : {};
+    const guard = getLoopGuardForToken(connection.token);
+    const decision = guard.recordAndCheck({ name: toolName, args: toolArgs });
+    if (!decision.allowed) {
+      return failure(id, message.method, decision.reason ?? "Repeated tool call blocked by LoopGuard.", -32603);
+    }
+  }
   try {
     const url = new URL(connection.url);
     if (!connection.token || url.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
