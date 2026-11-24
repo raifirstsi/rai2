@@ -38,7 +38,7 @@ describe('AgenticOS Kernel Resilience for RAI2', () => {
     try {
       const ledger1 = new MerkleAuditLedger(testPath);
       const r1 = ledger1.append('tenant-rai', 'ceo', 'approve_margin', { margin: 0.25 });
-      const r2 = ledger1.append('tenant-rai', 'bot-finance', 'calculate_pnl', { profit: 12500000 });
+      const _r2 = ledger1.append('tenant-rai', 'bot-finance', 'calculate_pnl', { profit: 12500000 });
       expect(ledger1.verifyIntegrity().valid).toBe(true);
 
       // Reload in a brand new instance from the file
