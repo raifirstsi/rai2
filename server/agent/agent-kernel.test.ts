@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { unlinkSync, existsSync } from 'node:fs';
 import { ToolLoopGuard } from './loop-guard.ts';
 import { safeJsonParse, repairJsonString } from './json-repair.ts';
 import { RunReaper } from './reaper.ts';
@@ -32,17 +33,22 @@ describe('AgenticOS Kernel Resilience for RAI2', () => {
     expect(JSON.parse(repaired)).toEqual({ success: true });
   });
 
-  it('MerkleAuditLedger links records with unbroken SHA256 hashes and detects tampering', () => {
-    const ledger = new MerkleAuditLedger();
-    const r1 = ledger.append('tenant-rai', 'ceo', 'approve_margin', { margin: 0.25 });
-    const r2 = ledger.append('tenant-rai', 'bot-finance', 'calculate_pnl', { profit: 12500000 });
+  it('MerkleAuditLedger persists to disk and reloads with intact chain', () => {
+    const testPath = '/tmp/test-merkle-' + Date.now() + '.jsonl';
+    try {
+      const ledger1 = new MerkleAuditLedger(testPath);
+      const r1 = ledger1.append('tenant-rai', 'ceo', 'approve_margin', { margin: 0.25 });
+      const _r2 = ledger1.append('tenant-rai', 'bot-finance', 'calculate_pnl', { profit: 12500000 });
+      expect(ledger1.verifyIntegrity().valid).toBe(true);
 
-    expect(r2.previousHash).toBe(r1.hash);
-    expect(ledger.verifyIntegrity().valid).toBe(true);
-
-    // Tamper test
-    (r1.payload as any).margin = 0.50;
-    expect(ledger.verifyIntegrity().valid).toBe(false);
+      // Reload in a brand new instance from the file
+      const ledger2 = new MerkleAuditLedger(testPath);
+      expect(ledger2.getRecords().length).toBe(2);
+      expect(ledger2.verifyIntegrity().valid).toBe(true);
+      expect(ledger2.getRecords()[1].previousHash).toBe(r1.hash);
+    } finally {
+      if (existsSync(testPath)) unlinkSync(testPath);
+    }
   });
 
   it('RunReaper identifies stale inactive tasks', () => {

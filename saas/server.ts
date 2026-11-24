@@ -7,6 +7,8 @@ import type { Account, SaasStore } from "./store.ts";
 import { normalizeWorkspaceHandle, ORDER_TTL_MS, PLANS, type PlanId, STARTER_PLAN, TRIAL_MS, WorkspaceCapacityError,
   WorkspaceHandleCooldownError, WorkspaceHandleTakenError } from "./store.ts";
 import { tenantToken } from "./tenant-auth.ts";
+import { MerkleAuditLedger } from "./merkle-audit.ts";
+import { join } from "node:path";
 
 export interface SaasConfig {
   publicOrigin: string;
@@ -147,6 +149,9 @@ export function createSaasServer(options: SaasServerOptions): Server {
     handleMutation = result.catch(() => {});
     return result;
   };
+  const auditPath = process.env.RAI2_SAAS_DATA_DIR ? join(process.env.RAI2_SAAS_DATA_DIR, "merkle-audit.jsonl") : "/var/lib/rai2/saas/merkle-audit.jsonl";
+  const merkleAudit = new MerkleAuditLedger(auditPath);
+
   const resumeIfIdle = async (account: Account): Promise<Account> => {
     const current = now();
     if (account.workspaceState === "suspended" && account.paidThrough <= current && account.trialThrough > current && options.onWorkspaceResume) {
@@ -186,6 +191,15 @@ export function createSaasServer(options: SaasServerOptions): Server {
     const path = new URL(req.url ?? "/", config.publicOrigin).pathname;
     if (req.headers.host !== publicUrl.host) return json(res, 421, { error: "wrong host" });
     if (method === "GET" && path === "/healthz") return json(res, 200, { ok: true });
+    if (method === "GET" && path === "/api/audit/verify") {
+      const integrity = merkleAudit.verifyIntegrity();
+      return json(res, 200, {
+        success: true,
+        valid: integrity.valid,
+        corruptedAt: integrity.corruptedAt ?? null,
+        totalRecords: integrity.totalRecords,
+      });
+    }
     if (method === "GET" && path === "/api/status") return json(res, 200, {
       paymentsEnabled, privatePreview: Boolean(previewEmail), trialDays: trialEnabled ? TRIAL_MS / 86_400_000 : 0,
       trialAvailable: trialEnabled && store.hasTrialCapacity(now(), config.maxWorkspaces!),
@@ -193,7 +207,7 @@ export function createSaasServer(options: SaasServerOptions): Server {
     if (method === "GET" && path === "/api/landing-session") {
       const landingOrigin = `https://${config.tenantDomain}`;
       if (req.headers.origin !== landingOrigin) return json(res, 403, { error: "landing origin required" });
-      const token = cookieToken(req);
+const token = cookieToken(req);
       const account = token ? store.accountForSession(sha256(token), now()) : null;
       const signedIn = Boolean(account && (!previewEmail || account.email === previewEmail));
       const workspaceReady = Boolean(signedIn && account?.workspaceState === "active" &&
@@ -263,6 +277,9 @@ export function createSaasServer(options: SaasServerOptions): Server {
       }
       const code = paymentCode(content);
       const result = store.recordPayment(code, `sepay:${id}`, amount, now());
+      if (result === "paid") {
+        merkleAudit.append("saas", `sepay:${id}`, "order_paid", { code, amount, sepayId: id, timestamp: now() });
+      }
       return json(res, 200, { success: true, accepted: result === "paid", duplicate: result === "duplicate" });
     }
 
@@ -414,6 +431,7 @@ export function createSaasServer(options: SaasServerOptions): Server {
         if (error instanceof WorkspaceCapacityError) return json(res, 409, { error: "workspace capacity reached" });
         throw error;
       }
+      merkleAudit.append(account.id, account.email, "order_created", { orderId: order.id, planId: order.planId, amount: order.amount, timestamp: now() });
       return json(res, 201, {
         id: order.id, planId: order.planId, code: order.code, amount: order.amount,
         expiresAt: order.createdAt + ORDER_TTL_MS,

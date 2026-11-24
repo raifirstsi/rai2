@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 export interface AuditRecord {
   id: string;
@@ -14,6 +16,24 @@ export interface AuditRecord {
 export class MerkleAuditLedger {
   private chain: AuditRecord[] = [];
   private static readonly GENESIS_HASH = '0'.repeat(64);
+  private readonly storagePath: string | null;
+
+  constructor(storagePath: string | null = null) {
+    this.storagePath = storagePath;
+    if (this.storagePath && existsSync(this.storagePath)) {
+      try {
+        const raw = readFileSync(this.storagePath, 'utf8');
+        const lines = raw.trim().split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const record = JSON.parse(line.trim()) as AuditRecord;
+          this.chain.push(record);
+        }
+      } catch (err) {
+        console.error('Failed to load existing audit ledger:', err);
+      }
+    }
+  }
 
   private computeHash(record: Omit<AuditRecord, 'hash'>): string {
     const serialized = JSON.stringify({
@@ -42,14 +62,25 @@ export class MerkleAuditLedger {
     const hash = this.computeHash(baseRecord);
     const completeRecord: AuditRecord = { ...baseRecord, hash };
     this.chain.push(completeRecord);
+
+    if (this.storagePath) {
+      try {
+        const dir = dirname(this.storagePath);
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        appendFileSync(this.storagePath, JSON.stringify(completeRecord) + '\n', 'utf8');
+      } catch (err) {
+        console.error('Failed to append to audit ledger file:', err);
+      }
+    }
+
     return completeRecord;
   }
 
-  public verifyIntegrity(): { valid: boolean; corruptedAt?: number } {
+  public verifyIntegrity(): { valid: boolean; corruptedAt?: number; totalRecords: number } {
     for (let i = 0; i < this.chain.length; i++) {
       const record = this.chain[i];
       const expectedPrev = i === 0 ? MerkleAuditLedger.GENESIS_HASH : this.chain[i - 1].hash;
-      if (record.previousHash !== expectedPrev) return { valid: false, corruptedAt: i };
+      if (record.previousHash !== expectedPrev) return { valid: false, corruptedAt: i, totalRecords: this.chain.length };
       const recalculated = this.computeHash({
         id: record.id,
         tenantId: record.tenantId,
@@ -59,9 +90,9 @@ export class MerkleAuditLedger {
         timestamp: record.timestamp,
         previousHash: record.previousHash,
       });
-      if (record.hash !== recalculated) return { valid: false, corruptedAt: i };
+      if (record.hash !== recalculated) return { valid: false, corruptedAt: i, totalRecords: this.chain.length };
     }
-    return { valid: true };
+    return { valid: true, totalRecords: this.chain.length };
   }
 
   public getRecords(tenantId?: string): AuditRecord[] {
