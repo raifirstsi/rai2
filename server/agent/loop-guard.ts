@@ -16,10 +16,12 @@ export class ToolLoopGuard {
   private history: string[] = [];
   private readonly softLimit: number;
   private readonly hardLimit: number;
+  private readonly maxHistorySize: number;
 
-  constructor(softLimit = 3, hardLimit = 5) {
+  constructor(softLimit = 3, hardLimit = 5, maxHistorySize = 500) {
     this.softLimit = softLimit;
     this.hardLimit = hardLimit;
+    this.maxHistorySize = maxHistorySize;
   }
 
   private hashCall(call: ToolCallSignature): string {
@@ -32,6 +34,10 @@ export class ToolLoopGuard {
   public recordAndCheck(call: ToolCallSignature): LoopGuardDecision {
     const hash = this.hashCall(call);
     this.history.push(hash);
+    if (this.history.length > this.maxHistorySize) {
+      this.history.shift();
+    }
+
     const count = this.history.filter((h) => h === hash).length;
 
     if (count >= this.hardLimit) {

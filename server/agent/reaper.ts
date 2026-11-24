@@ -10,8 +10,11 @@ export interface TrackedTask {
 export class RunReaper {
   private tasks = new Map<string, TrackedTask>();
   private reapInterval: NodeJS.Timeout | null = null;
+  private readonly defaultTimeoutMs: number;
 
-  constructor(private readonly defaultTimeoutMs = 120_000) {}
+  constructor(defaultTimeoutMs = 120_000) {
+    this.defaultTimeoutMs = defaultTimeoutMs;
+  }
 
   public register(id: string, tenantId: string, abortController?: AbortController, timeoutMs?: number): void {
     const now = Date.now();
