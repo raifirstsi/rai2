@@ -208,7 +208,7 @@ export class BusinessPulseEngine {
     let healthStatus: "healthy" | "attention_needed" | "critical_risk" = "healthy";
     if (bottlenecks.some(b => b.severity === "critical")) {
       healthStatus = "critical_risk";
-    } else if (bottlenecks.length > 0 || netMarginPercent < 20) {
+    } else if (bottlenecks.length > 0 || (totalRevenue > 0 && netMarginPercent < 20)) {
       healthStatus = "attention_needed";
     }
 
@@ -239,6 +239,11 @@ export class BusinessPulseEngine {
           : `🟢 Doanh thu: ${formatVndShort(totalRevenue)} │ 🟢 Lãi ròng: ${formatVndShort(grossProfit)} │ 🟡 ${bottlenecks.length} Điểm nghẽn`,
       },
     };
+  }
+
+  public getTransactions(workspaceId = "default"): TransactionRecord[] {
+    const list = this.transactions.get(workspaceId) || [];
+    return [...list];
   }
 
   public clearWorkspaceData(workspaceId = "default"): void {
