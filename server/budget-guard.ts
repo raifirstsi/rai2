@@ -39,6 +39,7 @@ export interface WorkspaceBudget {
   workspaceId: string;
   monthlyCapUsd: number;
   currentSpendUsd: number;
+  billingPeriod?: string; // Format YYYY-MM
   softWarningRatio: number; // default 0.8 (80%)
   hardStopRatio: number; // default 1.0 (100%)
   arbitrageEnabled: boolean;
@@ -90,6 +91,12 @@ export interface SpendLogEntry {
 export interface BudgetGuardOptions {
   storageFile?: string;
   defaultMonthlyCap?: number;
+}
+
+export function getCurrentBillingPeriod(date: Date = new Date()): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
 }
 
 export class BudgetGuard {
@@ -154,13 +161,15 @@ export class BudgetGuard {
     return key ? MODEL_PRICING_TABLE[key] : MODEL_PRICING_TABLE["default"];
   }
 
-  getWorkspaceBudget(workspaceId: string): WorkspaceBudget {
+  getWorkspaceBudget(workspaceId: string, asOfDate?: Date): WorkspaceBudget {
+    const currentPeriod = getCurrentBillingPeriod(asOfDate);
     let b = this.budgets.get(workspaceId);
     if (!b) {
       b = {
         workspaceId,
         monthlyCapUsd: this.defaultMonthlyCap,
         currentSpendUsd: 0,
+        billingPeriod: currentPeriod,
         softWarningRatio: 0.8,
         hardStopRatio: 1.0,
         arbitrageEnabled: true,
@@ -169,6 +178,17 @@ export class BudgetGuard {
         lastTurnAt: Date.now(),
       };
       this.budgets.set(workspaceId, b);
+    } else {
+      if (b.billingPeriod && b.billingPeriod !== currentPeriod) {
+        // Auto-rollover to new monthly period!
+        b.billingPeriod = currentPeriod;
+        b.currentSpendUsd = 0;
+        b.turnCount = 0;
+        b.totalTokensUsed = { prompt: 0, output: 0 };
+        this.saveState();
+      } else if (!b.billingPeriod) {
+        b.billingPeriod = currentPeriod;
+      }
     }
     return b;
   }

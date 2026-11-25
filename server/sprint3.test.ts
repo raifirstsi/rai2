@@ -52,6 +52,33 @@ describe("Sprint 3 Enterprise Infrastructure", () => {
       const q = await pool.query("tenant-ingest", "SELECT SUM(profit) as total_profit FROM orders_daily");
       expect(q.rows[0].total_profit).toBe(425.0);
     });
+
+    it("sanitizes empty string inputs for numeric columns to null without throwing", async () => {
+      const pool = getDuckDbPool();
+      const res = await pool.ingestTable(
+        "tenant-blank-numeric",
+        "inventory",
+        [
+          { name: "item_code", type: "VARCHAR" },
+          { name: "qty", type: "INTEGER" },
+          { name: "unit_price", type: "DOUBLE" },
+        ],
+        [
+          { item_code: "A1", qty: "10", unit_price: "25.5" },
+          { item_code: "B2", qty: "", unit_price: "  " },
+          { item_code: "C3", qty: null, unit_price: undefined },
+        ]
+      );
+      expect(res.inserted).toBe(3);
+
+      const q = await pool.query("tenant-blank-numeric", "SELECT item_code, qty, unit_price FROM inventory ORDER BY item_code");
+      expect(q.rows[0].qty).toBe(10);
+      expect(q.rows[0].unit_price).toBe(25.5);
+      expect(q.rows[1].qty).toBeNull();
+      expect(q.rows[1].unit_price).toBeNull();
+      expect(q.rows[2].qty).toBeNull();
+      expect(q.rows[2].unit_price).toBeNull();
+    });
   });
 
   describe("Phân hệ 20: Virtual Tables Engine & Formulas", () => {
@@ -81,6 +108,16 @@ describe("Sprint 3 Enterprise Infrastructure", () => {
 
       const conditional = evaluateFormula("IF([revenue] > 500, 'Tier 1', 'Tier 2')", ctx);
       expect(conditional).toBe("Tier 1");
+
+      // Division by zero safe checks
+      const zeroRevLoss = evaluateFormula("MARGIN(0, 50)", {});
+      expect(zeroRevLoss).toBe(-100);
+
+      const zeroRevZeroCost = evaluateFormula("MARGIN(0, 0)", {});
+      expect(zeroRevZeroCost).toBe(0);
+
+      const extremeMarkup = evaluateFormula("MARKUP(100, 100)", {});
+      expect(extremeMarkup).toBe(0);
     });
 
     it("detects circular references in formula DAG", () => {
@@ -248,6 +285,27 @@ describe("Sprint 3 Enterprise Infrastructure", () => {
       const history = guard.getSpendHistory("ws-record");
       expect(history).toHaveLength(1);
       expect(history[0].turnId).toBe("turn-123");
+    });
+
+    it("automatically rolls over monthly budget and resets spend on month change", () => {
+      // Set past month spend
+      const pastDate = new Date("2026-10-15T00:00:00Z");
+      guard.setWorkspaceBudget("ws-rollover", {
+        monthlyCapUsd: 50.0,
+        currentSpendUsd: 48.5,
+        billingPeriod: "2026-10",
+        turnCount: 15,
+      });
+
+      const before = guard.getWorkspaceBudget("ws-rollover", pastDate);
+      expect(before.currentSpendUsd).toBe(48.5);
+
+      // Advance to current/next month
+      const nextMonthDate = new Date("2026-11-01T00:00:00Z");
+      const after = guard.getWorkspaceBudget("ws-rollover", nextMonthDate);
+      expect(after.billingPeriod).toBe("2026-11");
+      expect(after.currentSpendUsd).toBe(0);
+      expect(after.turnCount).toBe(0);
     });
   });
 });
