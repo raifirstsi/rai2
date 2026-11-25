@@ -912,6 +912,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const canSaveRun =
     skillAuthoringEnabled(state.config) && engineSupportsAgents && recordedRunCounts.passed > 0 && recordedRunCounts.running === 0 && recordedRunCounts.unverified === 0 && !bot.busy;
   const [runDismissed, setRunDismissed] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const [inlineSteerActive, setInlineSteerActive] = useState(false);
+  const [inlineSteerText, setInlineSteerText] = useState("");
   const lastRunStep = recordedRun.at(-1);
   const showRunCard = useShowRunCard();
 
@@ -1311,7 +1313,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             </div>
           )}
           {bot.busy && (
-            <div data-quick-steer-bar className="flex items-center gap-2 px-3 py-1.5 my-2 rounded-lg bg-[var(--bg-card,rgba(0,0,0,0.4))] border border-[var(--border-subtle,rgba(255,255,255,0.08))] backdrop-blur-md w-fit animate-fade-in">
+            <div data-quick-steer-bar className="flex flex-wrap items-center gap-2 px-3 py-1.5 my-2 rounded-lg bg-[var(--bg-card,rgba(0,0,0,0.4))] border border-[var(--border-subtle,rgba(255,255,255,0.08))] backdrop-blur-md w-fit animate-fade-in">
               <span className="text-[11px] font-medium text-ink-secondary flex items-center gap-1.5">
                 <span className="inline-block size-1.5 rounded-full bg-amber-400 animate-pulse" />
                 Đang chạy lượt...
@@ -1335,27 +1337,74 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
                 <span>⏹</span>
                 Dừng lượt
               </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  const instruction = window.prompt("Nhập chỉ đạo bẻ lái cho AI:");
-                  if (!instruction?.trim()) return;
-                  try {
-                    await fetch("/api/chat/steer", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ turnId: bot.threadId, action: "redirect", instruction: instruction.trim() }),
-                    });
-                  } catch (err) {
-                    console.warn("[QuickSteer] redirect failed:", err);
-                  }
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 transition-all font-medium cursor-pointer"
-                title="Bổ sung chỉ đạo bẻ lái giữa chừng"
-              >
-                <span>↪</span>
-                Bẻ lái
-              </button>
+              {!inlineSteerActive ? (
+                <button
+                  type="button"
+                  onClick={() => setInlineSteerActive(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 transition-all font-medium cursor-pointer"
+                  title="Bổ sung chỉ đạo bẻ lái giữa chừng"
+                >
+                  <span>↪</span>
+                  Bẻ lái
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={inlineSteerText}
+                    onChange={(e) => setInlineSteerText(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && inlineSteerText.trim()) {
+                        e.preventDefault();
+                        try {
+                          await fetch("/api/chat/steer", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ turnId: bot.threadId, action: "redirect", instruction: inlineSteerText.trim() }),
+                          });
+                          setInlineSteerText("");
+                          setInlineSteerActive(false);
+                        } catch (err) {
+                          console.warn("[QuickSteer] redirect failed:", err);
+                        }
+                      } else if (e.key === "Escape") {
+                        setInlineSteerActive(false);
+                      }
+                    }}
+                    placeholder="Nhập chỉ đạo bẻ lái rồi ấn Enter..."
+                    className="px-2 py-0.5 text-xs rounded-md bg-inset/50 border border-hairline/60 text-ink focus:outline-none focus:border-accent w-48 transition-all"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    disabled={!inlineSteerText.trim()}
+                    onClick={async () => {
+                      if (!inlineSteerText.trim()) return;
+                      try {
+                        await fetch("/api/chat/steer", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ turnId: bot.threadId, action: "redirect", instruction: inlineSteerText.trim() }),
+                        });
+                        setInlineSteerText("");
+                        setInlineSteerActive(false);
+                      } catch (err) {
+                        console.warn("[QuickSteer] redirect failed:", err);
+                      }
+                    }}
+                    className="px-2 py-0.5 text-xs rounded-md bg-accent text-white font-medium disabled:opacity-40 cursor-pointer"
+                  >
+                    Gửi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setInlineSteerActive(false); setInlineSteerText(""); }}
+                    className="px-1.5 py-0.5 text-xs rounded-md text-ink-secondary hover:text-ink cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <TurnPresence

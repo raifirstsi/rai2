@@ -77,6 +77,36 @@ export function ComposerAttachments({
       depth.current = 0;
       setDragging(false);
       const files = Array.from(e.dataTransfer?.files ?? []);
+      for (const file of files) {
+        if (/\.(docx|xlsx|csv|pdf)$/i.test(file.name)) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+              const resBase64 = typeof reader.result === "string" ? reader.result.split(",")[1] : null;
+              if (resBase64) {
+                const resp = await fetch("/api/office/convert", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ filename: file.name, contentBase64: resBase64 }),
+                });
+                const data = await resp.json();
+                if (data?.ok && data?.result?.markdown) {
+                  callbacks.current.onDisplayInChatBox({
+                    kind: "paste",
+                    id: `office-${Date.now()}`,
+                    title: file.name,
+                    text: data.result.markdown,
+                    display: "chat",
+                  });
+                }
+              }
+            };
+            reader.readAsDataURL(file);
+          } catch (err) {
+            console.warn("[ComposerAttachments] Auto-convert failed:", err);
+          }
+        }
+      }
       const operation = Symbol("attachment-drop");
       pendingDrops.current.add(operation);
       callbacks.current.onPendingChange?.(true);
