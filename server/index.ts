@@ -322,7 +322,8 @@ import {
 import * as tts from "./tts/index.ts";
 import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
-import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
+import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -12110,7 +12111,7 @@ let restartRequested = false;
 const cloudMoveRoutes = createCloudMoveRoutes();
 
 // `workspaceAccess` is assigned at boot, after this line: read it per request.
-ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createStopLineRoutes()); ROUTES.push(createAgenticOsRoutes({
+ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createVirtualTablesRoutes()); ROUTES.push(createStopLineRoutes()); ROUTES.push(createAgenticOsRoutes({
   stopTurn: async (turnId: string) => {
     const targetBot = store.botByThread(turnId) ?? store.bots.find((b: any) => b.id === turnId || b.threadId === turnId);
     if (targetBot) {

@@ -913,6 +913,23 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
     skillAuthoringEnabled(state.config) && engineSupportsAgents && recordedRunCounts.passed > 0 && recordedRunCounts.running === 0 && recordedRunCounts.unverified === 0 && !bot.busy;
   const [runDismissed, setRunDismissed] = useState<ReadonlyMap<string, string>>(() => new Map());
   const [inlineSteerActive, setInlineSteerActive] = useState(false);
+  const [budgetInfo, setBudgetInfo] = useState<{ currentSpendUsd: number; monthlyCapUsd: number } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/budget/status?workspaceId=default")
+      .then((r) => r.json())
+      .then((d) => {
+        if (active && d?.budget) {
+          setBudgetInfo({
+            currentSpendUsd: d.budget.currentSpendUsd,
+            monthlyCapUsd: d.budget.monthlyCapUsd,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [bot.busy]);
   const [inlineSteerText, setInlineSteerText] = useState("");
   const lastRunStep = recordedRun.at(-1);
   const showRunCard = useShowRunCard();
@@ -1314,6 +1331,17 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           )}
           {bot.busy && (
             <div data-quick-steer-bar className="flex flex-wrap items-center gap-2 px-3 py-1.5 my-2 rounded-lg bg-[var(--bg-card,rgba(0,0,0,0.4))] border border-[var(--border-subtle,rgba(255,255,255,0.08))] backdrop-blur-md w-fit animate-fade-in">
+              {budgetInfo && (
+                <span
+                  data-budget-guard-indicator
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium"
+                  title="Pre-flight Budget Guard: Chi tiêu tháng / Ngân sách tối đa"
+                >
+                  <span className="text-[10px]">⚡</span>
+                  <span>${budgetInfo.currentSpendUsd.toFixed(2)}</span>
+                  <span className="text-ink-secondary/60">/ ${budgetInfo.monthlyCapUsd.toFixed(0)}</span>
+                </span>
+              )}
               <span className="text-[11px] font-medium text-ink-secondary flex items-center gap-1.5">
                 <span className="inline-block size-1.5 rounded-full bg-amber-400 animate-pulse" />
                 Đang chạy lượt...
