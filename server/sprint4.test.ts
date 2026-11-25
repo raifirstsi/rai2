@@ -95,9 +95,14 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       expect(record.status).toBe("promoted");
       expect(record.promotedBy).toBe("admin-01");
 
-      const check = gate.canServeCustomer("bot-copilot");
+      const check = gate.canServeCustomer("bot-copilot", "tenant-corp");
       expect(check.allowed).toBe(true);
       expect(check.status).toBe("promoted");
+
+      // Multi-tenant check: Other tenant must NOT inherit promotion
+      const checkOther = gate.canServeCustomer("bot-copilot", "tenant-other");
+      expect(checkOther.allowed).toBe(false);
+      expect(checkOther.status).toBe("draft");
     });
 
     it("quarantines failing bot and refuses customer turn dispatch", () => {
@@ -112,7 +117,7 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       const record = gate.evaluateAndPromote(failingEval, "tenant-corp", "system");
       expect(record.status).toBe("quarantined");
 
-      const check = gate.canServeCustomer("bot-bad");
+      const check = gate.canServeCustomer("bot-bad", "tenant-corp");
       expect(check.allowed).toBe(false);
       expect(check.status).toBe("quarantined");
       expect(check.reason).toContain("cách ly");
@@ -129,6 +134,7 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       expect(parseVietnameseSpokenCurrency("500 nghìn")).toBe(500000);
       expect(parseVietnameseSpokenCurrency("42.500.000 đ")).toBe(42500000);
       expect(parseVietnameseSpokenCurrency("100.000")).toBe(100000);
+      expect(parseVietnameseSpokenCurrency("1.000 tỷ")).toBe(1000000000000);
     });
 
     it("extracts P&L intent and computes margin within sub-15ms SLA", () => {

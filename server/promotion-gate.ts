@@ -36,9 +36,17 @@ export class PromotionGate {
   constructor(options?: PromotionGateOptions) {
     this.minScoreToPromote = options?.minScoreToPromote ?? 19.0;
     this.storageFile = options?.storageFile ?? (
-      process.env.RAI2_PROMOTION_FILE ?? (process.env.DATA_DIR ? join(process.env.DATA_DIR, "promotion-gate-state.json") : null)
+      process.env.RAI2_PROMOTION_FILE ?? (
+        process.env.DATA_DIR
+          ? join(process.env.DATA_DIR, "promotion-gate-state.json")
+          : (existsSync("/var/lib/openmausbot") ? "/var/lib/openmausbot/promotion-gate-state.json" : "/tmp/promotion-gate-state.json")
+      )
     );
     this.loadState();
+  }
+
+  private getRecordKey(workspaceId: string, botId: string): string {
+    return `${workspaceId}:${botId}`;
   }
 
   private loadState(): void {
@@ -49,7 +57,8 @@ export class PromotionGate {
       if (Array.isArray(parsed.records)) {
         for (const r of parsed.records) {
           if (r && typeof r.botId === "string") {
-            this.records.set(r.botId, r);
+            const ws = typeof r.workspaceId === "string" ? r.workspaceId : "default";
+            this.records.set(this.getRecordKey(ws, r.botId), r);
           }
         }
       }
@@ -75,7 +84,8 @@ export class PromotionGate {
   }
 
   getRecord(botId: string, workspaceId = "default", botName = "Assistant"): BotPromotionRecord {
-    let rec = this.records.get(botId);
+    const key = this.getRecordKey(workspaceId, botId);
+    let rec = this.records.get(key);
     if (!rec) {
       rec = {
         botId,
@@ -84,7 +94,7 @@ export class PromotionGate {
         status: "draft",
         updatedAt: Date.now(),
       };
-      this.records.set(botId, rec);
+      this.records.set(key, rec);
     }
     return rec;
   }
@@ -110,13 +120,13 @@ export class PromotionGate {
       rec.rejectionReason = `Điểm sát hạch (${evalResult.totalScore}/21) không đạt chuẩn hoặc vi phạm tiêu chí an toàn bắt buộc. Bot bị cách ly tiếp khách.`;
     }
 
-    this.records.set(rec.botId, rec);
+    this.records.set(this.getRecordKey(workspaceId, rec.botId), rec);
     this.saveState();
     return rec;
   }
 
-  canServeCustomer(botId: string): { allowed: boolean; status: BotDeploymentStatus; reason?: string } {
-    const rec = this.records.get(botId);
+  canServeCustomer(botId: string, workspaceId = "default"): { allowed: boolean; status: BotDeploymentStatus; reason?: string } {
+    const rec = this.records.get(this.getRecordKey(workspaceId, botId));
     if (!rec || rec.status !== "promoted") {
       return {
         allowed: false,
