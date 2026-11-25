@@ -114,10 +114,8 @@ export function createSprint5Routes(): RouteHandler {
 
       let txList = Array.isArray(p?.transactions) ? (p.transactions as any[]) : [];
       if (txList.length === 0) {
-        // Lấy từ giao dịch hôm nay
-        const pulse = pulseEngine.getDailyPulse(workspaceId);
-        // Fallback demo data nếu chưa có
-        if (pulse.transactionCount === 0) {
+        txList = pulseEngine.getTransactions(workspaceId);
+        if (txList.length === 0) {
           txList = [
             {
               id: "tx_01",
@@ -172,20 +170,23 @@ export function createSprint5Routes(): RouteHandler {
           }]
         : [];
 
-      const sampleTx = [
-        {
-          id: "tx_audit_01",
-          workspaceId,
-          orderCode: "ORD-9901",
-          revenue: 128500000,
-          cost: 100300000,
-          customerName: "Tập đoàn Minh Long",
-          timestamp: new Date().toISOString(),
-          status: "approved" as const,
-        },
-      ];
+      let txs = pulseEngine.getTransactions(workspaceId);
+      if (txs.length === 0) {
+        txs = [
+          {
+            id: "tx_audit_01",
+            workspaceId,
+            orderCode: "ORD-9901",
+            revenue: 128500000,
+            cost: 100300000,
+            customerName: "Tập đoàn Minh Long",
+            timestamp: new Date().toISOString(),
+            status: "approved" as const,
+          },
+        ];
+      }
 
-      const bundle = exporting.createAuditBundle(workspaceId, sampleTx, pulse, dummyConsents);
+      const bundle = exporting.createAuditBundle(workspaceId, txs, pulse, dummyConsents);
 
       return json(res, 200, {
         success: true,
