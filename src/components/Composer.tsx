@@ -497,7 +497,8 @@ export function Composer({
                 });
                 const data = await resp.json();
                 if (data?.ok && data?.result?.markdown) {
-                  setText((prev) => (prev ? `${prev}\n\n${data.result.markdown}` : data.result.markdown));
+                  const md = data.result.markdown;
+                  setText(text ? text + "\n\n" + md : md);
                 }
               }
             };
