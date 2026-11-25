@@ -1,3 +1,4 @@
+import { getTurnSteeringManager } from "../turn-steering.ts";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
@@ -270,7 +271,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       if (pointed && !pointed.ok) return json(res, pointed.status, refusalBody(pointed));
       const openPage = pageOpen ? openPageBlock(store, threadId, body.openPage) : null;
       if (openPage === false) return json(res, 400, { error: OPEN_PAGE_BAD });
-      const text = press ? press.text : appSent ? appSent.text : typed;
+      let text = press ? press.text : appSent ? appSent.text : typed;
       const target = resolveReplyTarget(threadId, press ? press.messageId : appSent ? appSent.messageId : body.replyToId);
       if (relayed && target?.role !== "bot") return json(res, 400, { error: "a relayed reaction answers a bot's message" });
       const passedBack = !guarded && !press && !appSent && !pointed && target ? deps.inboxReply?.(auth, threadId, target.id, text, { sendId, sender: messageSender(auth) }) : null;
@@ -332,6 +333,13 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       // paired session or the desktop capability proves a person and lifts the webhook block.
       const personPresent = auth.kind === "session" || DESKTOP_MANAGED;
       if (personPresent && sendId && !guarded && !press && !appSent) noteTypedSend(threadId, sendId, text);
+      const steerDirectives = getTurnSteeringManager().consumeDirectives(threadId);
+      if (steerDirectives.length > 0) {
+        const steerContext = steerDirectives
+          .map((d) => `[CHỈ ĐẠO BẺ LÁI GIỮA CHỪNG (${d.action.toUpperCase()})]: ${d.instruction ?? "Chuyển hướng trọng tâm"}`)
+          .join("\n");
+        text = `${steerContext}\n\n${text}`;
+      }
       if (pressKey) pressesInFlight.set(pressKey, sendId);
       try {
         const receipt = await acceptDirectSend({

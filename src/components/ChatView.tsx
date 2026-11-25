@@ -1310,6 +1310,54 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               </div>
             </div>
           )}
+          {bot.busy && (
+            <div data-quick-steer-bar className="flex items-center gap-2 px-3 py-1.5 my-2 rounded-lg bg-[var(--bg-card,rgba(0,0,0,0.4))] border border-[var(--border-subtle,rgba(255,255,255,0.08))] backdrop-blur-md w-fit animate-fade-in">
+              <span className="text-[11px] font-medium text-ink-secondary flex items-center gap-1.5">
+                <span className="inline-block size-1.5 rounded-full bg-amber-400 animate-pulse" />
+                Đang chạy lượt...
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await fetch("/api/chat/steer", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ turnId: bot.threadId, action: "cancel" }),
+                    });
+                  } catch (err) {
+                    console.warn("[QuickSteer] cancel failed:", err);
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all font-medium cursor-pointer"
+                title="Dừng lượt AI ngay lập tức"
+              >
+                <span>⏹</span>
+                Dừng lượt
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const instruction = window.prompt("Nhập chỉ đạo bẻ lái cho AI:");
+                  if (!instruction?.trim()) return;
+                  try {
+                    await fetch("/api/chat/steer", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ turnId: bot.threadId, action: "redirect", instruction: instruction.trim() }),
+                    });
+                  } catch (err) {
+                    console.warn("[QuickSteer] redirect failed:", err);
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 transition-all font-medium cursor-pointer"
+                title="Bổ sung chỉ đạo bẻ lái giữa chừng"
+              >
+                <span>↪</span>
+                Bẻ lái
+              </button>
+            </div>
+          )}
           <TurnPresence
             avatar={
               <BotAvatar

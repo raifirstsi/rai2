@@ -10869,7 +10869,7 @@ function startGroupTurn(
     const lastSpeakerId = [...store.messagesFor(threadId)]
       .reverse()
       .find((msg) => msg.kind === "text" && msg.from)?.from?.botId;
-    const last = availableMembers.find((b) => b.id === lastSpeakerId) ?? availableMembers[0];
+    const last = availableMembers.find((b: any) => b.id === lastSpeakerId) ?? availableMembers[0];
     responders = last ? [last] : [];
   }
   // Auto's responders are a fallback until the decision model answers; the append and the return stay synchronous.
@@ -12110,7 +12110,22 @@ let restartRequested = false;
 const cloudMoveRoutes = createCloudMoveRoutes();
 
 // `workspaceAccess` is assigned at boot, after this line: read it per request.
-ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createStopLineRoutes()); ROUTES.push(createAgenticOsRoutes());
+ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createStopLineRoutes()); ROUTES.push(createAgenticOsRoutes({
+  stopTurn: async (turnId: string) => {
+    const targetBot = store.botByThread(turnId) ?? store.bots.find((b: any) => b.id === turnId || b.threadId === turnId);
+    if (targetBot) {
+      await stopThreadForPerson(targetBot.id, targetBot.threadId);
+    } else {
+      for (const b of store.bots) {
+        try {
+          await stopThreadForPerson(b.id, b.threadId);
+        } catch {
+          // continue
+        }
+      }
+    }
+  }
+}));
 ROUTES.push(createRai2BillingRoute());
 const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) })); ROUTES.push(createStarterAwakeRoutes({ awake: starterAwake }));
