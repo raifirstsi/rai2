@@ -3,6 +3,9 @@
  * Protects P&L and arbitrates models based on cost and capability before each turn.
  */
 
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+
 export interface ModelPricing {
   inputPer1M: number; // in USD
   outputPer1M: number; // in USD
@@ -84,10 +87,65 @@ export interface SpendLogEntry {
   timestamp: number;
 }
 
+export interface BudgetGuardOptions {
+  storageFile?: string;
+  defaultMonthlyCap?: number;
+}
+
 export class BudgetGuard {
   private budgets = new Map<string, WorkspaceBudget>();
   private spendLogs: SpendLogEntry[] = [];
   private defaultMonthlyCap = 100.0; // $100 monthly default
+  private storageFile: string | null = null;
+
+  constructor(options?: BudgetGuardOptions) {
+    if (typeof options?.defaultMonthlyCap === "number") {
+      this.defaultMonthlyCap = options.defaultMonthlyCap;
+    }
+
+    this.storageFile = options?.storageFile ?? (
+      process.env.RAI2_BUDGET_FILE ?? (process.env.DATA_DIR ? join(process.env.DATA_DIR, "budget-guard-state.json") : null)
+    );
+
+    this.loadState();
+  }
+
+  private loadState(): void {
+    if (!this.storageFile || !existsSync(this.storageFile)) return;
+    try {
+      const raw = readFileSync(this.storageFile, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.budgets)) {
+        for (const b of parsed.budgets) {
+          if (b && typeof b.workspaceId === "string") {
+            this.budgets.set(b.workspaceId, b);
+          }
+        }
+      }
+      if (Array.isArray(parsed.spendLogs)) {
+        this.spendLogs = parsed.spendLogs.slice(-1000); // keep last 1000 logs
+      }
+    } catch {
+      // Ignore load error
+    }
+  }
+
+  private saveState(): void {
+    if (!this.storageFile) return;
+    try {
+      const dir = dirname(this.storageFile);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      const data = {
+        budgets: Array.from(this.budgets.values()),
+        spendLogs: this.spendLogs.slice(-500),
+      };
+      writeFileSync(this.storageFile, JSON.stringify(data, null, 2), "utf-8");
+    } catch {
+      // Ignore save error
+    }
+  }
 
   getPricing(model: string): ModelPricing {
     const key = Object.keys(MODEL_PRICING_TABLE).find(
@@ -115,127 +173,116 @@ export class BudgetGuard {
     return b;
   }
 
-  setWorkspaceBudget(workspaceId: string, updates: Partial<WorkspaceBudget>): WorkspaceBudget {
-    const b = this.getWorkspaceBudget(workspaceId);
-    Object.assign(b, updates);
-    return b;
+  setWorkspaceBudget(
+    workspaceId: string,
+    updates: Partial<Omit<WorkspaceBudget, "workspaceId">>
+  ): WorkspaceBudget {
+    const existing = this.getWorkspaceBudget(workspaceId);
+    const updated: WorkspaceBudget = {
+      ...existing,
+      ...updates,
+    };
+    this.budgets.set(workspaceId, updated);
+    this.saveState();
+    return updated;
   }
 
   calculateTurnCost(model: string, promptTokens: number, outputTokens: number): number {
     const pricing = this.getPricing(model);
-    const cost = (promptTokens * pricing.inputPer1M + outputTokens * pricing.outputPer1M) / 1_000_000;
-    return Math.round(cost * 1_000_000) / 1_000_000;
+    const inputCost = (promptTokens / 1_000_000) * pricing.inputPer1M;
+    const outputCost = (outputTokens / 1_000_000) * pricing.outputPer1M;
+    return Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000;
   }
 
   evaluatePreflight(req: PreflightRequest): PreflightDecision {
     const budget = this.getWorkspaceBudget(req.workspaceId);
-    const expectedOutput = req.maxOutputTokens ?? 1024;
-    const estCost = this.calculateTurnCost(req.model, req.estimatedPromptTokens, expectedOutput);
-    const projectedSpend = Math.round((budget.currentSpendUsd + estCost) * 1_000_000) / 1_000_000;
+    const maxOutput = req.maxOutputTokens ?? 1024;
+    const estimatedCost = this.calculateTurnCost(req.model, req.estimatedPromptTokens, maxOutput);
+    const projectedSpend = Math.round((budget.currentSpendUsd + estimatedCost) * 1000) / 1000;
 
-    const softCap = budget.monthlyCapUsd * budget.softWarningRatio;
-    const hardCap = budget.monthlyCapUsd * budget.hardStopRatio;
-
-    // Hard Stop: exceeds cap
-    if (projectedSpend > hardCap) {
-      return {
-        allowed: false,
-        status: "blocked",
-        estimatedCostUsd: estCost,
-        projectedMonthlySpendUsd: projectedSpend,
-        monthlyCapUsd: budget.monthlyCapUsd,
-        currentSpendUsd: budget.currentSpendUsd,
-        rejectionReason: `Pre-flight Budget Guard: Turn blocked. Projected spend $${projectedSpend.toFixed(2)} exceeds monthly cap $${budget.monthlyCapUsd.toFixed(2)}.`,
-      };
-    }
-
-    // Model Arbitrage Analysis
     let arbitrage: TokenArbitrageSuggestion | undefined;
-    const pricing = this.getPricing(req.model);
+    if (budget.arbitrageEnabled) {
+      const pricing = this.getPricing(req.model);
+      const isSimpleOrMedium = req.taskComplexity !== "complex";
 
-    if (
-      budget.arbitrageEnabled &&
-      pricing.arbitrageTarget &&
-      (req.taskComplexity === "simple" || req.estimatedPromptTokens < 4000 || projectedSpend >= softCap)
-    ) {
-      const targetModel = pricing.arbitrageTarget;
-      const targetPricing = this.getPricing(targetModel);
-      const targetEstCost = (req.estimatedPromptTokens * targetPricing.inputPer1M + expectedOutput * targetPricing.outputPer1M) / 1_000_000;
-      const savings = Math.max(0, estCost - targetEstCost);
-      const savingsPct = estCost > 0 ? Math.round((savings / estCost) * 100) : 0;
+      if (pricing.tier === "premium" && pricing.arbitrageTarget && isSimpleOrMedium) {
+        const altCost = this.calculateTurnCost(pricing.arbitrageTarget, req.estimatedPromptTokens, maxOutput);
+        const savingsUsd = Math.round((estimatedCost - altCost) * 10000) / 10000;
+        const savingsPct = Math.round((savingsUsd / estimatedCost) * 100);
 
-      if (savingsPct >= 40) {
-        arbitrage = {
-          suggestedModel: targetModel,
-          estimatedCostUsd: Math.round(targetEstCost * 1_000_000) / 1_000_000,
-          originalCostUsd: estCost,
-          savingsUsd: Math.round(savings * 1_000_000) / 1_000_000,
-          savingsPercent: savingsPct,
-          reason: `Token Arbitrage: Routing this turn to ${targetModel} saves ${savingsPct}% cost ($${savings.toFixed(4)}) while maintaining required SLA.`,
-        };
+        if (savingsPct >= 30) {
+          arbitrage = {
+            suggestedModel: pricing.arbitrageTarget,
+            estimatedCostUsd: altCost,
+            originalCostUsd: estimatedCost,
+            savingsUsd,
+            savingsPercent: savingsPct,
+            reason: `Token Arbitrage: Routing this turn to ${pricing.arbitrageTarget} saves ${savingsPct}% cost ($${savingsUsd}) while maintaining required SLA.`,
+          };
+        }
       }
     }
 
-    // Soft Warning: approaching cap (>= 80%)
-    if (projectedSpend >= softCap) {
-      const pct = Math.round((projectedSpend / budget.monthlyCapUsd) * 100);
+    const hardLimit = budget.monthlyCapUsd * budget.hardStopRatio;
+    const softLimit = budget.monthlyCapUsd * budget.softWarningRatio;
+
+    if (projectedSpend > hardLimit) {
       return {
-        allowed: true,
-        status: "warning",
-        estimatedCostUsd: estCost,
+        allowed: false,
+        estimatedCostUsd: estimatedCost,
         projectedMonthlySpendUsd: projectedSpend,
         monthlyCapUsd: budget.monthlyCapUsd,
         currentSpendUsd: budget.currentSpendUsd,
-        warning: `Pre-flight Budget Warning: Approaching monthly cap (${pct}% used: $${projectedSpend.toFixed(2)} / $${budget.monthlyCapUsd.toFixed(2)}).`,
+        status: "blocked",
+        rejectionReason: `Pre-flight Budget Guard: Turn projected spend ($${projectedSpend}) exceeds monthly cap ($${budget.monthlyCapUsd}). Turn halted to protect tenant P&L.`,
         arbitrage,
       };
     }
 
-    // Standard OK
+    if (projectedSpend > softLimit) {
+      return {
+        allowed: true,
+        estimatedCostUsd: estimatedCost,
+        projectedMonthlySpendUsd: projectedSpend,
+        monthlyCapUsd: budget.monthlyCapUsd,
+        currentSpendUsd: budget.currentSpendUsd,
+        status: "warning",
+        warning: `Pre-flight Budget Guard Warning: Workspace has reached ${Math.round((projectedSpend / budget.monthlyCapUsd) * 100)}% of monthly budget limit ($${budget.monthlyCapUsd}).`,
+        arbitrage,
+      };
+    }
+
     return {
       allowed: true,
-      status: "ok",
-      estimatedCostUsd: estCost,
+      estimatedCostUsd: estimatedCost,
       projectedMonthlySpendUsd: projectedSpend,
       monthlyCapUsd: budget.monthlyCapUsd,
       currentSpendUsd: budget.currentSpendUsd,
+      status: "ok",
       arbitrage,
     };
   }
 
-  recordSpend(
-    workspaceId: string,
-    model: string,
-    promptTokens: number,
-    outputTokens: number,
-    turnId?: string
-  ): SpendLogEntry {
-    const budget = this.getWorkspaceBudget(workspaceId);
-    const cost = this.calculateTurnCost(model, promptTokens, outputTokens);
-
-    budget.currentSpendUsd = Math.round((budget.currentSpendUsd + cost) * 1_000_000) / 1_000_000;
-    budget.totalTokensUsed.prompt += promptTokens;
-    budget.totalTokensUsed.output += outputTokens;
-    budget.turnCount += 1;
-    budget.lastTurnAt = Date.now();
-
-    const entry: SpendLogEntry = {
-      id: `spend_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      workspaceId,
-      turnId,
-      model,
-      promptTokens,
-      outputTokens,
-      costUsd: cost,
+  recordSpend(entry: Omit<SpendLogEntry, "id" | "timestamp" | "costUsd">): SpendLogEntry {
+    const cost = this.calculateTurnCost(entry.model, entry.promptTokens, entry.outputTokens);
+    const log: SpendLogEntry = {
+      id: `spend_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       timestamp: Date.now(),
+      costUsd: cost,
+      ...entry,
     };
 
-    this.spendLogs.push(entry);
-    if (this.spendLogs.length > 2000) {
-      this.spendLogs.splice(0, this.spendLogs.length - 2000);
-    }
+    this.spendLogs.push(log);
 
-    return entry;
+    const b = this.getWorkspaceBudget(entry.workspaceId);
+    b.currentSpendUsd = Math.round((b.currentSpendUsd + cost) * 10000) / 10000;
+    b.totalTokensUsed.prompt += entry.promptTokens;
+    b.totalTokensUsed.output += entry.outputTokens;
+    b.turnCount += 1;
+    b.lastTurnAt = Date.now();
+
+    this.saveState();
+    return log;
   }
 
   getSpendHistory(workspaceId: string, limit = 50): SpendLogEntry[] {
@@ -245,19 +292,21 @@ export class BudgetGuard {
       .reverse();
   }
 
-  resetBudget(workspaceId: string): void {
-    const budget = this.getWorkspaceBudget(workspaceId);
-    budget.currentSpendUsd = 0;
-    budget.totalTokensUsed = { prompt: 0, output: 0 };
-    budget.turnCount = 0;
+  resetWorkspaceSpend(workspaceId: string): void {
+    const b = this.getWorkspaceBudget(workspaceId);
+    b.currentSpendUsd = 0;
+    b.totalTokensUsed = { prompt: 0, output: 0 };
+    b.turnCount = 0;
+    b.lastTurnAt = Date.now();
+    this.saveState();
   }
 }
 
 let globalBudgetGuard: BudgetGuard | null = null;
 
-export function getBudgetGuard(): BudgetGuard {
+export function getBudgetGuard(options?: BudgetGuardOptions): BudgetGuard {
   if (!globalBudgetGuard) {
-    globalBudgetGuard = new BudgetGuard();
+    globalBudgetGuard = new BudgetGuard(options);
   }
   return globalBudgetGuard;
 }

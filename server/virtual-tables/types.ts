@@ -38,6 +38,12 @@ export interface SlaAlert {
   rowSnapshot: Record<string, unknown>;
 }
 
+export type AggregationFunction = "SUM" | "AVG" | "MIN" | "MAX" | "COUNT";
+
+export interface AggregationConfig {
+  [columnNameOrId: string]: AggregationFunction;
+}
+
 export interface VirtualTableSchema {
   id: string;
   workspaceId: string;
@@ -45,6 +51,7 @@ export interface VirtualTableSchema {
   description?: string;
   columns: ColumnDef[];
   slaRules: SlaTriggerRule[];
+  defaultAggregations?: AggregationConfig;
   createdAt: number;
   updatedAt: number;
 }
@@ -53,5 +60,6 @@ export interface VirtualTableSnapshot {
   schema: VirtualTableSchema;
   rows: TableRow[];
   alerts: SlaAlert[];
+  summary?: Record<string, number | string>;
   rowCount: number;
 }
