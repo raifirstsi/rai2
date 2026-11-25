@@ -99,6 +99,11 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       expect(check.allowed).toBe(true);
       expect(check.status).toBe("promoted");
 
+      // Fallback check: When workspaceId is unspecified, it resolves existing promotion
+      const checkUnspecified = gate.canServeCustomer("bot-copilot");
+      expect(checkUnspecified.allowed).toBe(true);
+      expect(checkUnspecified.status).toBe("promoted");
+
       // Multi-tenant check: Other tenant must NOT inherit promotion
       const checkOther = gate.canServeCustomer("bot-copilot", "tenant-other");
       expect(checkOther.allowed).toBe(false);

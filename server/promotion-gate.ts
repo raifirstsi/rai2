@@ -83,20 +83,31 @@ export class PromotionGate {
     }
   }
 
-  getRecord(botId: string, workspaceId = "default", botName = "Assistant"): BotPromotionRecord {
-    const key = this.getRecordKey(workspaceId, botId);
-    let rec = this.records.get(key);
-    if (!rec) {
-      rec = {
-        botId,
-        botName,
-        workspaceId,
-        status: "draft",
-        updatedAt: Date.now(),
-      };
-      this.records.set(key, rec);
+  getRecord(botId: string, workspaceId?: string, botName = "Assistant"): BotPromotionRecord {
+    if (workspaceId) {
+      const key = this.getRecordKey(workspaceId, botId);
+      let rec = this.records.get(key);
+      if (!rec) {
+        rec = {
+          botId,
+          botName,
+          workspaceId,
+          status: "draft",
+          updatedAt: Date.now(),
+        };
+        this.records.set(key, rec);
+      }
+      return rec;
     }
-    return rec;
+
+    // When workspaceId is unspecified, find any existing record matching botId
+    for (const rec of this.records.values()) {
+      if (rec.botId === botId) {
+        return rec;
+      }
+    }
+
+    return this.getRecord(botId, "default", botName);
   }
 
   evaluateAndPromote(
@@ -125,18 +136,46 @@ export class PromotionGate {
     return rec;
   }
 
-  canServeCustomer(botId: string, workspaceId = "default"): { allowed: boolean; status: BotDeploymentStatus; reason?: string } {
-    const rec = this.records.get(this.getRecordKey(workspaceId, botId));
-    if (!rec || rec.status !== "promoted") {
+  canServeCustomer(botId: string, workspaceId?: string): { allowed: boolean; status: BotDeploymentStatus; reason?: string } {
+    if (workspaceId) {
+      const rec = this.records.get(this.getRecordKey(workspaceId, botId));
+      if (!rec || rec.status !== "promoted") {
+        return {
+          allowed: false,
+          status: rec?.status ?? "draft",
+          reason: rec?.rejectionReason ?? "Bot chưa vượt qua kỳ sát hạch năng lực (Promotion Gate: Yêu cầu tối thiểu 19/21 điểm).",
+        };
+      }
       return {
-        allowed: false,
-        status: rec?.status ?? "draft",
-        reason: rec?.rejectionReason ?? "Bot chưa vượt qua kỳ sát hạch năng lực (Promotion Gate: Yêu cầu tối thiểu 19/21 điểm).",
+        allowed: true,
+        status: "promoted",
       };
     }
+
+    // If workspaceId is not specified in query, check default workspace first
+    const defaultRec = this.records.get(this.getRecordKey("default", botId));
+    if (defaultRec && defaultRec.status === "promoted") {
+      return {
+        allowed: true,
+        status: "promoted",
+      };
+    }
+
+    // Check if promoted across any tenant workspace
+    for (const rec of this.records.values()) {
+      if (rec.botId === botId && rec.status === "promoted") {
+        return {
+          allowed: true,
+          status: "promoted",
+        };
+      }
+    }
+
+    const anyRec = Array.from(this.records.values()).find((r) => r.botId === botId);
     return {
-      allowed: true,
-      status: "promoted",
+      allowed: false,
+      status: anyRec?.status ?? "draft",
+      reason: anyRec?.rejectionReason ?? "Bot chưa vượt qua kỳ sát hạch năng lực (Promotion Gate: Yêu cầu tối thiểu 19/21 điểm).",
     };
   }
 

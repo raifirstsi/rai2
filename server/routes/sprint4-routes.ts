@@ -84,7 +84,7 @@ export function createSprint4Routes(): RouteHandler {
     if (method === "GET" && path === "/api/bots/status") {
       const url = new URL(req.url ?? "", "http://localhost");
       const botId = url.searchParams.get("botId") || "bot_default";
-      const workspaceId = url.searchParams.get("workspaceId") || "default";
+      const workspaceId = url.searchParams.get("workspaceId") || undefined;
       const gate = getPromotionGate();
       const check = gate.canServeCustomer(botId, workspaceId);
       const record = gate.getRecord(botId, workspaceId);
@@ -92,7 +92,7 @@ export function createSprint4Routes(): RouteHandler {
       return json(res, 200, {
         success: true,
         botId,
-        workspaceId,
+        workspaceId: workspaceId ?? record.workspaceId,
         canServeCustomer: check.allowed,
         status: check.status,
         reason: check.reason,
