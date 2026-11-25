@@ -245,5 +245,37 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       expect(chainCheck.valid).toBe(true);
       expect(chainCheck.length).toBe(2);
     });
+
+    it("backward-compatibly verifies historical legacy unchained records alongside new chained records", () => {
+      const storagePath = `/tmp/test_legacy_chain_${Date.now()}.json`;
+      const engine = new ArtifactDiffEngine(storagePath);
+
+      // Simulate a legacy unchained consent record (e.g. from Sprint 4 Round 1)
+      const legacyTimestamp = Date.now() - 10000;
+      const legacyPayload = "diff_legacy:user_legacy:Manager:signed:" + legacyTimestamp;
+      const { createHash } = require("node:crypto");
+      const legacyHash = createHash("sha256").update(legacyPayload).digest("hex");
+
+      const legacyRec = {
+        consentId: "consent_legacy_01",
+        diffId: "diff_legacy",
+        title: "Legacy doc",
+        approverId: "user_legacy",
+        approverRole: "Manager",
+        timestamp: legacyTimestamp,
+        consentHash: legacyHash,
+        status: "signed" as const,
+      };
+
+      (engine as unknown as { consents: Map<string, unknown> }).consents.set(legacyRec.consentId, legacyRec);
+
+      const dNew = engine.computeDiff("New Doc", "v1", "v2");
+      const cNew = engine.signConsent(dNew.diffId, dNew.title, "new_approver", "Director");
+      expect(cNew.consentHash).toBeDefined();
+
+      const chainCheck = engine.verifyConsentChain();
+      expect(chainCheck.valid).toBe(true);
+      expect(chainCheck.length).toBe(2);
+    });
   });
 });

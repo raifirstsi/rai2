@@ -229,8 +229,9 @@ export class ArtifactDiffEngine {
     const rec = this.consents.get(consentId);
     if (!rec) return { valid: false };
 
-    const previousConsentHash = rec.previousConsentHash ?? "GENESIS_CONSENT_ROOT";
-    const payload = `${previousConsentHash}:${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
+    const payload = rec.previousConsentHash !== undefined
+      ? `${rec.previousConsentHash}:${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`
+      : `${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
     const expected = createHash("sha256").update(payload).digest("hex");
 
     return {
@@ -241,11 +242,23 @@ export class ArtifactDiffEngine {
 
   verifyConsentChain(): { valid: boolean; length: number; brokenAtIndex?: number } {
     const list = Array.from(this.consents.values()).sort((a, b) => a.timestamp - b.timestamp);
-    let prev = "GENESIS_CONSENT_ROOT";
+    let prev: string | null = null;
     for (let idx = 0; idx < list.length; idx++) {
       const rec = list[idx];
-      const payload = `${prev}:${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
-      const expected = createHash("sha256").update(payload).digest("hex");
+      let expected: string;
+
+      if (rec.previousConsentHash !== undefined) {
+        const payload = `${rec.previousConsentHash}:${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
+        expected = createHash("sha256").update(payload).digest("hex");
+
+        if (prev !== null && rec.previousConsentHash !== prev && rec.previousConsentHash !== "GENESIS_CONSENT_ROOT") {
+          return { valid: false, length: list.length, brokenAtIndex: idx };
+        }
+      } else {
+        const payload = `${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
+        expected = createHash("sha256").update(payload).digest("hex");
+      }
+
       if (expected !== rec.consentHash) {
         return { valid: false, length: list.length, brokenAtIndex: idx };
       }
