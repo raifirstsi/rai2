@@ -50,8 +50,8 @@ export function ComposerAttachments({
   // A drop past the images the message can still take is left out with a notice.
   const imageSlots = imageSlotsLeft(items);
   const imageBytes = imageBytesLeft(items);
-  const callbacks = useRef({ onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage });
-  callbacks.current = { onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage };
+  const callbacks = useRef({ onAdd, onNotice, onPendingChange, onDisplayInChatBox, allowImages, imageSlots, imageBytes, uploadImage });
+  callbacks.current = { onAdd, onNotice, onPendingChange, onDisplayInChatBox, allowImages, imageSlots, imageBytes, uploadImage };
   const pendingDrops = useRef(new Set<symbol>());
 
   useEffect(() => {
@@ -77,6 +77,37 @@ export function ComposerAttachments({
       depth.current = 0;
       setDragging(false);
       const files = Array.from(e.dataTransfer?.files ?? []);
+      for (const file of files) {
+        if (/\.(docx|xlsx|csv|pdf)$/i.test(file.name)) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+              const resBase64 = typeof reader.result === "string" ? reader.result.split(",")[1] : null;
+              if (resBase64) {
+                const resp = await fetch("/api/office/convert", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ filename: file.name, contentBase64: resBase64 }),
+                });
+                const data = await resp.json();
+                if (data?.ok && data?.result?.markdown) {
+                  const md = data.result.markdown;
+                  callbacks.current.onDisplayInChatBox({
+                    kind: "paste",
+                    id: `office-${Date.now()}`,
+                    text: md,
+                    size: new Blob([md]).size,
+                    lines: md.split("\n").length,
+                  });
+                }
+              }
+            };
+            reader.readAsDataURL(file);
+          } catch (err) {
+            console.warn("[ComposerAttachments] Auto-convert failed:", err);
+          }
+        }
+      }
       const operation = Symbol("attachment-drop");
       pendingDrops.current.add(operation);
       callbacks.current.onPendingChange?.(true);
