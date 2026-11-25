@@ -126,6 +126,7 @@ import { PagePaneContext } from "./app/PageTools";
 import { useTranscriptViewport } from "@/hooks/use-transcript-viewport";
 import { useUnreadDivider } from "@/hooks/use-unread-divider";
 import { NewMessagesDivider } from "./NewMessagesDivider";
+import { OneClickSuggestions } from "./OneClickSuggestions";
 import { unreadMessageIds } from "@/lib/unread-divider";
 import { appendComposerDraft, appendDraftAttachments, useReplyDraft } from "@/lib/drafts";
 import { botLineText, localDay, transcriptLookups, type TranscriptLookups } from "@/lib/transcript-derivations"; import { DaySeparator } from "./DaySeparator";
@@ -314,7 +315,29 @@ function replyAndCopy(onReply: () => void, text: string): MessageMenuItem[] {
   ];
 }
 
+
+function extractContextualSuggestions(text: string): { id: string; label: string; prompt: string }[] {
+  const suggestions: { id: string; label: string; prompt: string }[] = [];
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0 && suggestions.length < 3; i--) {
+    const line = lines[i];
+    const m = line.match(/^(?:[-*•]|\d+\.)\s+(.+)$/);
+    if (m && m[1] && m[1].length > 5 && m[1].length < 80) {
+      const prompt = m[1].replace(/[*_`]/g, "").trim();
+      const label = prompt.length > 25 ? prompt.slice(0, 22) + "..." : prompt;
+      suggestions.unshift({ id: `sug-${suggestions.length + 1}`, label, prompt });
+    }
+  }
+  if (suggestions.length >= 2) return suggestions;
+  return [
+    { id: "s1", label: "Phân tích P&L", prompt: "Hãy phân tích báo cáo P&L và biên lợi nhuận của tuần này" },
+    { id: "s2", label: "Tối ưu điểm nghẽn", prompt: "Xác định điểm nghẽn (TOC) lớn nhất trong vận hành hiện tại" },
+    { id: "s3", label: "Soạn nội dung PR", prompt: "Soạn một bài viết truyền thông ngắn về năng lực AI Workspace" }
+  ];
+}
+
 const Bubble = memo(function Bubble({
+
   message,
   emerging = false,
   eagerAttachments = false,
@@ -563,12 +586,22 @@ const Bubble = memo(function Bubble({
                 <ConversationalReply simple={simple} join={join} segments={reply.segments} firstNew={reply.firstNew} citation={{ messageId: message.id, botId, threadId }}
                   renderSegment={(segment) => <ChatMarkdown text={segment} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} originals={group?.originals} />} />
               ) : tabled && blocks ? (
-                <ReplyBlocks blocks={blocks} join={join} tray={botActions} citation={{ messageId: message.id, ownerType: "bot", ownerId: botId, threadId }} suggestions={[{ id: "s1", label: "Phân tích P&L", prompt: "Hãy phân tích báo cáo P&L và biên lợi nhuận của tuần này" }, { id: "s2", label: "Tối ưu điểm nghẽn", prompt: "Xác định điểm nghẽn (TOC) lớn nhất trong vận hành hiện tại" }, { id: "s3", label: "Soạn nội dung PR", prompt: "Soạn một bài viết truyền thông ngắn về năng lực AI Workspace" }]} onSelectSuggestion={(prompt) => { appendComposerDraft(`bot:${botId}:${threadId}`, prompt); }}
+                <ReplyBlocks blocks={blocks} join={join} tray={botActions} citation={{ messageId: message.id, ownerType: "bot", ownerId: botId, threadId }} suggestions={extractContextualSuggestions(text)} onSelectSuggestion={(prompt) => { appendComposerDraft(`bot:${botId}:${threadId}`, prompt); }}
                   render={(block) => <ChatMarkdown text={block} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} originals={group?.originals} />} />
               ) : viewRaw && text ? (
                 <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><RawMarkdownView text={text} /></div>
               ) : text ? (
-                <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} originals={group?.originals} /></div>
+                <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}>
+                  <ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} originals={group?.originals} />
+                  {!user && (
+                    <div className="mt-2">
+                      <OneClickSuggestions
+                        suggestions={extractContextualSuggestions(text)}
+                        onSelect={(prompt) => { appendComposerDraft(`bot:${botId}:${threadId}`, prompt); }}
+                      />
+                    </div>
+                  )}
+                </div>
               ) : null}
               {group && <AttachmentGallery images={group.images} files={group.files} originals={group.originals} message={{ threadId, messageId: message.id }} eager={eagerAttachments} beneath />}
             </MessageBoundary>

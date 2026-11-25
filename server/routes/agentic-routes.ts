@@ -1,8 +1,12 @@
-﻿import { getTurnSteeringManager, type SteeringAction } from "../turn-steering.ts";
+import { getTurnSteeringManager, type SteeringAction } from "../turn-steering.ts";
 import { convertOfficeDocument } from "../office-convert.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
-export function createAgenticOsRoutes(): RouteHandler {
+export interface AgenticOsRouteDeps {
+  stopTurn?: (turnId: string) => void | Promise<void>;
+}
+
+export function createAgenticOsRoutes(deps?: AgenticOsRouteDeps): RouteHandler {
   return async ({ req, res, path, method, json, readBody }) => {
     // 1. POST /api/chat/steer
     if (method === "POST" && path === "/api/chat/steer") {
@@ -26,6 +30,15 @@ export function createAgenticOsRoutes(): RouteHandler {
         parsed.action as SteeringAction,
         typeof parsed.instruction === "string" ? parsed.instruction : undefined
       );
+
+      // If action is cancel and a stopTurn hook is available, invoke it
+      if (parsed.action === "cancel" && deps?.stopTurn) {
+        try {
+          await deps.stopTurn(parsed.turnId);
+        } catch (err) {
+          console.warn("[AgenticRoutes] stopTurn failed:", err);
+        }
+      }
 
       return json(res, 200, { ok: true, directive });
     }
