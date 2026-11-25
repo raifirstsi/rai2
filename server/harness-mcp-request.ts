@@ -6,6 +6,7 @@ import { PHONE_INSTRUCTIONS, PHONE_RECOVERY } from "./phones/instructions.ts";
 import { HARNESS_PROXY_TIMEOUT_MS, HARNESS_PROXY_TIMEOUTS_MS } from "./harness-budget.ts";
 import { capToolListResult } from "./tool-count-limit.ts";
 import { ToolLoopGuard } from "./agent/loop-guard.ts";
+import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 
 const loopGuards = new Map<string, ToolLoopGuard>();
 function getLoopGuardForToken(token: string): ToolLoopGuard {
@@ -104,6 +105,14 @@ export async function harnessMcpRequest(
     const guard = getLoopGuardForToken(connection.token);
     const decision = guard.recordAndCheck({ name: toolName, args: toolArgs });
     if (!decision.allowed) {
+      try {
+        getWorkspaceAuditLedger().append(
+          connection.kind,
+          "kernel",
+          "tool_loop_aborted",
+          { toolName, reason: decision.reason, tokenPrefix: connection.token.slice(0, 8) }
+        );
+      } catch {}
       return failure(id, message.method, decision.reason ?? "Repeated tool call blocked by LoopGuard.", -32603);
     }
   }
