@@ -50,8 +50,8 @@ export function ComposerAttachments({
   // A drop past the images the message can still take is left out with a notice.
   const imageSlots = imageSlotsLeft(items);
   const imageBytes = imageBytesLeft(items);
-  const callbacks = useRef({ onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage });
-  callbacks.current = { onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage };
+  const callbacks = useRef({ onAdd, onNotice, onPendingChange, onDisplayInChatBox, allowImages, imageSlots, imageBytes, uploadImage });
+  callbacks.current = { onAdd, onNotice, onPendingChange, onDisplayInChatBox, allowImages, imageSlots, imageBytes, uploadImage };
   const pendingDrops = useRef(new Set<symbol>());
 
   useEffect(() => {
@@ -91,12 +91,13 @@ export function ComposerAttachments({
                 });
                 const data = await resp.json();
                 if (data?.ok && data?.result?.markdown) {
+                  const md = data.result.markdown;
                   callbacks.current.onDisplayInChatBox({
                     kind: "paste",
                     id: `office-${Date.now()}`,
-                    title: file.name,
-                    text: data.result.markdown,
-                    display: "chat",
+                    text: md,
+                    size: new Blob([md]).size,
+                    lines: md.split("\n").length,
                   });
                 }
               }
