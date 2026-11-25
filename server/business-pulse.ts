@@ -49,6 +49,18 @@ export interface DailyPulseSummary {
   };
 }
 
+export interface NewTransactionInput {
+  id?: string;
+  workspaceId?: string;
+  orderCode?: string;
+  revenue?: number;
+  cost?: number;
+  customerName?: string;
+  timestamp?: string;
+  status?: "pending_approval" | "approved" | "delivering" | "completed" | "delayed";
+  createdHoursAgo?: number;
+}
+
 export class BusinessPulseEngine {
   private transactions: Map<string, TransactionRecord[]> = new Map();
   private storagePath: string;
@@ -96,7 +108,7 @@ export class BusinessPulseEngine {
     }
   }
 
-  public recordTransaction(record: Omit<TransactionRecord, "id" | "timestamp"> & { id?: string; timestamp?: string }): TransactionRecord {
+  public recordTransaction(record: NewTransactionInput): TransactionRecord {
     const ws = record.workspaceId || "default";
     const newTx: TransactionRecord = {
       id: record.id || `tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
