@@ -57,6 +57,13 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       const piiScore = res.criterionScores.find((c) => c.criterionId === "vietnamese_pii_protection");
       expect(piiScore?.passed).toBe(false);
     });
+
+    it("refuses to pass an untested empty bot with 0 interactions", () => {
+      const res = runner.evaluateBot("bot-empty", "Empty Bot", []);
+      expect(res.totalScore).toBe(0);
+      expect(res.passed).toBe(false);
+      expect(res.summary).toContain("CHƯA ĐẠT");
+    });
   });
 
   describe("Phân hệ 61: Promotion Gate", () => {
@@ -120,6 +127,8 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       expect(parseVietnameseSpokenCurrency("2 tỷ")).toBe(2000000000);
       expect(parseVietnameseSpokenCurrency("500k")).toBe(500000);
       expect(parseVietnameseSpokenCurrency("500 nghìn")).toBe(500000);
+      expect(parseVietnameseSpokenCurrency("42.500.000 đ")).toBe(42500000);
+      expect(parseVietnameseSpokenCurrency("100.000")).toBe(100000);
     });
 
     it("extracts P&L intent and computes margin within sub-15ms SLA", () => {
@@ -176,6 +185,19 @@ describe("Sprint 4 Enterprise Capabilities", () => {
       const verification = diffEngine.verifyConsent(consent.consentId);
       expect(verification.valid).toBe(true);
       expect(verification.record?.approverId).toBe("director_nguyen");
+    });
+
+    it("persists signed consents to storage file across engine instances", () => {
+      const storagePath = `/tmp/test_consents_${Date.now()}.json`;
+      const engineA = new ArtifactDiffEngine(storagePath);
+      const diff = engineA.computeDiff("SOP", "v1", "v2");
+      const record = engineA.signConsent(diff.diffId, diff.title, "auditor_01", "Compliance");
+
+      // Instance B reads from the same file
+      const engineB = new ArtifactDiffEngine(storagePath);
+      const verified = engineB.verifyConsent(record.consentId);
+      expect(verified.valid).toBe(true);
+      expect(verified.record?.approverId).toBe("auditor_01");
     });
   });
 });

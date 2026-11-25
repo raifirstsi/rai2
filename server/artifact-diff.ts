@@ -5,6 +5,8 @@
  */
 
 import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 export interface DiffHunk {
   type: "added" | "removed" | "unchanged";
@@ -39,6 +41,47 @@ export interface ConsentRecord {
 
 export class ArtifactDiffEngine {
   private consents = new Map<string, ConsentRecord>();
+  private storageFile: string | null = null;
+
+  constructor(storageFile?: string) {
+    this.storageFile = storageFile ?? (
+      process.env.RAI2_CONSENTS_FILE ?? (process.env.DATA_DIR ? join(process.env.DATA_DIR, "artifact-consents-state.json") : null)
+    );
+    this.loadState();
+  }
+
+  private loadState(): void {
+    if (!this.storageFile || !existsSync(this.storageFile)) return;
+    try {
+      const raw = readFileSync(this.storageFile, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.consents)) {
+        for (const c of parsed.consents) {
+          if (c && typeof c.consentId === "string") {
+            this.consents.set(c.consentId, c);
+          }
+        }
+      }
+    } catch {
+      // Ignore load error
+    }
+  }
+
+  private saveState(): void {
+    if (!this.storageFile) return;
+    try {
+      const dir = dirname(this.storageFile);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      const data = {
+        consents: Array.from(this.consents.values()),
+      };
+      writeFileSync(this.storageFile, JSON.stringify(data, null, 2), "utf-8");
+    } catch {
+      // Ignore save error
+    }
+  }
 
   computeDiff(title: string, originalText: string, modifiedText: string): ArtifactDiffResult {
     const origLines = originalText.split(/\r?\n/);
@@ -127,6 +170,7 @@ export class ArtifactDiffEngine {
     };
 
     this.consents.set(record.consentId, record);
+    this.saveState();
     return record;
   }
 

@@ -23,29 +23,38 @@ export interface VoiceHandoffResult {
   recommendedAction: string;
 }
 
-/** Chuyển đổi số tiếng Việt bằng lời nói thành số nguyên: "50 triệu" -> 50000000 */
+/** Chuyển đổi số tiếng Việt bằng lời nói thành số nguyên: "50 triệu" -> 50000000, "42.500.000 đ" -> 42500000 */
 export function parseVietnameseSpokenCurrency(text: string): number | null {
-  const clean = text.toLowerCase().replace(/,/g, ".");
+  let clean = text.toLowerCase().trim();
   
-  // Mẫu "2 tỷ", "2.5 tỷ" (kiểm tra trước để không trùng lặp)
+  // 1. Nhận diện định dạng tiền tệ có dấu chấm phân cách hàng nghìn (VD: 42.500.000 hoặc 100.000)
+  const thousandDotMatch = clean.match(/\b(\d{1,3}(?:\.\d{3})+)(?:\s*(?:đ|vnd|dong|đồng))?\b/i);
+  if (thousandDotMatch) {
+    const rawDigits = thousandDotMatch[1].replace(/\./g, "");
+    return parseInt(rawDigits, 10);
+  }
+
+  clean = clean.replace(/,/g, ".");
+  
+  // 2. Mẫu "2 tỷ", "2.5 tỷ"
   const tyMatch = clean.match(/(\d+(?:\.\d+)?)\s*(?:tỷ|ty)(?:[^\p{L}]|$)/u);
   if (tyMatch) {
     return Math.round(parseFloat(tyMatch[1]) * 1_000_000_000);
   }
 
-  // Mẫu "50 triệu", "50.5 triệu", "50tr"
+  // 3. Mẫu "50 triệu", "50.5 triệu", "50tr"
   const trieuMatch = clean.match(/(\d+(?:\.\d+)?)\s*(?:triệu|trieu|tr)(?:[^\p{L}]|$)/u);
   if (trieuMatch) {
     return Math.round(parseFloat(trieuMatch[1]) * 1_000_000);
   }
 
-  // Mẫu "500 nghìn", "500k"
+  // 4. Mẫu "500 nghìn", "500k"
   const nghinMatch = clean.match(/(\d+(?:\.\d+)?)\s*(?:nghìn|ngan|k)(?:[^\p{L}]|$)/u);
   if (nghinMatch) {
     return Math.round(parseFloat(nghinMatch[1]) * 1_000);
   }
 
-  // Mẫu số thuần
+  // 5. Mẫu số thuần
   const numMatch = clean.match(/\b\d+\b/);
   if (numMatch) {
     return parseInt(numMatch[0], 10);

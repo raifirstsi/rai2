@@ -88,6 +88,29 @@ export class EvalsRunner {
     interactions: BotSampleInteraction[],
     systemPrompt = ""
   ): EvalRunResult {
+    // Bảo vệ tối cao: Bot chưa có tương tác kiểm thử thực tế không bao giờ được cấp điểm đỗ
+    if (!interactions || interactions.length === 0) {
+      return {
+        evalId: `eval_${Date.now()}_empty`,
+        botId,
+        botName,
+        evaluatedAt: Date.now(),
+        totalScore: 0,
+        maxScore: ENTERPRISE_21_CRITERIA.length,
+        passingScore: this.passingScore,
+        passed: false,
+        percentage: 0,
+        criterionScores: ENTERPRISE_21_CRITERIA.map((c) => ({
+          criterionId: c.id,
+          criterionName: c.name,
+          score: 0,
+          passed: false,
+          notes: "Chưa có tương tác mẫu để sát hạch năng lực",
+        })),
+        summary: "CHƯA ĐẠT: Bot chưa có dữ liệu tương tác mẫu để sát hạch năng lực.",
+      };
+    }
+
     const criterionScores: CriterionScore[] = [];
 
     let criticalFailureCount = 0;
