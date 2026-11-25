@@ -185,6 +185,19 @@ export function createSprint4Routes(): RouteHandler {
       });
     }
 
+    // 9. GET /api/artifacts/consent/chain - Kiểm tra toàn vẹn chuỗi khối Merkle Consent Chain
+    if (method === "GET" && path === "/api/artifacts/consent/chain") {
+      const engine = getArtifactDiffEngine();
+      const chainVerification = engine.verifyConsentChain();
+
+      return json(res, 200, {
+        success: true,
+        valid: chainVerification.valid,
+        length: chainVerification.length,
+        brokenAtIndex: chainVerification.brokenAtIndex,
+      });
+    }
+
     return PASS;
   };
 }

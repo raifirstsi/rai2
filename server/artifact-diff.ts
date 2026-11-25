@@ -34,7 +34,8 @@ export interface ConsentRecord {
   approverId: string;
   approverRole: string;
   timestamp: number;
-  consentHash: string; // SHA-256(diffId + approverId + timestamp)
+  previousConsentHash?: string;
+  consentHash: string; // SHA-256(previousConsentHash + ":" + diffId + ":" + approverId + ":" + approverRole + ":" + status + ":" + timestamp)
   status: "signed" | "rejected";
   notes?: string;
 }
@@ -42,6 +43,7 @@ export interface ConsentRecord {
 export class ArtifactDiffEngine {
   private consents = new Map<string, ConsentRecord>();
   private storageFile: string | null = null;
+  private lastConsentHash: string | null = null;
 
   constructor(storageFile?: string) {
     this.storageFile = storageFile ?? (
@@ -63,6 +65,7 @@ export class ArtifactDiffEngine {
         for (const c of parsed.consents) {
           if (c && typeof c.consentId === "string") {
             this.consents.set(c.consentId, c);
+            this.lastConsentHash = c.consentHash;
           }
         }
       }
@@ -96,9 +99,9 @@ export class ArtifactDiffEngine {
     let removedCount = 0;
     let unchangedCount = 0;
 
-    // Line-by-line diff heuristic
     let i = 0;
     let j = 0;
+    const windowSize = 5;
 
     while (i < origLines.length || j < modLines.length) {
       if (i < origLines.length && j < modLines.length && origLines[i] === modLines[j]) {
@@ -111,24 +114,65 @@ export class ArtifactDiffEngine {
         unchangedCount++;
         i++;
         j++;
-      } else if (j < modLines.length && (i >= origLines.length || !origLines.includes(modLines[j]))) {
-        hunks.push({
-          type: "added",
-          content: modLines[j],
-          lineNumberNew: j + 1,
-        });
-        addedCount++;
-        j++;
-      } else if (i < origLines.length) {
-        hunks.push({
-          type: "removed",
-          content: origLines[i],
-          lineNumberOld: i + 1,
-        });
-        removedCount++;
-        i++;
       } else {
-        break;
+        // Lookahead in windowSize lines
+        let matchOffsetMod = -1;
+        let matchOffsetOrig = -1;
+
+        if (i < origLines.length && j < modLines.length) {
+          for (let k = 1; k <= windowSize; k++) {
+            if (j + k < modLines.length && origLines[i] === modLines[j + k] && origLines[i].trim() !== "") {
+              matchOffsetMod = k;
+              break;
+            }
+            if (i + k < origLines.length && origLines[i + k] === modLines[j] && modLines[j].trim() !== "") {
+              matchOffsetOrig = k;
+              break;
+            }
+          }
+        }
+
+        if (matchOffsetMod !== -1) {
+          // Lines j .. j + matchOffsetMod - 1 in mod are added
+          for (let k = 0; k < matchOffsetMod; k++) {
+            hunks.push({
+              type: "added",
+              content: modLines[j + k],
+              lineNumberNew: j + k + 1,
+            });
+            addedCount++;
+          }
+          j += matchOffsetMod;
+        } else if (matchOffsetOrig !== -1) {
+          // Lines i .. i + matchOffsetOrig - 1 in orig are removed
+          for (let k = 0; k < matchOffsetOrig; k++) {
+            hunks.push({
+              type: "removed",
+              content: origLines[i + k],
+              lineNumberOld: i + k + 1,
+            });
+            removedCount++;
+          }
+          i += matchOffsetOrig;
+        } else if (i < origLines.length && (j >= modLines.length || origLines[i] !== modLines[j])) {
+          hunks.push({
+            type: "removed",
+            content: origLines[i],
+            lineNumberOld: i + 1,
+          });
+          removedCount++;
+          i++;
+        } else if (j < modLines.length) {
+          hunks.push({
+            type: "added",
+            content: modLines[j],
+            lineNumberNew: j + 1,
+          });
+          addedCount++;
+          j++;
+        } else {
+          break;
+        }
       }
     }
 
@@ -158,7 +202,8 @@ export class ArtifactDiffEngine {
     notes?: string
   ): ConsentRecord {
     const timestamp = Date.now();
-    const payload = `${diffId}:${approverId}:${approverRole}:${status}:${timestamp}`;
+    const previousConsentHash = this.lastConsentHash ?? "GENESIS_CONSENT_ROOT";
+    const payload = `${previousConsentHash}:${diffId}:${approverId}:${approverRole}:${status}:${timestamp}`;
     const consentHash = createHash("sha256").update(payload).digest("hex");
 
     const record: ConsentRecord = {
@@ -168,12 +213,14 @@ export class ArtifactDiffEngine {
       approverId,
       approverRole,
       timestamp,
+      previousConsentHash,
       consentHash,
       status,
       notes,
     };
 
     this.consents.set(record.consentId, record);
+    this.lastConsentHash = consentHash;
     this.saveState();
     return record;
   }
@@ -182,13 +229,29 @@ export class ArtifactDiffEngine {
     const rec = this.consents.get(consentId);
     if (!rec) return { valid: false };
 
-    const payload = `${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
+    const previousConsentHash = rec.previousConsentHash ?? "GENESIS_CONSENT_ROOT";
+    const payload = `${previousConsentHash}:${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
     const expected = createHash("sha256").update(payload).digest("hex");
 
     return {
       valid: expected === rec.consentHash,
       record: rec,
     };
+  }
+
+  verifyConsentChain(): { valid: boolean; length: number; brokenAtIndex?: number } {
+    const list = Array.from(this.consents.values()).sort((a, b) => a.timestamp - b.timestamp);
+    let prev = "GENESIS_CONSENT_ROOT";
+    for (let idx = 0; idx < list.length; idx++) {
+      const rec = list[idx];
+      const payload = `${prev}:${rec.diffId}:${rec.approverId}:${rec.approverRole}:${rec.status}:${rec.timestamp}`;
+      const expected = createHash("sha256").update(payload).digest("hex");
+      if (expected !== rec.consentHash) {
+        return { valid: false, length: list.length, brokenAtIndex: idx };
+      }
+      prev = rec.consentHash;
+    }
+    return { valid: true, length: list.length };
   }
 }
 

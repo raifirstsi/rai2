@@ -23,50 +23,71 @@ export interface VoiceHandoffResult {
   recommendedAction: string;
 }
 
-/** Chuyển đổi số tiếng Việt bằng lời nói thành số nguyên: "50 triệu" -> 50000000, "42.500.000 đ" -> 42500000, "1.000 tỷ" -> 1000000000000 */
+/** Chuyển đổi số tiếng Việt bằng lời nói thành số nguyên: "50 triệu" -> 50000000, "1 tỷ rưỡi" -> 1500000000, "nửa triệu" -> 500000, "42.500.000 đ" -> 42500000 */
 export function parseVietnameseSpokenCurrency(text: string): number | null {
   let clean = text.toLowerCase().trim();
   clean = clean.replace(/,/g, ".");
+
+  // Dấu âm / số âm
+  let sign = 1;
+  if (/^(?:âm|-)\s*/.test(clean)) {
+    sign = -1;
+    clean = clean.replace(/^(?:âm|-)\s*/, "");
+  }
+
+  // 0. Mẫu phân số thông dụng: "nửa tỷ" (500tr), "nửa triệu" (500k)
+  if (/(?:nửa|nua)\s*(?:tỷ|ty)(?:[^\p{L}]|$)/u.test(clean)) {
+    return sign * 500_000_000;
+  }
+  if (/(?:nửa|nua)\s*(?:triệu|trieu|tr)(?:[^\p{L}]|$)/u.test(clean)) {
+    return sign * 500_000;
+  }
   
-  // 1. Mẫu "2 tỷ", "2.5 tỷ", "1.000 tỷ"
-  const tyMatch = clean.match(/(\d+(?:[.,]\d+)?)\s*(?:tỷ|ty)(?:[^\p{L}]|$)/u);
+  // 1. Mẫu "2 tỷ", "2.5 tỷ", "1.000 tỷ", "1 tỷ rưỡi"
+  const tyMatch = clean.match(/(\d+(?:[.,]\d+)?)\s*(?:tỷ|ty)(?:\s*(rưỡi|ruoi))?(?:[^\p{L}]|$)/u);
   if (tyMatch) {
     let numStr = tyMatch[1];
-    // Nếu có dạng 1.000 hoặc 50.000 (đúng 3 chữ số sau dấu chấm), đó là dấu phân cách hàng nghìn
     if (/^\d{1,3}\.\d{3}$/.test(numStr)) {
       numStr = numStr.replace(/\./g, "");
     }
-    return Math.round(parseFloat(numStr) * 1_000_000_000);
+    let val = parseFloat(numStr);
+    if (tyMatch[2]) {
+      val += 0.5;
+    }
+    return Math.round(sign * val * 1_000_000_000);
   }
 
-  // 2. Mẫu "50 triệu", "50.5 triệu", "50tr", "1.000 triệu"
-  const trieuMatch = clean.match(/(\d+(?:[.,]\d+)?)\s*(?:triệu|trieu|tr)(?:[^\p{L}]|$)/u);
+  // 2. Mẫu "50 triệu", "50.5 triệu", "50tr", "1.000 triệu", "2 triệu rưỡi"
+  const trieuMatch = clean.match(/(\d+(?:[.,]\d+)?)\s*(?:triệu|trieu|tr)(?:\s*(rưỡi|ruoi))?(?:[^\p{L}]|$)/u);
   if (trieuMatch) {
     let numStr = trieuMatch[1];
     if (/^\d{1,3}\.\d{3}$/.test(numStr)) {
       numStr = numStr.replace(/\./g, "");
     }
-    return Math.round(parseFloat(numStr) * 1_000_000);
+    let val = parseFloat(numStr);
+    if (trieuMatch[2]) {
+      val += 0.5;
+    }
+    return Math.round(sign * val * 1_000_000);
   }
 
   // 3. Mẫu "500 nghìn", "500k"
   const nghinMatch = clean.match(/(\d+(?:\.\d+)?)\s*(?:nghìn|ngan|k)(?:[^\p{L}]|$)/u);
   if (nghinMatch) {
-    return Math.round(parseFloat(nghinMatch[1]) * 1_000);
+    return Math.round(sign * parseFloat(nghinMatch[1]) * 1_000);
   }
 
   // 4. Nhận diện định dạng tiền tệ có dấu chấm phân cách hàng nghìn (VD: 42.500.000 hoặc 100.000)
-  // Đảm bảo không bắt nhầm số có đơn vị tỷ/triệu đi sau
   const thousandDotMatch = clean.match(/\b(\d{1,3}(?:\.\d{3})+)(?!\s*(?:tỷ|ty|triệu|trieu|tr|nghìn|ngan|k))(?:\s*(?:đ|vnd|dong|đồng))?\b/i);
   if (thousandDotMatch) {
     const rawDigits = thousandDotMatch[1].replace(/\./g, "");
-    return parseInt(rawDigits, 10);
+    return sign * parseInt(rawDigits, 10);
   }
 
   // 5. Mẫu số thuần
   const numMatch = clean.match(/\b\d+\b/);
   if (numMatch) {
-    return parseInt(numMatch[0], 10);
+    return sign * parseInt(numMatch[0], 10);
   }
 
   return null;
