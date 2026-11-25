@@ -1,6 +1,7 @@
 /**
  * Phân hệ Đo lường Hoàn vốn 90 Ngày (90-Day Payback Period ROI Calculator)
  * Đánh giá tính khả thi tài chính, dòng tiền thuần và tốc độ thu hồi vốn đầu tư AI First.
+ * Hardened: Nhận diện và cảnh báo chuyên biệt dòng tiền thuần âm (Daily Net Cashflow Negative).
  */
 
 export interface PaybackCalculatorInput {
@@ -30,6 +31,7 @@ export interface PaybackCalculatorResult {
   };
   achieves90DayPayback: boolean;
   financialHealthTier: "tier_1_exceptional" | "tier_2_viable" | "tier_3_high_risk";
+  isCashflowNegative: boolean;
   recommendations: string[];
 }
 
@@ -50,6 +52,7 @@ export class PaybackRoiCalculator {
     const dailyAIOpex = monthlyOpex / 30;
 
     const dailyNetBenefit = (dailyLaborSavings + dailyIncrementalProfit + dailyLeakagePrevention) - dailyAIOpex;
+    const isCashflowNegative = dailyNetBenefit <= 0;
 
     // 2. Tính số ngày hoàn vốn (Payback Period Days)
     let paybackPeriodDays = 999;
@@ -62,13 +65,23 @@ export class PaybackRoiCalculator {
     const netProfitAfterPayback = Number((totalCumulativeBenefit - totalInvestment).toFixed(0));
     const roiPercent = Number(((netProfitAfterPayback / totalInvestment) * 100).toFixed(1));
 
-    const achieves90DayPayback = paybackPeriodDays <= 90;
+    const achieves90DayPayback = !isCashflowNegative && paybackPeriodDays <= 90;
 
     // 4. Phân tầng sức khỏe tài chính & Khuyến nghị hành động
     let financialHealthTier: "tier_1_exceptional" | "tier_2_viable" | "tier_3_high_risk" = "tier_2_viable";
     const recommendations: string[] = [];
 
-    if (paybackPeriodDays <= 45) {
+    if (isCashflowNegative) {
+      financialHealthTier = "tier_3_high_risk";
+      recommendations.push(
+        `CẢNH BÁO NGUY CƠ DÒNG TIỀN: Lợi ích ròng hàng ngày đang âm (${Math.round(dailyNetBenefit).toLocaleString(
+          "vi-VN"
+        )} đ/ngày). Chi phí vận hành AI Opex vượt quá giá trị kinh tế tạo ra. Dự án không thể tự hoàn vốn.`
+      );
+      recommendations.push(
+        "Cần lập tức tối ưu hóa chi phí token/hạ tầng (Prompt Caching, Token Arbitrage) và mở rộng phạm vi áp dụng AI để tăng số giờ tiết kiệm."
+      );
+    } else if (paybackPeriodDays <= 45) {
       financialHealthTier = "tier_1_exceptional";
       recommendations.push("Dự án thu hồi vốn siêu tốc dưới 45 ngày. Khuyến nghị mở rộng nhân sự số sang các phòng ban khác.");
       recommendations.push("Tối ưu hóa phễu chốt đơn tự động để tăng thêm doanh thu gia tăng.");
@@ -99,6 +112,7 @@ export class PaybackRoiCalculator {
       },
       achieves90DayPayback,
       financialHealthTier,
+      isCashflowNegative,
       recommendations,
     };
   }
