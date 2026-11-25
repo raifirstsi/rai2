@@ -99,3 +99,13 @@ export class MerkleAuditLedger {
     return tenantId ? this.chain.filter((r) => r.tenantId === tenantId) : [...this.chain];
   }
 }
+
+
+let globalAuditLedger: MerkleAuditLedger | null = null;
+export function getWorkspaceAuditLedger(customPath?: string): MerkleAuditLedger {
+  if (!globalAuditLedger) {
+    const defaultPath = process.env.RAI2_DATA_DIR ? `${process.env.RAI2_DATA_DIR}/audit-ledger.jsonl` : '/tmp/rai2-workspace-audit.jsonl';
+    globalAuditLedger = new MerkleAuditLedger(customPath ?? defaultPath);
+  }
+  return globalAuditLedger;
+}
