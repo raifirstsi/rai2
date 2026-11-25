@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  AggregationConfig,
   ColumnDef,
   SlaAlert,
   SlaTriggerRule,
@@ -144,7 +145,6 @@ export class VirtualTable {
 
   /** Evaluates SLA rules for a single row */
   private evaluateRowSla(row: TableRow): void {
-    // Remove existing alerts for this row
     this.alerts = this.alerts.filter((a) => a.rowId !== row.id);
 
     const context: Record<string, unknown> = {
@@ -177,8 +177,55 @@ export class VirtualTable {
     }
   }
 
-  /** Exports table data as Markdown table string */
-  toMarkdown(): string {
+  /** Computes table-wide summary row (aggregations: SUM, AVG, MIN, MAX, COUNT) */
+  computeSummary(aggregations?: AggregationConfig): Record<string, number | string> {
+    const config = aggregations ?? this.schema.defaultAggregations ?? {};
+    const rows = this.getRows();
+    const summary: Record<string, number | string> = {};
+
+    for (const col of this.schema.columns) {
+      const fn = config[col.name] ?? config[col.id];
+      if (!fn) {
+        summary[col.name] = "-";
+        continue;
+      }
+
+      if (fn === "COUNT") {
+        summary[col.name] = rows.length;
+        continue;
+      }
+
+      const numbers: number[] = [];
+      for (const row of rows) {
+        const val = row.computed?.[col.id] ?? row.values[col.id] ?? row.values[col.name];
+        if (typeof val === "number" && Number.isFinite(val)) {
+          numbers.push(val);
+        }
+      }
+
+      if (numbers.length === 0) {
+        summary[col.name] = 0;
+        continue;
+      }
+
+      if (fn === "SUM") {
+        const sum = numbers.reduce((a, b) => a + b, 0);
+        summary[col.name] = Math.round(sum * 1_000_000) / 1_000_000;
+      } else if (fn === "AVG") {
+        const avg = numbers.reduce((a, b) => a + b, 0) / numbers.length;
+        summary[col.name] = Math.round(avg * 1_000_000) / 1_000_000;
+      } else if (fn === "MIN") {
+        summary[col.name] = Math.min(...numbers);
+      } else if (fn === "MAX") {
+        summary[col.name] = Math.max(...numbers);
+      }
+    }
+
+    return summary;
+  }
+
+  /** Exports table data as Markdown table string, including optional summary footer */
+  toMarkdown(aggregations?: AggregationConfig): string {
     const cols = this.schema.columns;
     if (cols.length === 0) return "*(Empty table schema)*";
 
@@ -193,11 +240,18 @@ export class VirtualTable {
       return `| ${cells.join(" | ")} |`;
     });
 
+    const summary = this.computeSummary(aggregations);
+    const hasSummary = Object.values(summary).some((v) => v !== "-");
+    if (hasSummary) {
+      const summaryLine = `| ${cols.map((c) => `**${summary[c.name] ?? "-"}**`).join(" | ")} |`;
+      return [header, separator, ...rowLines, separator, summaryLine].join("\n");
+    }
+
     return [header, separator, ...rowLines].join("\n");
   }
 
   /** Syncs virtual table to workspace DuckDB */
-  async syncToDuckDb(duckDbPool = getDuckDbPool()): Promise<{ inserted: number }> {
+  async syncToDuckDb(duckDbPool = getDuckDbPool()): Promise<{ inserted: number; tableName: string }> {
     const cols: IngestColumn[] = this.schema.columns.map((c) => {
       let duckType: IngestColumn["type"] = "VARCHAR";
       if (c.type === "number" || c.type === "formula") duckType = "DOUBLE";
@@ -218,19 +272,25 @@ export class VirtualTable {
       return obj;
     });
 
-    return duckDbPool.ingestTable(
+    const res = await duckDbPool.ingestTable(
       this.schema.workspaceId,
       this.schema.name,
       cols,
       rowsToInsert
     );
+
+    return {
+      inserted: res.inserted,
+      tableName: this.schema.name.replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase(),
+    };
   }
 
-  getSnapshot(): VirtualTableSnapshot {
+  getSnapshot(aggregations?: AggregationConfig): VirtualTableSnapshot {
     return {
       schema: this.schema,
       rows: this.getRows(),
       alerts: this.getAlerts(),
+      summary: this.computeSummary(aggregations),
       rowCount: this.rows.size,
     };
   }
@@ -247,6 +307,7 @@ export class VirtualTableManager {
     description?: string;
     columns: ColumnDef[];
     slaRules?: SlaTriggerRule[];
+    defaultAggregations?: AggregationConfig;
   }): VirtualTable {
     const id = input.id ?? randomUUID();
     const schema: VirtualTableSchema = {
@@ -256,6 +317,7 @@ export class VirtualTableManager {
       description: input.description,
       columns: input.columns,
       slaRules: input.slaRules ?? [],
+      defaultAggregations: input.defaultAggregations,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };

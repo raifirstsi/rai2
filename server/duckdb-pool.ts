@@ -79,7 +79,17 @@ export class TenantDuckDbSession {
   async init(): Promise<void> {
     if (!this.instance) {
       const { DuckDBInstance } = await getDuckDbModule();
-      this.instance = await DuckDBInstance.create(this.dbPath);
+      try {
+        this.instance = await DuckDBInstance.create(this.dbPath);
+      } catch (err: any) {
+        // If file locking or disk error occurs, gracefully fallback to in-memory instance
+        if (this.dbPath !== ":memory:") {
+          console.warn(`[DuckDBPool] Failed to open ${this.dbPath}, falling back to in-memory: ${err?.message}`);
+          this.instance = await DuckDBInstance.create(":memory:");
+        } else {
+          throw err;
+        }
+      }
       this.connection = await this.instance.connect();
     }
     this.lastActiveAt = Date.now();
@@ -120,17 +130,17 @@ export class TenantDuckDbSession {
     };
   }
 
-  async ingest(tableName: string, columns: IngestColumn[], rows: Record<string, unknown>[]): Promise<{ inserted: number }> {
+  async ingest(tableName: string, columns: IngestColumn[], rows: Record<string, unknown>[]): Promise<{ inserted: number; tableName: string }> {
     await this.init();
     if (!this.connection) throw new Error("DuckDB connection not initialized");
 
     // Sanitize table and column names to prevent SQL injection
-    const safeTable = tableName.replace(/[^a-zA-Z0-9_]/g, "_");
+    const safeTable = tableName.replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
     const colDefs = columns.map(c => `"${c.name.replace(/"/g, '""')}" ${c.type}`).join(", ");
 
     await this.connection.run(`CREATE TABLE IF NOT EXISTS "${safeTable}" (${colDefs})`);
 
-    if (rows.length === 0) return { inserted: 0 };
+    if (rows.length === 0) return { inserted: 0, tableName: safeTable };
 
     // Batch insert using parameterized inserts or VALUES chunks
     const colNames = columns.map(c => `"${c.name.replace(/"/g, '""')}"`).join(", ");
@@ -158,7 +168,7 @@ export class TenantDuckDbSession {
     }
 
     this.lastActiveAt = Date.now();
-    return { inserted };
+    return { inserted, tableName: safeTable };
   }
 
   async close(): Promise<void> {
@@ -181,11 +191,16 @@ export class DuckDbPool {
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(options?: DuckDbPoolOptions) {
-    this.baseDir = options?.baseDir ?? null;
+    this.baseDir = options?.baseDir ?? process.env.RAI2_DUCKDB_DIR ?? (process.env.DATA_DIR ? join(process.env.DATA_DIR, "duckdb") : null);
     this.maxIdleTimeMs = options?.maxIdleTimeMs ?? 15 * 60_000; // 15 mins
 
     if (this.baseDir && !existsSync(this.baseDir)) {
-      mkdirSync(this.baseDir, { recursive: true });
+      try {
+        mkdirSync(this.baseDir, { recursive: true });
+      } catch {
+        // Fall back to memory if directory creation not permitted
+        this.baseDir = null;
+      }
     }
 
     // Background timer to clean up idle connections
@@ -225,7 +240,7 @@ export class DuckDbPool {
     tableName: string,
     columns: IngestColumn[],
     rows: Record<string, unknown>[]
-  ): Promise<{ inserted: number }> {
+  ): Promise<{ inserted: number; tableName: string }> {
     const session = await this.getSession(workspaceId);
     return session.ingest(tableName, columns, rows);
   }

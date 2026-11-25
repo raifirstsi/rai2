@@ -7,11 +7,29 @@ export interface FormulaContext {
   [key: string]: unknown;
 }
 
-/** Extracts all column references in format `[Column Name]` or `[col_id]` */
-export function extractDependencies(formula: string): string[] {
+const RESERVED_KEYWORDS = new Set([
+  "Math", "abs", "round", "pow", "min", "max", "floor", "ceil", "sqrt",
+  "true", "false", "null", "undefined", "NaN", "Infinity",
+  "MARGIN", "MARKUP", "ROUND", "ABS", "MIN", "MAX", "IF"
+]);
+
+/** Extracts all column references in format `[Column Name]` or `[col_id]`, plus known column names */
+export function extractDependencies(formula: string, knownColumns?: string[]): string[] {
   const matches = formula.match(/\[([^\]]+)\]/g);
-  if (!matches) return [];
-  return [...new Set(matches.map((m) => m.slice(1, -1).trim()))];
+  const deps = matches ? matches.map((m) => m.slice(1, -1).trim()) : [];
+
+  if (knownColumns && knownColumns.length > 0) {
+    // Also discover unbracketed column identifiers matching known columns
+    const preprocessed = preprocessFormula(formula);
+    const words = preprocessed.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+    for (const w of words) {
+      if (!RESERVED_KEYWORDS.has(w) && knownColumns.includes(w) && !deps.includes(w)) {
+        deps.push(w);
+      }
+    }
+  }
+
+  return [...new Set(deps)];
 }
 
 /**
@@ -19,6 +37,7 @@ export function extractDependencies(formula: string): string[] {
  * - IF(cond, a, b) => ( (cond) ? (a) : (b) )
  * - ROUND(a, d) => Math.round((a) * Math.pow(10, d)) / Math.pow(10, d)
  * - MARGIN(rev, cost) => (((rev) - (cost)) / (rev) * 100)
+ * - MARKUP(cost, marginPct) => ((cost) / (1 - (marginPct) / 100))
  * - MIN(...), MAX(...), ABS(...)
  */
 function preprocessFormula(formula: string): string {
@@ -64,8 +83,13 @@ export function evaluateFormula(formula: string, context: FormulaContext): unkno
   try {
     let expr = preprocessFormula(formula);
 
-    // Replace column tokens `[ColName]` with context values
-    const deps = extractDependencies(formula);
+    // Identify dependencies (both bracketed and unbracketed known column names)
+    const knownKeys = Object.keys(context);
+    const deps = extractDependencies(formula, knownKeys);
+
+    // Sort dependencies by length descending so longer column names are replaced first
+    deps.sort((a, b) => b.length - a.length);
+
     for (const dep of deps) {
       const val = context[dep];
       let replacement: string;
@@ -77,20 +101,26 @@ export function evaluateFormula(formula: string, context: FormulaContext): unkno
       } else if (typeof val === "boolean") {
         replacement = val ? "true" : "false";
       } else if (typeof val === "string") {
-        // Safe string escaping
-        replacement = JSON.stringify(val);
+        // If numeric string, convert to number; otherwise JSON string
+        const num = Number(val);
+        replacement = !Number.isNaN(num) ? String(num) : JSON.stringify(val);
       } else {
         replacement = "0";
       }
 
-      // Replace all occurrences of `[dep]`
+      // Replace bracketed tokens `[dep]`
       const escapedDep = dep.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`\\[${escapedDep}\\]`, "g");
-      expr = expr.replace(regex, replacement);
+      const regexBracketed = new RegExp(`\\[${escapedDep}\\]`, "g");
+      expr = expr.replace(regexBracketed, replacement);
+
+      // Also replace bare word occurrences `\bdep\b` if not part of a property access
+      const regexBare = new RegExp(`\\b${escapedDep}\\b`, "g");
+      expr = expr.replace(regexBare, replacement);
     }
 
-    // Security check: only allow safe mathematical characters, keywords and Math functions
-    const sanitized = expr.replace(/Math\.(abs|round|pow|min|max|floor|ceil|sqrt)/g, "");
+    // Security check: strip string literals first, then only allow safe mathematical characters, keywords and Math functions
+    const noStrings = expr.replace(/'(?:[^'\\]|\\.)*'/g, "''").replace(/"(?:[^"\\]|\\.)*"/g, '""');
+    const sanitized = noStrings.replace(/Math\.(abs|round|pow|min|max|floor|ceil|sqrt)/g, "");
     const forbidden = /[a-zA-Z_$][a-zA-Z0-9_$]*/g;
     const matches = sanitized.match(forbidden);
     if (matches) {
@@ -124,17 +154,19 @@ export function sortColumnsByDependency(columns: { id: string; name: string; typ
 } {
   const colMap = new Map<string, typeof columns[0]>();
   const nameToId = new Map<string, string>();
+  const allIdentifiers: string[] = [];
 
   for (const c of columns) {
     colMap.set(c.id, c);
     nameToId.set(c.name, c.id);
+    allIdentifiers.push(c.id, c.name);
   }
 
   const adj = new Map<string, Set<string>>();
   for (const c of columns) {
     adj.set(c.id, new Set());
     if (c.type === "formula" && c.formula) {
-      const deps = extractDependencies(c.formula);
+      const deps = extractDependencies(c.formula, allIdentifiers);
       for (const d of deps) {
         const depId = colMap.has(d) ? d : nameToId.get(d);
         if (depId && depId !== c.id) {

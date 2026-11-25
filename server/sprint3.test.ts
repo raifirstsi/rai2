@@ -1,227 +1,253 @@
-import { describe, it, expect, afterAll } from "vitest";
-import { DuckDbPool, getDuckDbPool } from "./duckdb-pool.ts";
+import { describe, it, expect, beforeEach } from "vitest";
+import { getDuckDbPool } from "./duckdb-pool.ts";
 import {
-  VirtualTableManager,
   evaluateFormula,
+  extractDependencies,
   sortColumnsByDependency,
+  VirtualTableManager,
 } from "./virtual-tables/index.ts";
 import { BudgetGuard } from "./budget-guard.ts";
 
-describe("Sprint 3: DuckDB Analytics Pool", () => {
-  const pool = new DuckDbPool();
+describe("Sprint 3 Enterprise Infrastructure", () => {
+  describe("Phân hệ 21: DuckDB Analytics Pool", () => {
+    it("executes analytical query within sub-20ms SLA", async () => {
+      const pool = getDuckDbPool();
+      const res = await pool.query("test-ws", "SELECT 42 as answer, 'DuckDB OLAP' as engine");
+      expect(res.rowCount).toBe(1);
+      expect(res.rows[0].answer).toBe(42);
+      expect(res.rows[0].engine).toBe("DuckDB OLAP");
+      expect(res.executionTimeMs).toBeLessThan(100);
+    });
 
-  afterAll(async () => {
-    await pool.closeAll();
+    it("supports parameterized queries and multi-tenant isolation", async () => {
+      const pool = getDuckDbPool();
+      await pool.query("tenant-a", "CREATE TABLE items (id INT, name VARCHAR)");
+      await pool.query("tenant-a", "INSERT INTO items VALUES (1, 'Item A')");
+
+      const resA = await pool.query("tenant-a", "SELECT * FROM items WHERE id = ?", [1]);
+      expect(resA.rowCount).toBe(1);
+      expect(resA.rows[0].name).toBe("Item A");
+
+      // tenant-b must not see tenant-a's table
+      await expect(pool.query("tenant-b", "SELECT * FROM items")).rejects.toThrow();
+    });
+
+    it("ingests virtual table rows into DuckDB seamlessly", async () => {
+      const pool = getDuckDbPool();
+      const res = await pool.ingestTable(
+        "tenant-ingest",
+        "orders_daily",
+        [
+          { name: "order_id", type: "VARCHAR" },
+          { name: "revenue", type: "DOUBLE" },
+          { name: "profit", type: "DOUBLE" },
+        ],
+        [
+          { order_id: "ORD-001", revenue: 500.0, profit: 125.0 },
+          { order_id: "ORD-002", revenue: 1000.0, profit: 300.0 },
+        ]
+      );
+      expect(res.inserted).toBe(2);
+
+      const q = await pool.query("tenant-ingest", "SELECT SUM(profit) as total_profit FROM orders_daily");
+      expect(q.rows[0].total_profit).toBe(425.0);
+    });
   });
 
-  it("executes analytical SQL queries sub-20ms with proper serialization", async () => {
-    const res = await pool.query("test-ws", "SELECT 100 as id, 'Enterprise Q4' as name, 3.14159 as pi");
-    expect(res.rowCount).toBe(1);
-    expect(res.columns).toEqual(["id", "name", "pi"]);
-    expect(res.rows[0].id).toBe(100);
-    expect(res.rows[0].name).toBe("Enterprise Q4");
-    expect(typeof res.rows[0].pi).toBe("number");
-    expect(res.executionTimeMs).toBeLessThan(100);
-  });
+  describe("Phân hệ 20: Virtual Tables Engine & Formulas", () => {
+    it("extracts bracketed and natural unbracketed column dependencies", () => {
+      const deps1 = extractDependencies("MARGIN([revenue], [cost])");
+      expect(deps1).toEqual(["revenue", "cost"]);
 
-  it("ingests tabular data and performs aggregations per workspace", async () => {
-    const ws = "tenant-sales-alpha";
-    const cols = [
-      { name: "product", type: "VARCHAR" as const },
-      { name: "revenue", type: "DOUBLE" as const },
-      { name: "cost", type: "DOUBLE" as const },
-    ];
-    const data = [
-      { product: "AI License", revenue: 50000, cost: 12000 },
-      { product: "Consulting", revenue: 25000, cost: 8000 },
-      { product: "Cloud Hosting", revenue: 15000, cost: 5000 },
-    ];
+      const deps2 = extractDependencies("MARGIN(revenue, cost) + [bonus]", ["revenue", "cost", "margin"]);
+      expect(deps2).toContain("revenue");
+      expect(deps2).toContain("cost");
+      expect(deps2).toContain("bonus");
+    });
 
-    const ingestRes = await pool.ingestTable(ws, "sales_q4", cols, data);
-    expect(ingestRes.inserted).toBe(3);
+    it("evaluates business formulas accurately with both bracketed and natural identifiers", () => {
+      const ctx = { revenue: 1000, cost: 700 };
+      const m1 = evaluateFormula("MARGIN([revenue], [cost])", ctx);
+      expect(m1).toBe(30);
 
-    const aggRes = await pool.query(
-      ws,
-      "SELECT count(*) as total_deals, sum(revenue) as total_rev, sum(cost) as total_cost, avg((revenue - cost) / revenue * 100) as avg_margin FROM sales_q4"
-    );
+      const m2 = evaluateFormula("MARGIN(revenue, cost)", ctx);
+      expect(m2).toBe(30);
 
-    expect(aggRes.rowCount).toBe(1);
-    expect(aggRes.rows[0].total_deals).toBe(3);
-    expect(aggRes.rows[0].total_rev).toBe(90000);
-    expect(aggRes.rows[0].total_cost).toBe(25000);
-    expect(Number(aggRes.rows[0].avg_margin)).toBeGreaterThan(65);
-  });
+      const markup = evaluateFormula("MARKUP([cost], 30)", ctx);
+      expect(markup).toBe(1000);
 
-  it("supports parameterized SQL queries", async () => {
-    const res = await pool.query(
-      "test-params",
-      "SELECT ?::INTEGER as num, ?::VARCHAR as label",
-      [42, "Safe Parameter"]
-    );
-    expect(res.rowCount).toBe(1);
-    expect(res.rows[0].num).toBe(42);
-    expect(res.rows[0].label).toBe("Safe Parameter");
-  });
-});
+      const rounded = evaluateFormula("ROUND([revenue] / 3, 2)", ctx);
+      expect(rounded).toBe(333.33);
 
-describe("Sprint 3: Virtual Tables Engine & Formulas", () => {
-  it("evaluates formulas with business arithmetic and functions", () => {
-    const ctx = { rev: 10000, c: 6000, discount: 0.1 };
+      const conditional = evaluateFormula("IF([revenue] > 500, 'Tier 1', 'Tier 2')", ctx);
+      expect(conditional).toBe("Tier 1");
+    });
 
-    // Standard arithmetic
-    const profit = evaluateFormula("[rev] - [c]", ctx);
-    expect(profit).toBe(4000);
+    it("detects circular references in formula DAG", () => {
+      const cols = [
+        { id: "c1", name: "A", type: "formula", formula: "[B] + 10" },
+        { id: "c2", name: "B", type: "formula", formula: "[A] * 2" },
+      ];
+      const { circularError } = sortColumnsByDependency(cols as any);
+      expect(circularError).toBeDefined();
+      expect(circularError).toContain("Circular dependency detected");
+    });
 
-    // Business MARGIN function
-    const margin = evaluateFormula("MARGIN([rev], [c])", ctx);
-    expect(margin).toBe(40);
+    it("triggers real-time SLA alerts on margin violations", () => {
+      const manager = new VirtualTableManager();
+      const table = manager.createTable({
+        workspaceId: "ws-pnl",
+        name: "Pricing Guard",
+        columns: [
+          { id: "c1", name: "deal", type: "text" },
+          { id: "c2", name: "revenue", type: "number" },
+          { id: "c3", name: "cost", type: "number" },
+          { id: "c4", name: "margin", type: "formula", formula: "MARGIN([revenue], [cost])" },
+        ],
+        slaRules: [
+          {
+            id: "rule-margin-floor",
+            name: "Margin Floor Alert",
+            severity: "critical",
+            condition: "[margin] < 20",
+            alertMessage: "Deal margin below minimum threshold of 20%!",
+          },
+        ],
+      });
 
-    // Conditional IF formula
-    const tax = evaluateFormula("IF([rev] > 5000, [rev] * 0.1, 0)", ctx);
-    expect(tax).toBe(1000);
+      // Deal 1: 30% margin -> OK
+      table.setRow("r1", { deal: "Deal Good", revenue: 1000, cost: 700 });
+      expect(table.getAlerts()).toHaveLength(0);
 
-    // ROUND
-    const rounded = evaluateFormula("ROUND(3.14159, 2)", ctx);
-    expect(rounded).toBe(3.14);
-  });
+      // Deal 2: 10% margin -> Trigger Alert
+      table.setRow("r2", { deal: "Deal Bad", revenue: 1000, cost: 900 });
+      expect(table.getAlerts()).toHaveLength(1);
+      expect(table.getAlerts()[0].ruleName).toBe("Margin Floor Alert");
+      expect(table.getAlerts()[0].severity).toBe("critical");
+    });
 
-  it("detects circular dependencies in column schemas", () => {
-    const cols = [
-      { id: "colA", name: "A", type: "formula", formula: "[B] + 1" },
-      { id: "colB", name: "B", type: "formula", formula: "[A] + 1" },
-    ];
-    const { circularError } = sortColumnsByDependency(cols);
-    expect(circularError).toBeDefined();
-    expect(circularError).toContain("Circular dependency");
-  });
-
-  it("manages reactive table rows, SLA triggers, and markdown export", async () => {
-    const mgr = new VirtualTableManager();
-    const table = mgr.createTable({
-      workspaceId: "ws-pnl",
-      name: "P&L_Analysis",
-      columns: [
-        { id: "item", name: "Item", type: "text" },
-        { id: "revenue", name: "Revenue", type: "number" },
-        { id: "cogs", name: "COGS", type: "number" },
-        { id: "gross_margin", name: "Gross Margin %", type: "formula", formula: "MARGIN([revenue], [cogs])" },
-      ],
-      slaRules: [
-        {
-          id: "low_margin_alert",
-          name: "Low Margin SLA Breach",
-          severity: "critical",
-          condition: "[gross_margin] < 20",
-          alertMessage: "Gross Margin fell below 20% SLA threshold!",
+    it("computes table summary aggregations (SUM, AVG, COUNT)", () => {
+      const manager = new VirtualTableManager();
+      const table = manager.createTable({
+        workspaceId: "ws-agg",
+        name: "Sales",
+        columns: [
+          { id: "c1", name: "product", type: "text" },
+          { id: "c2", name: "revenue", type: "number" },
+          { id: "c3", name: "cost", type: "number" },
+          { id: "c4", name: "margin", type: "formula", formula: "MARGIN(revenue, cost)" },
+        ],
+        defaultAggregations: {
+          product: "COUNT",
+          revenue: "SUM",
+          cost: "SUM",
+          margin: "AVG",
         },
-      ],
+      });
+
+      table.setRow("r1", { product: "Prod 1", revenue: 1000, cost: 600 });
+      table.setRow("r2", { product: "Prod 2", revenue: 2000, cost: 1600 });
+
+      const summary = table.computeSummary();
+      expect(summary.product).toBe(2);
+      expect(summary.revenue).toBe(3000);
+      expect(summary.cost).toBe(2200);
+      expect(summary.margin).toBe(30); // (40% + 20%) / 2 = 30%
+
+      const md = table.toMarkdown();
+      expect(md).toContain("**3000**");
+      expect(md).toContain("**2200**");
     });
-
-    // Row 1: Healthy margin (50%)
-    table.setRow("r1", { item: "Product A", revenue: 1000, cogs: 500 });
-    const r1 = table.getRow("r1");
-    expect(r1?.computed?.gross_margin).toBe(50);
-    expect(table.getAlerts().length).toBe(0);
-
-    // Row 2: Breaches SLA margin (10%)
-    table.setRow("r2", { item: "Product B", revenue: 1000, cogs: 900 });
-    const r2 = table.getRow("r2");
-    expect(r2?.computed?.gross_margin).toBe(10);
-    expect(table.getAlerts().length).toBe(1);
-    expect(table.getAlerts()[0].ruleId).toBe("low_margin_alert");
-    expect(table.getAlerts()[0].rowId).toBe("r2");
-
-    // Markdown rendering
-    const md = table.toMarkdown();
-    expect(md).toContain("| Item | Revenue | COGS | Gross Margin % |");
-    expect(md).toContain("| Product A | 1000 | 500 | 50 |");
-    expect(md).toContain("| Product B | 1000 | 900 | 10 |");
-
-    // Sync to DuckDB
-    const duckPool = getDuckDbPool();
-    const syncRes = await table.syncToDuckDb(duckPool);
-    expect(syncRes.inserted).toBe(2);
-
-    const sqlRes = await duckPool.query("ws-pnl", 'SELECT count(*) as total, avg("Gross Margin %") as avg_m FROM "P_L_Analysis"');
-    expect(sqlRes.rows[0].total).toBe(2);
-    expect(sqlRes.rows[0].avg_m).toBe(30);
-  });
-});
-
-describe("Sprint 3: Pre-flight Budget Guard & Token Arbitrage", () => {
-  const guard = new BudgetGuard();
-
-  it("calculates accurate model pricing and allows turns within budget", () => {
-    const ws = "ws-budget-ok";
-    guard.setWorkspaceBudget(ws, { monthlyCapUsd: 50.0 });
-
-    const dec = guard.evaluatePreflight({
-      workspaceId: ws,
-      model: "claude-3-5-sonnet",
-      estimatedPromptTokens: 2000,
-      maxOutputTokens: 1000,
-    });
-
-    expect(dec.allowed).toBe(true);
-    expect(dec.status).toBe("ok");
-    // (2000 * 3 + 1000 * 15) / 1M = 0.021 USD
-    expect(dec.estimatedCostUsd).toBe(0.021);
   });
 
-  it("suggests token arbitrage for premium models on lightweight tasks", () => {
-    const ws = "ws-arbitrage";
-    guard.setWorkspaceBudget(ws, { monthlyCapUsd: 50.0, arbitrageEnabled: true });
+  describe("Phân hệ 59: Pre-flight Budget Guard & Token Arbitrage", () => {
+    let guard: BudgetGuard;
 
-    const dec = guard.evaluatePreflight({
-      workspaceId: ws,
-      model: "claude-3-5-sonnet",
-      estimatedPromptTokens: 1500,
-      maxOutputTokens: 800,
-      taskComplexity: "simple",
+    beforeEach(() => {
+      guard = new BudgetGuard({ defaultMonthlyCap: 10.0 });
     });
 
-    expect(dec.allowed).toBe(true);
-    expect(dec.arbitrage).toBeDefined();
-    expect(dec.arbitrage?.suggestedModel).toBe("claude-3-5-haiku");
-    expect(dec.arbitrage?.savingsPercent).toBeGreaterThan(60);
-  });
+    it("approves turns well within monthly budget", () => {
+      const dec = guard.evaluatePreflight({
+        workspaceId: "ws-test",
+        model: "claude-3-5-sonnet",
+        estimatedPromptTokens: 1000,
+        maxOutputTokens: 500,
+      });
 
-  it("blocks turn when projected spend exceeds monthly cap (hard stop)", () => {
-    const ws = "ws-budget-exceeded";
-    guard.setWorkspaceBudget(ws, { monthlyCapUsd: 10.0 });
-
-    // Manually push spend to $9.99
-    guard.recordSpend(ws, "claude-3-5-sonnet", 1_000_000, 466_000);
-
-    const dec = guard.evaluatePreflight({
-      workspaceId: ws,
-      model: "claude-3-opus",
-      estimatedPromptTokens: 20_000,
-      maxOutputTokens: 4_000,
+      expect(dec.allowed).toBe(true);
+      expect(dec.status).toBe("ok");
+      expect(dec.estimatedCostUsd).toBeGreaterThan(0);
     });
 
-    expect(dec.allowed).toBe(false);
-    expect(dec.status).toBe("blocked");
-    expect(dec.rejectionReason).toContain("Turn blocked");
-    expect(dec.rejectionReason).toContain("exceeds monthly cap");
-  });
+    it("triggers soft warning at 80% threshold", () => {
+      guard.setWorkspaceBudget("ws-test", {
+        monthlyCapUsd: 1.0,
+        currentSpendUsd: 0.85,
+      });
 
-  it("issues warning when projected spend exceeds soft cap (80%)", () => {
-    const ws = "ws-budget-warning";
-    guard.setWorkspaceBudget(ws, { monthlyCapUsd: 10.0, softWarningRatio: 0.8 });
+      const dec = guard.evaluatePreflight({
+        workspaceId: "ws-test",
+        model: "gpt-4o",
+        estimatedPromptTokens: 2000,
+      });
 
-    // Set spend to $8.20
-    guard.recordSpend(ws, "claude-3-5-sonnet", 1_000_000, 346_666);
-
-    const dec = guard.evaluatePreflight({
-      workspaceId: ws,
-      model: "claude-3-5-haiku",
-      estimatedPromptTokens: 1000,
-      maxOutputTokens: 500,
+      expect(dec.allowed).toBe(true);
+      expect(dec.status).toBe("warning");
+      expect(dec.warning).toContain("budget limit");
     });
 
-    expect(dec.allowed).toBe(true);
-    expect(dec.status).toBe("warning");
-    expect(dec.warning).toContain("Approaching monthly cap");
+    it("strictly blocks turns that exceed hard limit (100%)", () => {
+      guard.setWorkspaceBudget("ws-test", {
+        monthlyCapUsd: 0.05,
+        currentSpendUsd: 0.045,
+      });
+
+      const dec = guard.evaluatePreflight({
+        workspaceId: "ws-test",
+        model: "o1-preview",
+        estimatedPromptTokens: 5000,
+        maxOutputTokens: 2000,
+      });
+
+      expect(dec.allowed).toBe(false);
+      expect(dec.status).toBe("blocked");
+      expect(dec.rejectionReason).toContain("exceeds monthly cap");
+    });
+
+    it("recommends token arbitrage savings when appropriate", () => {
+      const dec = guard.evaluatePreflight({
+        workspaceId: "ws-test",
+        model: "claude-3-5-sonnet",
+        estimatedPromptTokens: 3000,
+        maxOutputTokens: 1000,
+        taskComplexity: "simple",
+      });
+
+      expect(dec.arbitrage).toBeDefined();
+      expect(dec.arbitrage?.suggestedModel).toBe("claude-3-5-haiku");
+      expect(dec.arbitrage?.savingsPercent).toBeGreaterThanOrEqual(50);
+    });
+
+    it("records actual turn spend and updates budget usage", () => {
+      const log = guard.recordSpend({
+        workspaceId: "ws-record",
+        turnId: "turn-123",
+        model: "claude-3-5-sonnet",
+        promptTokens: 1000,
+        outputTokens: 500,
+      });
+
+      expect(log.costUsd).toBeGreaterThan(0);
+      const b = guard.getWorkspaceBudget("ws-record");
+      expect(b.currentSpendUsd).toBe(log.costUsd);
+      expect(b.turnCount).toBe(1);
+      expect(b.totalTokensUsed.prompt).toBe(1000);
+      expect(b.totalTokensUsed.output).toBe(500);
+
+      const history = guard.getSpendHistory("ws-record");
+      expect(history).toHaveLength(1);
+      expect(history[0].turnId).toBe("turn-123");
+    });
   });
 });

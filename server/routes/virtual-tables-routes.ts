@@ -49,6 +49,7 @@ export function createVirtualTablesRoutes(): RouteHandler {
         description?: unknown;
         columns?: unknown;
         slaRules?: unknown;
+        defaultAggregations?: unknown;
         rows?: unknown;
       };
 
@@ -69,6 +70,7 @@ export function createVirtualTablesRoutes(): RouteHandler {
           description: typeof p.description === "string" ? p.description : undefined,
           columns: p.columns as any,
           slaRules: Array.isArray(p.slaRules) ? (p.slaRules as any) : [],
+          defaultAggregations: p.defaultAggregations && typeof p.defaultAggregations === "object" ? (p.defaultAggregations as any) : undefined,
         });
 
         if (Array.isArray(p.rows)) {
@@ -116,7 +118,38 @@ export function createVirtualTablesRoutes(): RouteHandler {
       });
     }
 
-    // 4. POST /api/tables/virtual/sync-duckdb - Sync virtual table into DuckDB
+    // 4. POST /api/tables/virtual/summary - Compute table aggregations (SUM, AVG, MIN, MAX, COUNT)
+    if (method === "POST" && path === "/api/tables/virtual/summary") {
+      let body: unknown;
+      try {
+        body = await readBody(req, 16_384);
+      } catch {
+        return json(res, 400, { error: "expected JSON body" });
+      }
+
+      const p = body as { tableId?: unknown; aggregations?: unknown };
+      if (typeof p?.tableId !== "string" || !p.tableId) {
+        return json(res, 400, { error: "tableId is required" });
+      }
+
+      const manager = getVirtualTableManager();
+      const table = manager.getTable(p.tableId);
+      if (!table) {
+        return json(res, 404, { error: "Virtual table not found" });
+      }
+
+      const aggregations = p.aggregations && typeof p.aggregations === "object" ? (p.aggregations as any) : undefined;
+      const summary = table.computeSummary(aggregations);
+
+      return json(res, 200, {
+        success: true,
+        tableId: p.tableId,
+        summary,
+        markdown: table.toMarkdown(aggregations),
+      });
+    }
+
+    // 5. POST /api/tables/virtual/sync-duckdb - Sync virtual table into DuckDB
     if (method === "POST" && path === "/api/tables/virtual/sync-duckdb") {
       let body: unknown;
       try {
@@ -145,7 +178,7 @@ export function createVirtualTablesRoutes(): RouteHandler {
       }
     }
 
-    // 5. GET /api/tables/virtual/get?tableId=...
+    // 6. GET /api/tables/virtual/get?tableId=...
     if (method === "GET" && path === "/api/tables/virtual/get") {
       const url = new URL(req.url ?? "", "http://localhost");
       const tableId = url.searchParams.get("tableId");
@@ -166,7 +199,7 @@ export function createVirtualTablesRoutes(): RouteHandler {
       });
     }
 
-    // 6. POST /api/budget/preflight - Pre-flight Turn Budget & Token Arbitrage Guard
+    // 7. POST /api/budget/preflight - Pre-flight Turn Budget & Token Arbitrage Guard
     if (method === "POST" && path === "/api/budget/preflight") {
       let body: unknown;
       try {
@@ -199,7 +232,45 @@ export function createVirtualTablesRoutes(): RouteHandler {
       return json(res, 200, { success: true, ...decision });
     }
 
-    // 7. GET /api/budget/status?workspaceId=...
+    // 8. POST /api/budget/record-turn - Record actual turn token usage & spend
+    if (method === "POST" && path === "/api/budget/record-turn") {
+      let body: unknown;
+      try {
+        body = await readBody(req, 16_384);
+      } catch {
+        return json(res, 400, { error: "expected JSON body" });
+      }
+
+      const p = body as {
+        workspaceId?: unknown;
+        turnId?: unknown;
+        model?: unknown;
+        promptTokens?: unknown;
+        outputTokens?: unknown;
+      };
+
+      const workspaceId = typeof p?.workspaceId === "string" && p.workspaceId ? p.workspaceId : "default";
+      const model = typeof p?.model === "string" && p.model ? p.model : "claude-3-5-sonnet";
+      const promptTokens = typeof p?.promptTokens === "number" ? p.promptTokens : 0;
+      const outputTokens = typeof p?.outputTokens === "number" ? p.outputTokens : 0;
+
+      const guard = getBudgetGuard();
+      const log = guard.recordSpend({
+        workspaceId,
+        turnId: typeof p?.turnId === "string" ? p.turnId : undefined,
+        model,
+        promptTokens,
+        outputTokens,
+      });
+
+      return json(res, 200, {
+        success: true,
+        recorded: log,
+        budget: guard.getWorkspaceBudget(workspaceId),
+      });
+    }
+
+    // 9. GET /api/budget/status?workspaceId=...
     if (method === "GET" && path === "/api/budget/status") {
       const url = new URL(req.url ?? "", "http://localhost");
       const workspaceId = url.searchParams.get("workspaceId") ?? "default";
@@ -214,7 +285,7 @@ export function createVirtualTablesRoutes(): RouteHandler {
       });
     }
 
-    // 8. POST /api/budget/set-cap
+    // 10. POST /api/budget/set-cap
     if (method === "POST" && path === "/api/budget/set-cap") {
       let body: unknown;
       try {
