@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { convertOfficeDocument, convertCsvToTable } from "./office-convert.ts";
+﻿import { describe, it, expect } from "vitest";
+import { convertOfficeDocument } from "./office-convert.ts";
 import { TurnSteeringManager } from "./turn-steering.ts";
 
 describe("Sprint 2 Test Suite: Office Convert & Mid-Run Steering", () => {
@@ -40,7 +40,6 @@ describe("Sprint 2 Test Suite: Office Convert & Mid-Run Steering", () => {
     expect(directives[0].action).toBe("redirect");
     expect(directives[0].instruction).toBe("Focus on margin analysis instead");
 
-    // Once consumed, pending list should be empty
     expect(mgr.hasPendingSteer(turnId)).toBe(false);
   });
 });

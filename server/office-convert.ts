@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module 17: Office Convert Engine for RAI2
  * Converts Office/Document files (CSV, Text, Markdown, Word DOCX, Excel XLSX, PDF)
  * into structured markdown tables and context payloads without breaking UI layout.
@@ -26,7 +26,6 @@ export function convertCsvToTable(csvContent: string): { markdown: string; rowCo
   if (lines.length === 0) return { markdown: "", rowCount: 0 };
 
   const rows = lines.map((line) => {
-    // Basic CSV splitting handling simple quotes
     const cells: string[] = [];
     let cur = "";
     let inQuotes = false;
@@ -81,7 +80,12 @@ export async function convertOfficeDocument(input: OfficeConvertInput): Promise<
   }
 
   // Fallback for docx/xlsx/pdf plain-text extraction or metadata
-  const textPreview = input.buffer.toString("utf-8", 0, Math.min(input.buffer.length, 4096)).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+  const textPreview = input.buffer
+    .toString("utf-8", 0, Math.min(input.buffer.length, 4096))
+    .split("")
+    .filter((ch) => ch.charCodeAt(0) >= 32 || ch === "\n" || ch === "\r" || ch === "\t")
+    .join("");
+
   return {
     format: (ext === "docx" || ext === "xlsx" || ext === "pdf") ? (ext as any) : "unknown",
     markdown: `[Document: ${input.filename}]\n\n${textPreview.slice(0, 1000)}`,

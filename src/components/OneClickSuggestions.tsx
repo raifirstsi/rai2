@@ -1,5 +1,3 @@
-import React from "react";
-
 export interface SuggestionItem {
   id: string;
   label: string;
@@ -13,11 +11,6 @@ export interface OneClickSuggestionsProps {
   disabled?: boolean;
 }
 
-/**
- * Module 62: 1-Click Suggestions
- * Renders 3 contextual action chips below assistant messages.
- * Inherits the exact styling tokens of RAI2/OpenMausBot (bg-card, rounded-full, text-xs).
- */
 export function OneClickSuggestions({ suggestions, onSelect, disabled }: OneClickSuggestionsProps) {
   if (!suggestions || suggestions.length === 0) return null;
 
@@ -27,7 +20,7 @@ export function OneClickSuggestions({ suggestions, onSelect, disabled }: OneClic
       className="flex flex-wrap items-center gap-2 mt-2 pt-1 border-t border-[var(--border-subtle,rgba(255,255,255,0.06))]"
     >
       <span className="text-[11px] font-medium text-[var(--text-muted,#888)] mr-1">
-        G?i ý ti?p theo:
+        Goi y tiep theo:
       </span>
       {suggestions.slice(0, 3).map((item) => (
         <button
