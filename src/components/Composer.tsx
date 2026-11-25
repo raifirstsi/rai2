@@ -482,6 +482,31 @@ export function Composer({
     if (!picked?.length) return;
     changeDraftAttachmentPending(draftId, true);
     try {
+      // Auto-convert Office documents (docx, xlsx, csv, pdf) via Sprint 2 endpoint
+      for (const file of Array.from(picked)) {
+        if (/\.(docx|xlsx|csv|pdf)$/i.test(file.name)) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+              const resBase64 = typeof reader.result === "string" ? reader.result.split(",")[1] : null;
+              if (resBase64) {
+                const resp = await fetch("/api/office/convert", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ filename: file.name, contentBase64: resBase64 }),
+                });
+                const data = await resp.json();
+                if (data?.ok && data?.result?.markdown) {
+                  setText((prev) => (prev ? `${prev}\n\n${data.result.markdown}` : data.result.markdown));
+                }
+              }
+            };
+            reader.readAsDataURL(file);
+          } catch (e) {
+            console.warn("[Composer] Office conversion skipped:", e);
+          }
+        }
+      }
       const { attachments: added, notice } = await intakeFilesWithNotice(Array.from(picked), {
         allowImages: engineSupportsImages,
         getPath: pathForFile,
