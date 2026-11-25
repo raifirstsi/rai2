@@ -45,7 +45,11 @@ export class ArtifactDiffEngine {
 
   constructor(storageFile?: string) {
     this.storageFile = storageFile ?? (
-      process.env.RAI2_CONSENTS_FILE ?? (process.env.DATA_DIR ? join(process.env.DATA_DIR, "artifact-consents-state.json") : null)
+      process.env.RAI2_CONSENTS_FILE ?? (
+        process.env.DATA_DIR
+          ? join(process.env.DATA_DIR, "artifact-consents-state.json")
+          : (existsSync("/var/lib/openmausbot") ? "/var/lib/openmausbot/artifact-consents-state.json" : "/tmp/artifact-consents-state.json")
+      )
     );
     this.loadState();
   }
