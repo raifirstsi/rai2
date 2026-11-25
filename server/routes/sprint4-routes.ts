@@ -168,6 +168,21 @@ export function createSprint4Routes(): RouteHandler {
       return json(res, 200, { success: true, record });
     }
 
+    // 8. GET /api/artifacts/consent/verify - Kiểm tra tính toàn vẹn chữ ký số Merkle Consent
+    if (method === "GET" && path === "/api/artifacts/consent/verify") {
+      const url = new URL(req.url ?? "", "http://localhost");
+      const consentId = url.searchParams.get("consentId") || "";
+      const engine = getArtifactDiffEngine();
+      const verification = engine.verifyConsent(consentId);
+
+      return json(res, 200, {
+        success: true,
+        consentId,
+        valid: verification.valid,
+        record: verification.record,
+      });
+    }
+
     return PASS;
   };
 }
