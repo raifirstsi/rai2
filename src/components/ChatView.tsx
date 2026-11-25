@@ -563,7 +563,7 @@ const Bubble = memo(function Bubble({
                 <ConversationalReply simple={simple} join={join} segments={reply.segments} firstNew={reply.firstNew} citation={{ messageId: message.id, botId, threadId }}
                   renderSegment={(segment) => <ChatMarkdown text={segment} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} originals={group?.originals} />} />
               ) : tabled && blocks ? (
-                <ReplyBlocks blocks={blocks} join={join} tray={botActions} citation={{ messageId: message.id, ownerType: "bot", ownerId: botId, threadId }}
+                <ReplyBlocks blocks={blocks} join={join} tray={botActions} citation={{ messageId: message.id, ownerType: "bot", ownerId: botId, threadId }} suggestions={[{ id: "s1", label: "Ph�n t�ch P&L", prompt: "H�y ph�n t�ch b�o c�o P&L v� bi�n l?i nhu?n c?a tu?n n�y" }, { id: "s2", label: "T?i uu di?m ngh?n", prompt: "X�c d?nh di?m ngh?n (TOC) l?n nh?t trong v?n h�nh hi?n t?i" }, { id: "s3", label: "So?n n?i dung PR", prompt: "So?n m?t b�i vi?t truy?n th�ng ng?n v? nang l?c AI Workspace" }]} onSelectSuggestion={(prompt) => { void sendLine(prompt); }}
                   render={(block) => <ChatMarkdown text={block} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} originals={group?.originals} />} />
               ) : viewRaw && text ? (
                 <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><RawMarkdownView text={text} /></div>
