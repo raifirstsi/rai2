@@ -1,6 +1,26 @@
-import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
+import { createRequire } from "node:module";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+
+let cachedDuckDbModule: any = null;
+
+export async function getDuckDbModule(): Promise<any> {
+  if (!cachedDuckDbModule) {
+    try {
+      const req = createRequire(import.meta.url);
+      const pkg = "@duckdb/node-api";
+      cachedDuckDbModule = req(pkg);
+    } catch {
+      try {
+        const pkg = "@duckdb/node-api";
+        cachedDuckDbModule = await import(pkg);
+      } catch (err: any) {
+        throw new Error(`DuckDB native engine not available: ${err?.message || err}`);
+      }
+    }
+  }
+  return cachedDuckDbModule;
+}
 
 export interface DuckDbPoolOptions {
   baseDir?: string;
@@ -45,8 +65,8 @@ function serializeDuckDbValue(val: unknown): unknown {
 }
 
 export class TenantDuckDbSession {
-  private instance: DuckDBInstance | null = null;
-  private connection: DuckDBConnection | null = null;
+  private instance: any = null;
+  private connection: any = null;
   public lastActiveAt: number = Date.now();
   public readonly workspaceId: string;
   public readonly dbPath: string;
@@ -58,6 +78,7 @@ export class TenantDuckDbSession {
 
   async init(): Promise<void> {
     if (!this.instance) {
+      const { DuckDBInstance } = await getDuckDbModule();
       this.instance = await DuckDBInstance.create(this.dbPath);
       this.connection = await this.instance.connect();
     }
