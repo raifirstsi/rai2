@@ -1,6 +1,7 @@
 /**
  * Sprint 5 API Routes
  * Business Pulse (Nhịp thở 17:00), 90-Day Payback ROI Calculator & Exporting Engine.
+ * Hardened: Thêm route trigger snapshot 17:00 và truy vấn snapshot lịch sử.
  */
 
 import { getBusinessPulseEngine } from "../business-pulse.ts";
@@ -21,6 +22,37 @@ export function createSprint5Routes(): RouteHandler {
       const pulse = engine.getDailyPulse(workspaceId, date);
 
       return json(res, 200, { success: true, pulse });
+    }
+
+    // 1b. POST /api/pulse/trigger-17pm - Lưu snapshot chốt sổ 17:00 chiều
+    if (method === "POST" && path === "/api/pulse/trigger-17pm") {
+      let body: unknown;
+      try {
+        body = await readBody(req, 16_384);
+      } catch {
+        return json(res, 400, { error: "expected JSON body" });
+      }
+
+      const p = body as { workspaceId?: unknown; date?: unknown };
+      const workspaceId = typeof p?.workspaceId === "string" ? p.workspaceId : "default";
+      const date = typeof p?.date === "string" ? p.date : undefined;
+
+      const engine = getBusinessPulseEngine();
+      const snapshot = engine.trigger17PmPulse(workspaceId, date);
+
+      return json(res, 200, { success: true, snapshot });
+    }
+
+    // 1c. GET /api/pulse/snapshot-17pm - Lấy snapshot 17:00 đã lưu
+    if (method === "GET" && path === "/api/pulse/snapshot-17pm") {
+      const url = new URL(req.url ?? "", "http://localhost");
+      const workspaceId = url.searchParams.get("workspaceId") || "default";
+      const date = url.searchParams.get("date") || undefined;
+
+      const engine = getBusinessPulseEngine();
+      const snapshot = engine.get17PmSnapshot(workspaceId, date);
+
+      return json(res, 200, { success: true, exists: Boolean(snapshot), snapshot });
     }
 
     // 2. POST /api/pulse/record - Ghi nhận giao dịch mới trong ngày

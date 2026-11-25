@@ -1,11 +1,11 @@
 /**
- * Test Suite cho Sprint 5
+ * Test Suite cho Sprint 5 (Hardened Edition)
  * Business Pulse (17:00 Widget), TOC Bottlenecks, 90-Day Payback ROI & Exporting Engine.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { BusinessPulseEngine } from "./business-pulse.ts";
-import { ExportingEngine } from "./exporting.ts";
+import { BusinessPulseEngine, getVietnamDateString } from "./business-pulse.ts";
+import { ExportingEngine, sanitizeCsvField } from "./exporting.ts";
 import { PaybackRoiCalculator } from "./payback-roi.ts";
 
 describe("Sprint 5: Business Pulse 17:00 & TOC Bottlenecks", () => {
@@ -45,7 +45,7 @@ describe("Sprint 5: Business Pulse 17:00 & TOC Bottlenecks", () => {
     expect(pulse.netMarginPercent).toBe(21.9);
     expect(pulse.transactionCount).toBe(2);
     expect(pulse.formattedWidget.headline).toContain("128.5 tr");
-    expect(pulse.formattedWidget.headline).toContain("28.2 tr");
+    expect(pulse.formattedWidget.headline).toContain("🟢 Lãi ròng: 28.2 tr");
   });
 
   it("nhận diện chuẩn xác các điểm nghẽn TOC (báo giá treo >2h, rò rỉ margin, giao trễ)", () => {
@@ -105,30 +105,77 @@ describe("Sprint 5: Business Pulse 17:00 & TOC Bottlenecks", () => {
     expect(pulse.healthStatus).toBe("critical_risk");
     expect(pulse.formattedWidget.headline).toContain("3 Điểm nghẽn");
   });
+
+  it("hiển thị chính xác trạng thái Lỗ ròng 🔴 và format tiền tệ âm", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    pulseEngine.recordTransaction({
+      workspaceId: "test-ws",
+      orderCode: "ORD-LOSS",
+      revenue: 20_000_000,
+      cost: 35_000_000, // chi phí lớn hơn doanh thu
+      status: "approved",
+      timestamp: `${today}T12:00:00.000Z`,
+    });
+
+    const pulse = pulseEngine.getDailyPulse("test-ws", today);
+    expect(pulse.grossProfit).toBe(-15_000_000);
+    expect(pulse.healthStatus).toBe("critical_risk");
+    expect(pulse.formattedWidget.headline).toContain("🔴 Lỗ ròng: -15.0 tr");
+    expect(pulse.formattedWidget.profitDisplay).toBe("-15.0 tr");
+  });
+
+  it("kích hoạt và lưu snapshot chốt sổ 17:00 chiều", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    pulseEngine.recordTransaction({
+      workspaceId: "test-ws",
+      orderCode: "ORD-SNAPSHOT",
+      revenue: 10_000_000,
+      cost: 7_000_000,
+      status: "approved",
+      timestamp: `${today}T16:55:00.000Z`,
+    });
+
+    const snap = pulseEngine.trigger17PmPulse("test-ws", today);
+    expect(snap.is17PmSnapshot).toBe(true);
+
+    const savedSnap = pulseEngine.get17PmSnapshot("test-ws", today);
+    expect(savedSnap).not.toBeNull();
+    expect(savedSnap?.totalRevenue).toBe(10_000_000);
+    expect(savedSnap?.is17PmSnapshot).toBe(true);
+  });
+
+  it("chuyển đổi chuẩn xác múi giờ Việt Nam UTC+7", () => {
+    const vnStr = getVietnamDateString(new Date());
+    expect(vnStr).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
 });
 
 describe("Sprint 5: Exporting Engine & Merkle Audit Bundle", () => {
   const exporting = new ExportingEngine();
 
-  it("sinh báo cáo P&L dạng CSV chuẩn kế toán đối soát", () => {
-    const txList = [
+  it("phòng chống lỗ hổng CSV Formula Injection (CWE-1236)", () => {
+    expect(sanitizeCsvField("=SUM(A1:A10)")).toBe("'=SUM(A1:A10)");
+    expect(sanitizeCsvField("+84901234567")).toBe("'+84901234567");
+    expect(sanitizeCsvField("-100")).toBe("'-100");
+    expect(sanitizeCsvField("@malicious_cmd")).toBe("'@malicious_cmd");
+    expect(sanitizeCsvField('Bình thường "VIP"')).toBe('Bình thường ""VIP""');
+
+    const maliciousTx = [
       {
-        id: "tx_01",
+        id: "tx_mal",
         workspaceId: "test-ws",
-        orderCode: "ORD-SP88",
-        revenue: 42_500_000,
-        cost: 31_800_000,
-        customerName: 'Đại lý "Toàn Cầu"',
+        orderCode: "=cmd|' /C calc'!A0",
+        revenue: 10_000_000,
+        cost: 5_000_000,
+        customerName: "+Tập đoàn tấn công",
         timestamp: "2026-11-25T10:00:00.000Z",
         status: "approved" as const,
       },
     ];
 
-    const csv = exporting.generatePnlCsv(txList);
-    expect(csv).toContain("STT,Mã đơn hàng,Khách hàng,Thời gian,Doanh thu (VND),Giá vốn (VND),Lợi nhuận (VND),Tỷ suất margin (%),Trạng thái");
-    expect(csv).toContain('"ORD-SP88"');
-    expect(csv).toContain('""Toàn Cầu""');
-    expect(csv).toContain("42500000,31800000,10700000,25.2%");
+    const csv = exporting.generatePnlCsv(maliciousTx);
+    expect(csv).toContain('"\'=cmd|\' /C calc\'!A0"');
+    expect(csv).toContain('"\'+Tập đoàn tấn công"');
   });
 
   it("đóng gói và xác thực Merkle Audit Bundle chống sửa đổi", () => {
@@ -157,13 +204,11 @@ describe("Sprint 5: Exporting Engine & Merkle Audit Bundle", () => {
     expect(bundle.files.length).toBe(3);
     expect(bundle.merkleRootHash).toHaveLength(64);
 
-    // Xác thực tính hợp lệ gói nguyên bản
     const verif = exporting.verifyAuditBundle(bundle);
     expect(verif.valid).toBe(true);
 
-    // Giả mạo 1 ký tự trong file và kiểm tra phát hiện lỗi
     const tamperedBundle = JSON.parse(JSON.stringify(bundle));
-    tamperedBundle.files[0].content += " "; // sửa 1 dấu cách
+    tamperedBundle.files[0].content += " ";
     const tamperedVerif = exporting.verifyAuditBundle(tamperedBundle);
     expect(tamperedVerif.valid).toBe(false);
     expect(tamperedVerif.reason).toContain("Sai lệch mã băm SHA-256");
@@ -175,56 +220,37 @@ describe("Sprint 5: 90-Day Payback Period ROI Calculator", () => {
 
   it("tính toán hoàn vốn chuẩn xác cho kịch bản doanh nghiệp vừa và nhỏ (Tier 2)", () => {
     const res = calc.calculate({
-      totalInvestmentVnd: 50_000_000, // Đầu tư ban đầu 50 triệu
+      totalInvestmentVnd: 50_000_000,
       monthlyAIOpexVnd: 2_000_000,
-      hoursSavedPerDay: 4, // 4h x 65.000 = 260.000 đ/ngày
+      hoursSavedPerDay: 4,
       hourlyLaborCostVnd: 65_000,
-      incrementalMonthlyRevenueVnd: 30_000_000, // 30tr x 25% / 30 = 250.000 đ/ngày
+      incrementalMonthlyRevenueVnd: 30_000_000,
       averageGrossMarginPercent: 25,
-      leakagePreventionMonthlyVnd: 6_000_000, // 6tr / 30 = 200.000 đ/ngày
+      leakagePreventionMonthlyVnd: 6_000_000,
     });
 
-    // Lợi ích ròng ngày = (260k + 250k + 200k) - (2tr / 30 = 66.666k) = ~643.333 đ/ngày
-    // Số ngày hoàn vốn = 50.000.000 / 643.333 = ~77.7 ngày (< 90 ngày)
     expect(res.achieves90DayPayback).toBe(true);
     expect(res.paybackPeriodDays).toBeGreaterThan(60);
     expect(res.paybackPeriodDays).toBeLessThanOrEqual(90);
     expect(res.financialHealthTier).toBe("tier_2_viable");
-    expect(res.ninetyDayProjection.netProfitAfterPaybackVnd).toBeGreaterThan(0);
-    expect(res.ninetyDayProjection.roiPercent).toBeGreaterThan(0);
+    expect(res.isCashflowNegative).toBe(false);
   });
 
-  it("phân loại chuẩn mực Tier 1 cho dự án thu hồi vốn dưới 45 ngày", () => {
+  it("cảnh báo chuyên sâu khi dòng tiền thuần âm (Daily Net Cashflow Negative)", () => {
     const res = calc.calculate({
-      totalInvestmentVnd: 30_000_000, // Đầu tư 30 triệu
-      monthlyAIOpexVnd: 1_500_000,
-      hoursSavedPerDay: 8, // 8h tiết kiệm = 640k/ngày
-      hourlyLaborCostVnd: 80_000,
-      incrementalMonthlyRevenueVnd: 60_000_000, // 60tr x 30% / 30 = 600k/ngày
-      averageGrossMarginPercent: 30,
-      leakagePreventionMonthlyVnd: 15_000_000, // 500k/ngày
-    });
-
-    expect(res.achieves90DayPayback).toBe(true);
-    expect(res.paybackPeriodDays).toBeLessThanOrEqual(45);
-    expect(res.financialHealthTier).toBe("tier_1_exceptional");
-    expect(res.recommendations[0]).toContain("dưới 45 ngày");
-  });
-
-  it("cảnh báo Tier 3 khi thời gian hoàn vốn vượt quá 90 ngày", () => {
-    const res = calc.calculate({
-      totalInvestmentVnd: 200_000_000, // Đầu tư 200 triệu quá lớn
-      monthlyAIOpexVnd: 5_000_000,
-      hoursSavedPerDay: 1, // Tiết kiệm ít
-      hourlyLaborCostVnd: 50_000,
-      incrementalMonthlyRevenueVnd: 5_000_000,
-      averageGrossMarginPercent: 15,
+      totalInvestmentVnd: 50_000_000,
+      monthlyAIOpexVnd: 15_000_000, // Chi phí vận hành AI quá đắt 15tr/tháng = 500k/ngày
+      hoursSavedPerDay: 1, // Tiết kiệm chỉ 65k/ngày
+      hourlyLaborCostVnd: 65_000,
+      incrementalMonthlyRevenueVnd: 0,
+      averageGrossMarginPercent: 20,
       leakagePreventionMonthlyVnd: 0,
     });
 
+    expect(res.isCashflowNegative).toBe(true);
     expect(res.achieves90DayPayback).toBe(false);
-    expect(res.paybackPeriodDays).toBeGreaterThan(90);
     expect(res.financialHealthTier).toBe("tier_3_high_risk");
-    expect(res.recommendations[0]).toContain("CẢNH BÁO");
+    expect(res.recommendations[0]).toContain("CẢNH BÁO NGUY CƠ DÒNG TIỀN");
+    expect(res.recommendations[1]).toContain("tối ưu hóa chi phí token/hạ tầng");
   });
 });

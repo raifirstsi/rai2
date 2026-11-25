@@ -1,6 +1,7 @@
 /**
  * Phân hệ 39, 50, 56: Business Pulse & TOC Bottlenecks Engine (Nhịp thở kinh doanh 17:00)
  * Tổng kết doanh thu, giá vốn, lãi ròng và phát hiện điểm nghẽn vận hành theo TOC.
+ * Hardened: Hỗ trợ múi giờ VN (UTC+7), lưu snapshot 17:00, cảnh báo lỗ ròng và atomic file writing.
  */
 
 import * as fs from "node:fs";
@@ -33,6 +34,7 @@ export interface DailyPulseSummary {
   workspaceId: string;
   date: string; // YYYY-MM-DD
   pulseAt: string; // ISO string
+  is17PmSnapshot?: boolean;
   totalRevenue: number;
   totalCost: number;
   grossProfit: number;
@@ -61,8 +63,15 @@ export interface NewTransactionInput {
   createdHoursAgo?: number;
 }
 
+export function getVietnamDateString(d: Date = new Date()): string {
+  // Chuyển sang ngày theo múi giờ Việt Nam (UTC+7)
+  const vnTime = new Date(d.getTime() + 7 * 3600 * 1000);
+  return vnTime.toISOString().slice(0, 10);
+}
+
 export class BusinessPulseEngine {
   private transactions: Map<string, TransactionRecord[]> = new Map();
+  private snapshots17Pm: Map<string, Map<string, DailyPulseSummary>> = new Map();
   private storagePath: string;
 
   constructor(customStoragePath?: string) {
@@ -80,15 +89,35 @@ export class BusinessPulseEngine {
         const raw = fs.readFileSync(this.storagePath, "utf-8");
         const parsed = JSON.parse(raw);
         if (typeof parsed === "object" && parsed !== null) {
-          for (const [ws, list] of Object.entries(parsed)) {
-            if (Array.isArray(list)) {
-              this.transactions.set(ws, list);
+          if (parsed.transactions && typeof parsed.transactions === "object") {
+            for (const [ws, list] of Object.entries(parsed.transactions)) {
+              if (Array.isArray(list)) {
+                this.transactions.set(ws, list as TransactionRecord[]);
+              }
+            }
+          } else {
+            // Backward compatibility
+            for (const [ws, list] of Object.entries(parsed)) {
+              if (Array.isArray(list)) {
+                this.transactions.set(ws, list as TransactionRecord[]);
+              }
+            }
+          }
+          if (parsed.snapshots && typeof parsed.snapshots === "object") {
+            for (const [ws, dayMap] of Object.entries(parsed.snapshots)) {
+              if (typeof dayMap === "object" && dayMap !== null) {
+                const m = new Map<string, DailyPulseSummary>();
+                for (const [day, snap] of Object.entries(dayMap as Record<string, DailyPulseSummary>)) {
+                  m.set(day, snap);
+                }
+                this.snapshots17Pm.set(ws, m);
+              }
             }
           }
         }
       }
     } catch {
-      // Sử dụng in-memory fallback nếu không đọc được tệp
+      // In-memory fallback
     }
   }
 
@@ -98,11 +127,26 @@ export class BusinessPulseEngine {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      const obj: Record<string, TransactionRecord[]> = {};
+
+      const txObj: Record<string, TransactionRecord[]> = {};
       for (const [ws, list] of this.transactions.entries()) {
-        obj[ws] = list;
+        txObj[ws] = list;
       }
-      fs.writeFileSync(this.storagePath, JSON.stringify(obj, null, 2), "utf-8");
+
+      const snapObj: Record<string, Record<string, DailyPulseSummary>> = {};
+      for (const [ws, dayMap] of this.snapshots17Pm.entries()) {
+        snapObj[ws] = {};
+        for (const [day, snap] of dayMap.entries()) {
+          snapObj[ws][day] = snap;
+        }
+      }
+
+      const payload = JSON.stringify({ transactions: txObj, snapshots: snapObj }, null, 2);
+
+      // Atomic write using temporary file to prevent corruption
+      const tmpPath = `${this.storagePath}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      fs.writeFileSync(tmpPath, payload, "utf-8");
+      fs.renameSync(tmpPath, this.storagePath);
     } catch {
       // In-memory fallback
     }
@@ -133,7 +177,6 @@ export class BusinessPulseEngine {
     const list = this.transactions.get(workspaceId) || [];
     const bottlenecks: TocBottleneck[] = [];
 
-    // Lọc theo ngày nếu có
     const filtered = targetDate
       ? list.filter(t => t.timestamp.startsWith(targetDate))
       : list;
@@ -206,17 +249,22 @@ export class BusinessPulseEngine {
     const bottlenecks = this.detectBottlenecks(workspaceId, todayStr);
 
     let healthStatus: "healthy" | "attention_needed" | "critical_risk" = "healthy";
-    if (bottlenecks.some(b => b.severity === "critical")) {
+    if (bottlenecks.some(b => b.severity === "critical") || grossProfit < 0) {
       healthStatus = "critical_risk";
     } else if (bottlenecks.length > 0 || (totalRevenue > 0 && netMarginPercent < 20)) {
       healthStatus = "attention_needed";
     }
 
     const formatVndShort = (val: number): string => {
-      if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)} tỷ`;
-      if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)} tr`;
+      const abs = Math.abs(val);
+      const sign = val < 0 ? "-" : "";
+      if (abs >= 1_000_000_000) return `${sign}${(abs / 1_000_000_000).toFixed(1)} tỷ`;
+      if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)} tr`;
       return `${val.toLocaleString("vi-VN")} đ`;
     };
+
+    const profitIcon = grossProfit >= 0 ? "🟢" : "🔴";
+    const profitLabel = grossProfit >= 0 ? "Lãi ròng" : "Lỗ ròng";
 
     return {
       workspaceId,
@@ -234,11 +282,32 @@ export class BusinessPulseEngine {
         profitDisplay: formatVndShort(grossProfit),
         marginDisplay: `${netMarginPercent.toFixed(1)}%`,
         bottleneckCount: bottlenecks.length,
-        headline: bottlenecks.length === 0
-          ? `🟢 Doanh thu: ${formatVndShort(totalRevenue)} │ 🟢 Lãi ròng: ${formatVndShort(grossProfit)} │ ✅ 0 Điểm nghẽn`
-          : `🟢 Doanh thu: ${formatVndShort(totalRevenue)} │ 🟢 Lãi ròng: ${formatVndShort(grossProfit)} │ 🟡 ${bottlenecks.length} Điểm nghẽn`,
+        headline: `🟢 Doanh thu: ${formatVndShort(totalRevenue)} │ ${profitIcon} ${profitLabel}: ${formatVndShort(grossProfit)} │ ${
+          bottlenecks.length === 0 ? "✅ 0 Điểm nghẽn" : `🟡 ${bottlenecks.length} Điểm nghẽn`
+        }`,
       },
     };
+  }
+
+  public trigger17PmPulse(workspaceId = "default", dateString?: string): DailyPulseSummary {
+    const pulse = this.getDailyPulse(workspaceId, dateString);
+    pulse.is17PmSnapshot = true;
+    pulse.pulseAt = new Date().toISOString();
+
+    let dayMap = this.snapshots17Pm.get(workspaceId);
+    if (!dayMap) {
+      dayMap = new Map();
+      this.snapshots17Pm.set(workspaceId, dayMap);
+    }
+    dayMap.set(pulse.date, pulse);
+    this.saveState();
+    return pulse;
+  }
+
+  public get17PmSnapshot(workspaceId = "default", dateString?: string): DailyPulseSummary | null {
+    const targetDate = dateString || new Date().toISOString().slice(0, 10);
+    const dayMap = this.snapshots17Pm.get(workspaceId);
+    return dayMap ? dayMap.get(targetDate) || null : null;
   }
 
   public getTransactions(workspaceId = "default"): TransactionRecord[] {
@@ -248,6 +317,7 @@ export class BusinessPulseEngine {
 
   public clearWorkspaceData(workspaceId = "default"): void {
     this.transactions.delete(workspaceId);
+    this.snapshots17Pm.delete(workspaceId);
     this.saveState();
   }
 }

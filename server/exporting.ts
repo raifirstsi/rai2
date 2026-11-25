@@ -1,6 +1,7 @@
 /**
  * Phân hệ 26: Exporting Engine (Xuất báo cáo tài chính P&L & Sổ cái đối soát kế toán)
  * Hỗ trợ xuất định dạng bảng biểu CSV/Excel và gói hồ sơ kiểm toán Merkle Audit Bundle.
+ * Hardened: Chống lỗ hổng CSV Formula Injection (CWE-1236) và bảo mật chữ ký Merkle Root.
  */
 
 import * as crypto from "node:crypto";
@@ -34,6 +35,19 @@ export interface AuditBundleResult {
   };
 }
 
+/**
+ * Phòng chống lỗ hổng CSV/Excel Formula Injection (CWE-1236)
+ * Nếu ký tự đầu là '=', '+', '-', '@', tab hoặc carriage return,
+ * chèn dấu nháy đơn (') phía trước để Excel/Calc hiểu là text thuần.
+ */
+export function sanitizeCsvField(val: string): string {
+  let str = (val || "").replace(/"/g, '""');
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return str;
+}
+
 export class ExportingEngine {
   public generatePnlCsv(transactions: TransactionRecord[], options?: PnlExportOptions): string {
     const includeHeaders = options?.includeHeaders !== false;
@@ -46,9 +60,11 @@ export class ExportingEngine {
     transactions.forEach((tx, idx) => {
       const profit = tx.revenue - tx.cost;
       const margin = tx.revenue > 0 ? ((profit / tx.revenue) * 100).toFixed(1) : "0.0";
-      const cleanCustomer = (tx.customerName || "").replace(/"/g, '""');
+      const cleanCustomer = sanitizeCsvField(tx.customerName || "");
+      const cleanOrderCode = sanitizeCsvField(tx.orderCode || "");
+      const cleanStatus = sanitizeCsvField(tx.status || "");
       lines.push(
-        `${idx + 1},"${tx.orderCode}","${cleanCustomer}","${tx.timestamp}",${tx.revenue},${tx.cost},${profit},${margin}%,"${tx.status}"`
+        `${idx + 1},"${cleanOrderCode}","${cleanCustomer}","${tx.timestamp}",${tx.revenue},${tx.cost},${profit},${margin}%,"${cleanStatus}"`
       );
     });
 
