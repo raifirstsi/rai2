@@ -157,7 +157,22 @@ export class TenantDuckDbSession {
 
       for (const row of chunk) {
         for (const col of columns) {
-          flatParams.push(row[col.name] ?? null);
+          let val = row[col.name];
+          if (val === undefined || val === null) {
+            val = null;
+          } else if (
+            (col.type === "DOUBLE" || col.type === "INTEGER" || col.type === "BIGINT") &&
+            typeof val === "string"
+          ) {
+            const trimmed = val.trim();
+            if (trimmed === "") {
+              val = null;
+            } else {
+              const num = col.type === "DOUBLE" ? Number(trimmed) : parseInt(trimmed, 10);
+              val = Number.isNaN(num) ? null : num;
+            }
+          }
+          flatParams.push(val);
         }
       }
 

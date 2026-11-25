@@ -48,11 +48,17 @@ function preprocessFormula(formula: string): string {
     expr = expr.slice(1).trim();
   }
 
-  // Handle MARGIN(rev, cost)
-  expr = expr.replace(/MARGIN\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/gi, "((($1) - ($2)) / ($1) * 100)");
+  // Handle MARGIN(rev, cost) - zero revenue safe macro
+  expr = expr.replace(
+    /MARGIN\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/gi,
+    "((($1) === 0) ? (($2) > 0 ? -100 : 0) : ((($1) - ($2)) / ($1) * 100))"
+  );
 
-  // Handle MARKUP(cost, marginPct)
-  expr = expr.replace(/MARKUP\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/gi, "(($1) / (1 - ($2) / 100))");
+  // Handle MARKUP(cost, marginPct) - 100% margin safe macro
+  expr = expr.replace(
+    /MARKUP\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/gi,
+    "((($2) >= 100) ? 0 : (($1) / (1 - ($2) / 100)))"
+  );
 
   // Handle ROUND(x, n)
   expr = expr.replace(/ROUND\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/gi, "(Math.round(($1) * Math.pow(10, $2)) / Math.pow(10, $2))");
