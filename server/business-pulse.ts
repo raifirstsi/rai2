@@ -75,10 +75,15 @@ export class BusinessPulseEngine {
   private storagePath: string;
 
   constructor(customStoragePath?: string) {
+    const dataDir = process.env.OMB_DATA_DIR || process.env.RAI2_DATA_DIR || process.env.DATA_DIR;
     this.storagePath = customStoragePath || (
-      process.platform === "win32"
-        ? path.join(process.env.LOCALAPPDATA || "C:\\temp", "openmausbot", "business-pulse-state.json")
-        : "/var/lib/openmausbot/business-pulse-state.json"
+      process.env.RAI2_PULSE_FILE ?? (
+        dataDir
+          ? path.join(dataDir, "business-pulse-state.json")
+          : (process.platform === "win32"
+              ? path.join(process.env.LOCALAPPDATA || "C:\\temp", "openmausbot", "business-pulse-state.json")
+              : "/tmp/business-pulse-state.json")
+      )
     );
     this.loadState();
   }

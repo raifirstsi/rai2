@@ -206,7 +206,8 @@ export class DuckDbPool {
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(options?: DuckDbPoolOptions) {
-    this.baseDir = options?.baseDir ?? process.env.RAI2_DUCKDB_DIR ?? (process.env.DATA_DIR ? join(process.env.DATA_DIR, "duckdb") : null);
+    const dataDir = process.env.OMB_DATA_DIR || process.env.RAI2_DATA_DIR || process.env.DATA_DIR;
+    this.baseDir = options?.baseDir ?? process.env.RAI2_DUCKDB_DIR ?? (dataDir ? join(dataDir, "duckdb") : null);
     this.maxIdleTimeMs = options?.maxIdleTimeMs ?? 15 * 60_000; // 15 mins
 
     if (this.baseDir && !existsSync(this.baseDir)) {
