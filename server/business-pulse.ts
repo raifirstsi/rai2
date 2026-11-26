@@ -178,12 +178,22 @@ export class BusinessPulseEngine {
     const bottlenecks: TocBottleneck[] = [];
 
     const filtered = targetDate
-      ? list.filter(t => t.timestamp.startsWith(targetDate))
+      ? list.filter(t => {
+          const d = new Date(t.timestamp);
+          const vnDate = !Number.isNaN(d.getTime()) ? getVietnamDateString(d) : t.timestamp.slice(0, 10);
+          return vnDate === targetDate;
+        })
       : list;
 
     for (const tx of filtered) {
-      // 1. Điểm nghẽn: Báo giá chờ duyệt > 2h
-      if (tx.status === "pending_approval" && (tx.createdHoursAgo && tx.createdHoursAgo >= 2)) {
+      // 1. Điểm nghẽn: Báo giá chờ duyệt > 2h (tự động tính thời gian trôi qua từ timestamp nếu không truyền createdHoursAgo)
+      const hoursAgo = typeof tx.createdHoursAgo === "number"
+        ? tx.createdHoursAgo
+        : !Number.isNaN(new Date(tx.timestamp).getTime())
+          ? (Date.now() - new Date(tx.timestamp).getTime()) / (1000 * 3600)
+          : 0;
+
+      if (tx.status === "pending_approval" && hoursAgo >= 2) {
         bottlenecks.push({
           id: `bn_quote_${tx.id}`,
           type: "unapproved_quote",
@@ -232,9 +242,13 @@ export class BusinessPulseEngine {
   }
 
   public getDailyPulse(workspaceId = "default", dateString?: string): DailyPulseSummary {
-    const todayStr = dateString || new Date().toISOString().slice(0, 10);
+    const todayStr = dateString || getVietnamDateString();
     const list = this.transactions.get(workspaceId) || [];
-    const dailyTx = list.filter(t => t.timestamp.startsWith(todayStr));
+    const dailyTx = list.filter(t => {
+      const d = new Date(t.timestamp);
+      const vnDate = !Number.isNaN(d.getTime()) ? getVietnamDateString(d) : t.timestamp.slice(0, 10);
+      return vnDate === todayStr;
+    });
 
     let totalRevenue = 0;
     let totalCost = 0;
@@ -305,7 +319,7 @@ export class BusinessPulseEngine {
   }
 
   public get17PmSnapshot(workspaceId = "default", dateString?: string): DailyPulseSummary | null {
-    const targetDate = dateString || new Date().toISOString().slice(0, 10);
+    const targetDate = dateString || getVietnamDateString();
     const dayMap = this.snapshots17Pm.get(workspaceId);
     return dayMap ? dayMap.get(targetDate) || null : null;
   }

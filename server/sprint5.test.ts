@@ -106,6 +106,26 @@ describe("Sprint 5: Business Pulse 17:00 & TOC Bottlenecks", () => {
     expect(pulse.formattedWidget.headline).toContain("3 Điểm nghẽn");
   });
 
+  it("tự động phát hiện báo giá treo > 2h dựa trên timestamp mà không cần createdHoursAgo", () => {
+    const fourHoursAgo = new Date(Date.now() - 4 * 3600 * 1000).toISOString();
+    pulseEngine.recordTransaction({
+      workspaceId: "test-ws-dynamic",
+      orderCode: "ORD-AUTO-PENDING",
+      revenue: 55_000_000,
+      cost: 40_000_000,
+      customerName: "Khách hàng chờ duyệt giá",
+      timestamp: fourHoursAgo,
+      status: "pending_approval",
+      // Không truyền createdHoursAgo
+    });
+
+    const bottlenecks = pulseEngine.detectBottlenecks("test-ws-dynamic");
+    const quoteBn = bottlenecks.find(b => b.orderCode === "ORD-AUTO-PENDING");
+    expect(quoteBn).toBeDefined();
+    expect(quoteBn?.type).toBe("unapproved_quote");
+    expect(quoteBn?.severity).toBe("critical");
+  });
+
   it("hiển thị chính xác trạng thái Lỗ ròng 🔴 và format tiền tệ âm", () => {
     const today = new Date().toISOString().slice(0, 10);
     pulseEngine.recordTransaction({
@@ -176,6 +196,26 @@ describe("Sprint 5: Exporting Engine & Merkle Audit Bundle", () => {
     const csv = exporting.generatePnlCsv(maliciousTx);
     expect(csv).toContain('"\'=cmd|\' /C calc\'!A0"');
     expect(csv).toContain('"\'+Tập đoàn tấn công"');
+  });
+
+  it("khử triệt để CSV Formula Injection khi có khoảng trắng dẫn đầu và ký tự null", () => {
+    const maliciousTx: TransactionRecord[] = [
+      {
+        id: "tx_mal2",
+        workspaceId: "test-ws",
+        orderCode: "   =2+5",
+        revenue: 10_000_000,
+        cost: 5_000_000,
+        customerName: "\0@admin_leak",
+        timestamp: "2026-11-25T10:00:00.000Z",
+        status: "approved" as const,
+      },
+    ];
+
+    const csv = exporting.generatePnlCsv(maliciousTx);
+    expect(csv).toContain('"\'   =2+5"');
+    expect(csv).toContain('"\'@admin_leak"');
+    expect(csv).not.toContain("\0");
   });
 
   it("đóng gói và xác thực Merkle Audit Bundle chống sửa đổi", () => {

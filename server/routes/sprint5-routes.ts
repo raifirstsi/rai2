@@ -192,15 +192,24 @@ export function createSprint5Routes(): RouteHandler {
 
       const pulse = pulseEngine.getDailyPulse(workspaceId);
       const chain = diffEngine.verifyConsentChain();
-      const dummyConsents = chain.valid
-        ? [{
-            consentId: "cs_genesis",
-            consentHash: "genesis_hash_000000",
-            title: "Quy định tài chính 2026",
-            approverId: "giam_doc_le_quyen",
-            timestamp: new Date().toISOString(),
-          }]
-        : [];
+      const realConsents = diffEngine.listConsents().map(c => ({
+        consentId: c.consentId,
+        consentHash: c.consentHash,
+        title: c.title,
+        approverId: c.approverId,
+        timestamp: new Date(c.timestamp).toISOString(),
+      }));
+      const consentsList = realConsents.length > 0 ? realConsents : (
+        chain.valid
+          ? [{
+              consentId: "cs_genesis",
+              consentHash: "genesis_hash_000000",
+              title: "Quy định tài chính 2026",
+              approverId: "giam_doc_le_quyen",
+              timestamp: new Date().toISOString(),
+            }]
+          : []
+      );
 
       let txs = pulseEngine.getTransactions(workspaceId);
       if (txs.length === 0) {
@@ -218,7 +227,7 @@ export function createSprint5Routes(): RouteHandler {
         ];
       }
 
-      const bundle = exporting.createAuditBundle(workspaceId, txs, pulse, dummyConsents);
+      const bundle = exporting.createAuditBundle(workspaceId, txs, pulse, consentsList);
 
       return json(res, 200, {
         success: true,

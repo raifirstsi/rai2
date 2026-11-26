@@ -266,6 +266,10 @@ export class ArtifactDiffEngine {
     }
     return { valid: true, length: list.length };
   }
+
+  listConsents(): ConsentRecord[] {
+    return Array.from(this.consents.values()).sort((a, b) => a.timestamp - b.timestamp);
+  }
 }
 
 let defaultArtifactDiff: ArtifactDiffEngine | null = null;

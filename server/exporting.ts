@@ -41,8 +41,8 @@ export interface AuditBundleResult {
  * chèn dấu nháy đơn (') phía trước để Excel/Calc hiểu là text thuần.
  */
 export function sanitizeCsvField(val: string): string {
-  let str = (val || "").replace(/"/g, '""');
-  if (/^[=+\-@\t\r]/.test(str)) {
+  let str = (val || "").replace(/\0/g, "").replace(/"/g, '""');
+  if (/^[\s\uFEFF\xA0]*[=+\-@\t\r]/.test(str)) {
     str = `'${str}`;
   }
   return str;
