@@ -3,7 +3,7 @@
  * Protects P&L and arbitrates models based on cost and capability before each turn.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 export interface ModelPricing {
@@ -110,8 +110,9 @@ export class BudgetGuard {
       this.defaultMonthlyCap = options.defaultMonthlyCap;
     }
 
+    const dataDir = process.env.OMB_DATA_DIR || process.env.RAI2_DATA_DIR || process.env.DATA_DIR;
     this.storageFile = options?.storageFile ?? (
-      process.env.RAI2_BUDGET_FILE ?? (process.env.DATA_DIR ? join(process.env.DATA_DIR, "budget-guard-state.json") : null)
+      process.env.RAI2_BUDGET_FILE ?? (dataDir ? join(dataDir, "budget-guard-state.json") : null)
     );
 
     this.loadState();
@@ -148,7 +149,9 @@ export class BudgetGuard {
         budgets: Array.from(this.budgets.values()),
         spendLogs: this.spendLogs.slice(-500),
       };
-      writeFileSync(this.storageFile, JSON.stringify(data, null, 2), "utf-8");
+      const tmpFile = `${this.storageFile}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      writeFileSync(tmpFile, JSON.stringify(data, null, 2), "utf-8");
+      renameSync(tmpFile, this.storageFile);
     } catch {
       // Ignore save error
     }

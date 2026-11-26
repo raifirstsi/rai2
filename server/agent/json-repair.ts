@@ -1,3 +1,56 @@
+function quoteUnquotedKeysOutsideStrings(input: string): string {
+  let out = '';
+  let i = 0;
+  let inString = false;
+  let escape = false;
+
+  while (i < input.length) {
+    const ch = input[i];
+    if (inString) {
+      out += ch;
+      if (escape) {
+        escape = false;
+      } else if (ch === '\\') {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      i++;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      i++;
+      continue;
+    }
+
+    // Outside string: if previous non-whitespace is '{' or ',', check for unquoted key: identifier followed by ':'
+    if (ch === '{' || ch === ',') {
+      out += ch;
+      i++;
+      let ws = '';
+      while (i < input.length && /\s/.test(input[i])) {
+        ws += input[i];
+        i++;
+      }
+      out += ws;
+      const rest = input.slice(i);
+      const keyMatch = /^([a-zA-Z0-9_]+)\s*:/.exec(rest);
+      if (keyMatch) {
+        out += `"${keyMatch[1]}":`;
+        i += keyMatch[0].length;
+      }
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
 export function repairJsonString(input: string): string {
   let cleaned = input.trim();
   if (cleaned.startsWith('```json')) {
@@ -6,7 +59,7 @@ export function repairJsonString(input: string): string {
     cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
   cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
-  cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+  cleaned = quoteUnquotedKeysOutsideStrings(cleaned);
 
   let openBraces = 0;
   let openBrackets = 0;

@@ -5,7 +5,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 export interface DiffHunk {
@@ -46,11 +46,12 @@ export class ArtifactDiffEngine {
   private lastConsentHash: string | null = null;
 
   constructor(storageFile?: string) {
+    const dataDir = process.env.OMB_DATA_DIR || process.env.RAI2_DATA_DIR || process.env.DATA_DIR;
     this.storageFile = storageFile ?? (
       process.env.RAI2_CONSENTS_FILE ?? (
-        process.env.DATA_DIR
-          ? join(process.env.DATA_DIR, "artifact-consents-state.json")
-          : (existsSync("/var/lib/openmausbot") ? "/var/lib/openmausbot/artifact-consents-state.json" : "/tmp/artifact-consents-state.json")
+        dataDir
+          ? join(dataDir, "artifact-consents-state.json")
+          : "/tmp/artifact-consents-state.json"
       )
     );
     this.loadState();
@@ -84,7 +85,9 @@ export class ArtifactDiffEngine {
       const data = {
         consents: Array.from(this.consents.values()),
       };
-      writeFileSync(this.storageFile, JSON.stringify(data, null, 2), "utf-8");
+      const tmpFile = `${this.storageFile}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      writeFileSync(tmpFile, JSON.stringify(data, null, 2), "utf-8");
+      renameSync(tmpFile, this.storageFile);
     } catch {
       // Ignore save error
     }

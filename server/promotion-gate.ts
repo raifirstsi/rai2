@@ -4,7 +4,7 @@
  * Chỉ cấp cờ 'promoted' khi bot đạt tối thiểu 19/21 điểm trong bài sát hạch tự động.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { EvalRunResult } from "./evals-runner.ts";
 
@@ -35,11 +35,12 @@ export class PromotionGate {
 
   constructor(options?: PromotionGateOptions) {
     this.minScoreToPromote = options?.minScoreToPromote ?? 19.0;
+    const dataDir = process.env.OMB_DATA_DIR || process.env.RAI2_DATA_DIR || process.env.DATA_DIR;
     this.storageFile = options?.storageFile ?? (
       process.env.RAI2_PROMOTION_FILE ?? (
-        process.env.DATA_DIR
-          ? join(process.env.DATA_DIR, "promotion-gate-state.json")
-          : (existsSync("/var/lib/openmausbot") ? "/var/lib/openmausbot/promotion-gate-state.json" : "/tmp/promotion-gate-state.json")
+        dataDir
+          ? join(dataDir, "promotion-gate-state.json")
+          : "/tmp/promotion-gate-state.json"
       )
     );
     this.loadState();
@@ -77,7 +78,9 @@ export class PromotionGate {
       const data = {
         records: Array.from(this.records.values()),
       };
-      writeFileSync(this.storageFile, JSON.stringify(data, null, 2), "utf-8");
+      const tmpFile = `${this.storageFile}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      writeFileSync(tmpFile, JSON.stringify(data, null, 2), "utf-8");
+      renameSync(tmpFile, this.storageFile);
     } catch {
       // Ignore save errors
     }

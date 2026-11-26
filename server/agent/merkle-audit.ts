@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 
 export interface AuditRecord {
   id: string;
@@ -100,11 +100,11 @@ export class MerkleAuditLedger {
   }
 }
 
-
 let globalAuditLedger: MerkleAuditLedger | null = null;
 export function getWorkspaceAuditLedger(customPath?: string): MerkleAuditLedger {
   if (!globalAuditLedger) {
-    const defaultPath = process.env.RAI2_DATA_DIR ? `${process.env.RAI2_DATA_DIR}/audit-ledger.jsonl` : '/tmp/rai2-workspace-audit.jsonl';
+    const dataDir = process.env.RAI2_DATA_DIR || process.env.OMB_DATA_DIR || process.env.DATA_DIR;
+    const defaultPath = dataDir ? join(dataDir, 'audit-ledger.jsonl') : '/tmp/rai2-workspace-audit.jsonl';
     globalAuditLedger = new MerkleAuditLedger(customPath ?? defaultPath);
   }
   return globalAuditLedger;
