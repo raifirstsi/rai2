@@ -560,7 +560,7 @@ export class SaasStore {
     return rows.flatMap((row) => {
       const entitlementActive = Math.max(row.paid_through, row.trial_expires_at ?? 0) > now;
       const idleTrial = trialIdleMs > 0 && entitlementActive && row.paid_through <= now && row.trial_expires_at !== null &&
-        row.workspace_state === "active" && row.workspace_last_activity_at > 0 &&
+        row.workspace_last_activity_at > 0 &&
         row.workspace_last_activity_at + trialIdleMs <= now;
       const action = entitlementActive && !idleTrial ? "activate" : "suspend";
       if (action === "activate" && row.workspace_state === "active") return [];
