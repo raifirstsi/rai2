@@ -72,6 +72,7 @@ export function createSprint5Routes(): RouteHandler {
         customerName?: unknown;
         status?: unknown;
         createdHoursAgo?: unknown;
+        timestamp?: unknown;
       };
 
       const workspaceId = typeof p?.workspaceId === "string" ? p.workspaceId : "default";
@@ -81,6 +82,7 @@ export function createSprint5Routes(): RouteHandler {
       const customerName = typeof p?.customerName === "string" ? p.customerName : undefined;
       const status = typeof p?.status === "string" ? (p.status as any) : "approved";
       const createdHoursAgo = typeof p?.createdHoursAgo === "number" ? p.createdHoursAgo : undefined;
+      const timestamp = typeof p?.timestamp === "string" ? p.timestamp : undefined;
 
       const engine = getBusinessPulseEngine();
       const tx = engine.recordTransaction({
@@ -91,6 +93,7 @@ export function createSprint5Routes(): RouteHandler {
         customerName,
         status,
         createdHoursAgo,
+        timestamp,
       });
 
       const pulse = engine.getDailyPulse(workspaceId);
