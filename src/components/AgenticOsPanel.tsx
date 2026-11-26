@@ -109,6 +109,10 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
   const [budget, setBudget] = useState<BudgetStatus | null>(null);
   const [tableMarkdown, setTableMarkdown] = useState<string | null>(null);
 
+  // 17:00 Scheduler & Zalo Alert state
+  const [schedEnabled, setSchedEnabled] = useState(true);
+  const [zaloToId, setZaloToId] = useState("");
+
   const loadPulse = useCallback(async () => {
     try {
       const resp = await fetch("/api/pulse/today?workspaceId=default");
@@ -146,6 +150,17 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
   useEffect(() => {
     if (open && tab === "tables") {
       void loadBudget();
+    }
+    if (open && tab === "pulse") {
+      void fetch("/api/pulse/scheduler/status")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { success?: boolean; config?: { enabled?: boolean; zaloToId?: string } } | null) => {
+          if (d?.success && d.config) {
+            if (typeof d.config.enabled === "boolean") setSchedEnabled(d.config.enabled);
+            if (typeof d.config.zaloToId === "string") setZaloToId(d.config.zaloToId);
+          }
+        })
+        .catch(() => {});
     }
   }, [open, tab, loadBudget]);
 
@@ -208,6 +223,23 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
       if (data.success && data.currentPulse) {
         setPulse(data.currentPulse);
         setStatusMsg(`Đã ghi nhận đơn ${txOrder} vào Nhịp thở hôm nay.`);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveScheduler = async () => {
+    setBusy(true);
+    try {
+      const resp = await fetch("/api/pulse/scheduler/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: schedEnabled, zaloToId }),
+      });
+      const data = (await resp.json()) as { success?: boolean };
+      if (data.success) {
+        setStatusMsg("Đã lưu cấu hình Lịch tự hành 17:00 & Cảnh báo Zalo.");
       }
     } finally {
       setBusy(false);
@@ -597,6 +629,36 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                     >
                       + Ghi nhận vào Sổ Nhịp thở
                     </button>
+                  </div>
+
+                  <div className="rounded-xl border border-hairline bg-inset p-3.5">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold">Lịch Tự Hành 17:00 (UTC+7) &amp; Đẩy Báo Cáo Zalo</span>
+                      <label className="flex items-center gap-1.5 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={schedEnabled}
+                          onChange={(e) => setSchedEnabled(e.target.checked)}
+                        />
+                        <span>Bật tự động</span>
+                      </label>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={zaloToId}
+                        onChange={(e) => setZaloToId(e.target.value)}
+                        placeholder="Zalo UID nhận báo cáo 17:00 (tuỳ chọn)"
+                        className="flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs"
+                      />
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handleSaveScheduler()}
+                        className="rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs font-medium hover:bg-surface"
+                      >
+                        Lưu lịch 17:00
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
