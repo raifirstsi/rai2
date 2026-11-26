@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { BusinessPulseEngine, getVietnamDateString } from "./business-pulse.ts";
+import { AutonomousPulseScheduler, format17PmZaloReport } from "./pulse-scheduler.ts";
 import { ExportingEngine, sanitizeCsvField } from "./exporting.ts";
 import { PaybackRoiCalculator } from "./payback-roi.ts";
 
@@ -292,5 +293,53 @@ describe("Sprint 5: 90-Day Payback Period ROI Calculator", () => {
     expect(res.financialHealthTier).toBe("tier_3_high_risk");
     expect(res.recommendations[0]).toContain("CẢNH BÁO NGUY CƠ DÒNG TIỀN");
     expect(res.recommendations[1]).toContain("tối ưu hóa chi phí token/hạ tầng");
+  });
+});
+
+describe("Sprint 5 Step 2: Autonomous 17:00 Pulse Scheduler & Zalo Report", () => {
+  it("tự động chốt sổ đúng 17:00 UTC+7 và không lặp lại trong cùng ngày", async () => {
+    const tmpPulsePath = `/tmp/test-pulse-sched-${Date.now()}.json`;
+    const engine = new BusinessPulseEngine(tmpPulsePath);
+    const vnToday = getVietnamDateString(new Date("2026-11-26T10:05:00.000Z")); // 17:05 giờ VN
+    engine.recordTransaction({
+      workspaceId: "default",
+      orderCode: "ORD-SCHED-01",
+      revenue: 90_000_000,
+      cost: 60_000_000,
+      timestamp: "2026-11-26T04:00:00.000Z", // 11:00 giờ VN cùng ngày
+      status: "approved",
+    });
+
+    const sentPayloads: Array<{ toId: string; text: string }> = [];
+    const scheduler = new AutonomousPulseScheduler({
+      engine,
+      configPath: `/tmp/test-sched-cfg-${Date.now()}.json`,
+      sendZalo: async (p) => {
+        sentPayloads.push({ toId: p.toId, text: p.text });
+        return { ok: true };
+      },
+    });
+    scheduler.updateConfig({ zaloToId: "9115796562660233836", enabled: true });
+
+    // Trước 17:00 VN (09:59 UTC = 16:59 VN) -> chưa chạy
+    const early = await scheduler.tick(new Date("2026-11-26T09:59:00.000Z"));
+    expect(early).toBeNull();
+    expect(sentPayloads.length).toBe(0);
+
+    // Đúng 17:05 VN (10:05 UTC) -> tự động chốt sổ và gửi Zalo
+    const triggered = await scheduler.tick(new Date("2026-11-26T10:05:00.000Z"));
+    expect(triggered).not.toBeNull();
+    expect(triggered?.length).toBeGreaterThanOrEqual(1);
+    expect(sentPayloads.length).toBe(1);
+    expect(sentPayloads[0].text).toContain(`17:00 (${vnToday})`);
+    expect(sentPayloads[0].text).toContain("90.0 tr");
+
+    // Gọi lại trong cùng ngày -> idempotent, không gửi trùng
+    const second = await scheduler.tick(new Date("2026-11-26T10:15:00.000Z"));
+    expect(second).toBeNull();
+    expect(sentPayloads.length).toBe(1);
+
+    const formatted = format17PmZaloReport(triggered![0].snapshot);
+    expect(formatted).toContain("BÁO CÁO NHỊP THỞ KINH DOANH 17:00");
   });
 });

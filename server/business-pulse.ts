@@ -334,6 +334,14 @@ export class BusinessPulseEngine {
     return [...list];
   }
 
+  public listWorkspaces(): string[] {
+    const set = new Set<string>(["default"]);
+    for (const ws of this.transactions.keys()) {
+      set.add(ws);
+    }
+    return Array.from(set);
+  }
+
   public clearWorkspaceData(workspaceId = "default"): void {
     this.transactions.delete(workspaceId);
     this.snapshots17Pm.delete(workspaceId);

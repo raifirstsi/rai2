@@ -5,6 +5,7 @@
  */
 
 import { getBusinessPulseEngine } from "../business-pulse.ts";
+import { getPulseScheduler, getVietnamClock } from "../pulse-scheduler.ts";
 import { getPaybackRoiCalculator, type PaybackCalculatorInput } from "../payback-roi.ts";
 import { getExportingEngine } from "../exporting.ts";
 import { getArtifactDiffEngine } from "../artifact-diff.ts";
@@ -260,6 +261,52 @@ export function createSprint5Routes(): RouteHandler {
         valid: verification.valid,
         reason: verification.reason,
       });
+    }
+
+    // 8. GET /api/pulse/scheduler/status - Trạng thái lịch tự hành 17:00
+    if (method === "GET" && path === "/api/pulse/scheduler/status") {
+      const scheduler = getPulseScheduler();
+      return json(res, 200, {
+        success: true,
+        config: scheduler.getConfig(),
+        vietnamClock: getVietnamClock(),
+      });
+    }
+
+    // 9. POST /api/pulse/scheduler/config - Cập nhật cấu hình lịch 17:00 & Zalo ID
+    if (method === "POST" && path === "/api/pulse/scheduler/config") {
+      let body: unknown;
+      try {
+        body = await readBody(req, 16_384);
+      } catch {
+        return json(res, 400, { error: "expected JSON body" });
+      }
+      const p = (body || {}) as Record<string, unknown>;
+      const scheduler = getPulseScheduler();
+      const updated = scheduler.updateConfig({
+        enabled: typeof p.enabled === "boolean" ? p.enabled : undefined,
+        triggerHourVn: typeof p.triggerHourVn === "number" ? p.triggerHourVn : undefined,
+        triggerMinuteVn: typeof p.triggerMinuteVn === "number" ? p.triggerMinuteVn : undefined,
+        zaloToId: typeof p.zaloToId === "string" ? p.zaloToId : undefined,
+        zaloWorkspaceId: typeof p.zaloWorkspaceId === "string" ? p.zaloWorkspaceId : undefined,
+        gatewayUrl: typeof p.gatewayUrl === "string" ? p.gatewayUrl : undefined,
+      });
+      return json(res, 200, { success: true, config: updated });
+    }
+
+    // 10. POST /api/pulse/scheduler/run-now - Chạy chốt sổ 17:00 & gửi báo cáo ngay lập tức
+    if (method === "POST" && path === "/api/pulse/scheduler/run-now") {
+      let body: unknown;
+      try {
+        body = await readBody(req, 16_384);
+      } catch {
+        body = {};
+      }
+      const p = (body || {}) as { workspaceId?: unknown; date?: unknown };
+      const workspaceIds = typeof p.workspaceId === "string" && p.workspaceId ? [p.workspaceId] : undefined;
+      const date = typeof p.date === "string" ? p.date : undefined;
+      const results = await getPulseScheduler().dispatchNow(workspaceIds, date);
+      return json(res, 200, { success: true, dispatched: results.length, results });
     }
 
     return PASS;
