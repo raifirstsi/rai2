@@ -323,7 +323,7 @@ import * as tts from "./tts/index.ts";
 import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
-import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -1364,6 +1364,7 @@ const attributeUsage = createUsageAttribution({ section: (botId) => store.bot(bo
   const booked = attributeUsage({ ...row, ...cost, ...usageTrace.settle(row.threadId), at: new Date().toISOString() });
   // The append is async; noteSpend counts the row from memory until it lands, so the cap check sees it.
   noteSpend(DATA_DIR, booked, appendUsage(DATA_DIR, booked));
+  try { getBudgetGuard().recordSpend({ workspaceId: "default", turnId: `${row.threadId}:${Date.now()}`, model: booked.model || "claude-3-5-sonnet", promptTokens: booked.input || 0, outputTokens: booked.output || 0 }); getWorkspaceAuditLedger().append("default", row.botName || row.botId, "turn_settled", { threadId: row.threadId, model: booked.model, input: booked.input, output: booked.output, costUsd: booked.costUsd }); } catch {}
   const state = spendState(cfg, DATA_DIR);
   const alert = takeSpendAlert(DATA_DIR, state);
   if (alert && state) {

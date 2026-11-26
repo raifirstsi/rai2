@@ -7,6 +7,7 @@ import { getEvalsRunner, ENTERPRISE_21_CRITERIA, type BotSampleInteraction } fro
 import { getPromotionGate } from "../promotion-gate.ts";
 import { getVoiceHandoffEngine } from "../voice-handoff.ts";
 import { getArtifactDiffEngine } from "../artifact-diff.ts";
+import { getBusinessPulseEngine } from "../business-pulse.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export function createSprint4Routes(): RouteHandler {
@@ -109,12 +110,39 @@ export function createSprint4Routes(): RouteHandler {
         return json(res, 400, { error: "expected JSON body" });
       }
 
-      const p = body as { transcript?: unknown; sessionId?: unknown };
+      const p = body as {
+        transcript?: unknown;
+        sessionId?: unknown;
+        workspaceId?: unknown;
+        autoRecordPulse?: unknown;
+      };
       const transcript = typeof p?.transcript === "string" ? p.transcript : "";
       const sessionId = typeof p?.sessionId === "string" ? p.sessionId : undefined;
+      const workspaceId = typeof p?.workspaceId === "string" && p.workspaceId ? p.workspaceId : "default";
+      const autoRecordPulse = p?.autoRecordPulse !== false;
 
       const engine = getVoiceHandoffEngine();
       const result = engine.handoff(transcript, sessionId);
+
+      if (
+        autoRecordPulse &&
+        result.financialIntent.intent === "pnl_calculation" &&
+        typeof result.financialIntent.revenue === "number" &&
+        result.financialIntent.revenue > 0
+      ) {
+        try {
+          getBusinessPulseEngine().recordTransaction({
+            workspaceId,
+            orderCode: `VOICE-${Date.now().toString().slice(-4)}`,
+            revenue: result.financialIntent.revenue,
+            cost: result.financialIntent.cost ?? 0,
+            customerName: "Đơn từ Voice Hand-off",
+            status: "approved",
+          });
+        } catch {
+          // Never block voice handoff response
+        }
+      }
 
       return json(res, 200, { success: true, ...result });
     }
