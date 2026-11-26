@@ -10,6 +10,7 @@ import { VoiceToSopModal } from "./VoiceToSopModal";
 import { isMarginGuardAlert } from "@/lib/margin-guard";
 import { MarginGuardChatCard } from "./MarginGuardChatCard";
 import { MarginGuardModal } from "./MarginGuardModal";
+import { AgenticOsPanel } from "./AgenticOsPanel";
 import { copyText } from "@/lib/copy-text";
 import { ReactAction, ReactionChips } from "@/components/Reactions";
 import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
@@ -1234,6 +1235,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
         </div>
       </div>
 
+      <AgenticOsPanel botId={bot.id} botName={bot.name} />
       {(advanced || remoteClient) && <BotActivityPicker bot={bot} />}{privateChat && team && <TeamPrivateFirstLine key={team.id} team={team} />}
       {routineExecution && <div className="mx-5 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[12px] text-ink-secondary">
         <span className="min-w-0 flex-1 truncate">{t("routines.executionDetails", { name: routineExecution.routineName })}</span>
