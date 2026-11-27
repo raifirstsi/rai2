@@ -4,9 +4,12 @@ import { getBudgetGuard } from "../budget-guard.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export function createVirtualTablesRoutes(): RouteHandler {
-  return async ({ req, res, path, method, json, readBody }) => {
-    // 1. POST /api/tables/query - Sub-20ms DuckDB SQL query
+  return async ({ req, res, path, method, auth, json, readBody }) => {
+    // 1. POST /api/tables/query - Sub-20ms DuckDB SQL query (admin only in multi-user workspaces)
     if (method === "POST" && path === "/api/tables/query") {
+      if (!auth?.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required to execute raw analytical SQL" });
+      }
       let body: unknown;
       try {
         body = await readBody(req, 65_536);
@@ -285,8 +288,11 @@ export function createVirtualTablesRoutes(): RouteHandler {
       });
     }
 
-    // 10. POST /api/budget/set-cap
+    // 10. POST /api/budget/set-cap (admin only)
     if (method === "POST" && path === "/api/budget/set-cap") {
+      if (!auth?.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required to modify monthly budget cap" });
+      }
       let body: unknown;
       try {
         body = await readBody(req, 16_384);

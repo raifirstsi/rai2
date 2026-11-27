@@ -11,7 +11,7 @@ import { getBusinessPulseEngine } from "../business-pulse.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export function createSprint4Routes(): RouteHandler {
-  return async ({ req, res, path, method, json, readBody }) => {
+  return async ({ req, res, path, method, auth, json, readBody }) => {
     // 1. GET /api/bots/evals/criteria - Danh sách 21 tiêu chí đánh giá
     if (method === "GET" && path === "/api/bots/evals/criteria") {
       return json(res, 200, { success: true, count: ENTERPRISE_21_CRITERIA.length, criteria: ENTERPRISE_21_CRITERIA });
@@ -44,8 +44,11 @@ export function createSprint4Routes(): RouteHandler {
       return json(res, 200, { success: true, evalResult });
     }
 
-    // 3. POST /api/bots/promote - Sát hạch và Cấp cờ tiếp khách
+    // 3. POST /api/bots/promote - Sát hạch và Cấp cờ tiếp khách (admin only)
     if (method === "POST" && path === "/api/bots/promote") {
+      if (!auth?.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required to promote bots" });
+      }
       let body: unknown;
       try {
         body = await readBody(req, 65_536);
@@ -167,8 +170,11 @@ export function createSprint4Routes(): RouteHandler {
       return json(res, 200, { success: true, diff });
     }
 
-    // 7. POST /api/artifacts/consent - Ký duyệt chữ ký đồng thuận
+    // 7. POST /api/artifacts/consent - Ký duyệt chữ ký đồng thuận (admin only)
     if (method === "POST" && path === "/api/artifacts/consent") {
+      if (!auth?.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required to sign Merkle consent" });
+      }
       let body: unknown;
       try {
         body = await readBody(req, 32_768);
