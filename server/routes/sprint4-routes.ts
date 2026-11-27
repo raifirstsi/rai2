@@ -8,10 +8,19 @@ import { getPromotionGate } from "../promotion-gate.ts";
 import { getVoiceHandoffEngine } from "../voice-handoff.ts";
 import { getArtifactDiffEngine } from "../artifact-diff.ts";
 import { getBusinessPulseEngine } from "../business-pulse.ts";
+import { requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export function createSprint4Routes(): RouteHandler {
   return async ({ req, res, path, method, auth, json, readBody }) => {
+    const isSprint4Path =
+      path.startsWith("/api/bots/evals/") ||
+      path === "/api/bots/promote" ||
+      path === "/api/bots/status" ||
+      path === "/api/voice/handoff" ||
+      path.startsWith("/api/artifacts/");
+    if (!isSprint4Path) return PASS;
+    if (requireEnterpriseVip(res, json)) return;
     // 1. GET /api/bots/evals/criteria - Danh sách 21 tiêu chí đánh giá
     if (method === "GET" && path === "/api/bots/evals/criteria") {
       return json(res, 200, { success: true, count: ENTERPRISE_21_CRITERIA.length, criteria: ENTERPRISE_21_CRITERIA });

@@ -325,6 +325,9 @@ export async function rai2HandoffRoute(deps: Rai2HandoffDeps, req: IncomingMessa
     const payload: unknown = await response.json();
     email = typeof payload === "object" && payload !== null && typeof Reflect.get(payload, "email") === "string"
       ? Reflect.get(payload, "email") as string : "";
+    if (typeof payload === "object" && payload !== null && Reflect.get(payload, "entitlement")) {
+      applyHandoffEntitlement(Reflect.get(payload, "entitlement"));
+    }
   } catch {
     json(res, 401, { error: "handoff expired or unavailable" });
     return true;

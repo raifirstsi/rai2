@@ -71,10 +71,10 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
   const [chosenOwner, setChosenOwner] = useState<string | null>(null);
   const ownerOrAdmin = useOwnerOrAdmin();
   const showThreads = useShowThreads();
-  const { isCreator } = useRai2Mode();
+  const { isCreator, isEnterprise } = useRai2Mode();
   const advanced = useAdvancedMode();
   const sections = isCreator
-    ? (["Identity", "Soul", "Model", "Skills"] as const)
+    ? (["Identity", "Soul", "Memory", "Routines", "Model", "Skills", "Voice & alerts"] as const)
     : advanced ? SECTIONS : SECTIONS.filter((section) => section !== "Model");
   const choosesVisibility = !defaultsMode && typeof window !== "undefined" && !window.ogb && ownerOrAdmin === true;
   const dialog = useRef<HTMLDivElement>(null);
@@ -157,7 +157,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
       else parent.dispatch(action);
     },
   };
-  const title = defaultsMode ? t("newBot.defaults") : isCreator ? "Tạo RAI" : t("sidebar.newBot");
+  const title = defaultsMode ? t("newBot.defaults") : isCreator ? "Tạo Bot Tự Do (Cá Nhân)" : t("sidebar.newBot");
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3 sm:p-5" hidden={!defaultsMode && parent.state.appSettingsOpen}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-label={title} aria-busy={saving} tabIndex={-1}
       className="flex h-[min(760px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl outline-none">
@@ -202,7 +202,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
           {!ready && !error && <div role="status" className="flex items-center gap-2 text-[13px] text-ink-secondary"><Loader2 size={16} className="animate-spin" />{t("newBot.loading")}</div>}
           {ready && <fieldset disabled={saving} className="min-w-0">
             <BotEditorStore value={scopedStore}><BotEditorContext.Provider value={{ request: draft.request, draft: true, uploadAvatar: draft.uploadAvatar }}>
-              <DraftSection active={active} draft={draft} defaultsMode={defaultsMode}
+              <DraftSection active={active} draft={draft} defaultsMode={defaultsMode} isEnterprise={isEnterprise}
                 owner={team && !defaultsMode ? { value: reportsToFor(chosenOwner, bot.section, parent.state.bots, team), choose: setChosenOwner } : undefined} />
             </BotEditorContext.Provider></BotEditorStore>
           </fieldset>}
@@ -231,7 +231,7 @@ function SharedInTeam({ team }: { team: string }) {
   </div>;
 }
 
-function DraftSection({ active, draft, defaultsMode, owner }: { active: Section; draft: BotCreationDraft; defaultsMode: boolean;
+function DraftSection({ active, draft, defaultsMode, isEnterprise, owner }: { active: Section; draft: BotCreationDraft; defaultsMode: boolean; isEnterprise: boolean;
   owner?: { value: string | null; choose(email: string): void } }) {
   const bot = draft.bot;
   const { state } = useStore();
@@ -256,20 +256,32 @@ function DraftSection({ active, draft, defaultsMode, owner }: { active: Section;
     <StartingRole draft={draft} defaultsMode={defaultsMode} />
     <IdentitySection bot={bot} patch={derived.patch} activeState={derived.activeState} mascotMotion={null}
       namePlaceholder={defaultsMode ? t("newBot.randomName") : undefined} />
-    <label className="block text-[13px] text-ink-secondary">Vùng Nghiệp Vụ / Phòng Ban (7 Vùng TOC)
-      <Select size="lg" className="mt-1.5 w-full" value={bot.section ?? ""} onChange={event => handleSectionOrZoneChange(event.target.value)}>
-        <option value="">{t("teamSettings.general")}</option>
-        <optgroup label="7 Vùng Nghiệp Vụ Chuẩn Sách RAI² OS">
-          {RAI2_DEPARTMENT_ZONES.map(z => (
-            <option key={z.code} value={z.name}>{z.shortName} · {z.name}</option>
-          ))}
-        </optgroup>
-        {[...new Set([...(state.sections ?? []), ...state.bots.map(b => b.section ?? "")])].filter(s => !RAI2_DEPARTMENT_ZONES.some(z => z.name === s)).map(name => <option key={name}>{name}</option>)}
-      </Select>
-      <span className="mt-1 block text-[11px] text-ink-tertiary">
-        Chọn Vùng nghiệp vụ để tự động nạp tri thức tương ứng từ Két Sắt & TOC.
-      </span>
-    </label>
+    {isEnterprise ? (
+      <label className="block text-[13px] text-ink-secondary">Vùng Nghiệp Vụ / Phòng Ban (7 Vùng TOC)
+        <Select size="lg" className="mt-1.5 w-full" value={bot.section ?? ""} onChange={event => handleSectionOrZoneChange(event.target.value)}>
+          <option value="">{t("teamSettings.general")}</option>
+          <optgroup label="7 Vùng Nghiệp Vụ Chuẩn Sách RAI² OS">
+            {RAI2_DEPARTMENT_ZONES.map(z => (
+              <option key={z.code} value={z.name}>{z.shortName} · {z.name}</option>
+            ))}
+          </optgroup>
+          {[...new Set([...(state.sections ?? []), ...state.bots.map(b => b.section ?? "")])].filter(s => !RAI2_DEPARTMENT_ZONES.some(z => z.name === s)).map(name => <option key={name}>{name}</option>)}
+        </Select>
+        <span className="mt-1 block text-[11px] text-ink-tertiary">
+          Chọn Vùng nghiệp vụ để tự động nạp tri thức tương ứng từ Két Sắt &amp; TOC.
+        </span>
+      </label>
+    ) : (
+      <label className="block text-[13px] text-ink-secondary">Thư mục / Nhóm Bot Cá Nhân
+        <Select size="lg" className="mt-1.5 w-full" value={RAI2_DEPARTMENT_ZONES.some(z => z.name === (bot.section ?? "")) ? "" : (bot.section ?? "")} onChange={event => draft.patch({ section: event.target.value || undefined, zone: undefined })}>
+          <option value="">Trợ lý Cá Nhân (Mặc định)</option>
+          {[...new Set([...(state.sections ?? []), ...state.bots.map(b => b.section ?? "")])].filter(Boolean).filter(s => !RAI2_DEPARTMENT_ZONES.some(z => z.name === s)).map(name => <option key={name}>{name}</option>)}
+        </Select>
+        <span className="mt-1 block text-[11px] text-ink-tertiary">
+          Chế độ Tạo Bot Tự Do hoàn toàn độc lập với doanh nghiệp (tự cấu hình Soul, Memory &amp; Routines riêng).
+        </span>
+      </label>
+    )}
     {owner && team && <label className="block text-[13px] text-ink-secondary" data-new-bot-reports-to>{t("lookedAfter.newBot")}
       <Select size="lg" className="mt-1.5 w-full" value={owner.value ?? ""} onChange={event => owner.choose(event.target.value)}>
         {team.people.map(person => <option key={person.email} value={person.email}>{person.you ? t("owner.you", { name: person.name }) : person.name}</option>)}

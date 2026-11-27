@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { isIP } from "node:net";
 import { fileURLToPath } from "node:url";
 import type { Account, SaasStore } from "./store.ts";
-import { normalizeWorkspaceHandle, ORDER_TTL_MS, PLANS, type PlanId, STARTER_PLAN, TRIAL_MS, WorkspaceCapacityError,
+import { ALL_PLANS, type CheckoutPlanId, normalizeWorkspaceHandle, ORDER_TTL_MS, PLANS, STARTER_PLAN, TRIAL_MS, WorkspaceCapacityError,
   WorkspaceHandleCooldownError, WorkspaceHandleTakenError } from "./store.ts";
 import { tenantToken } from "./tenant-auth.ts";
 import { MerkleAuditLedger } from "./merkle-audit.ts";
@@ -107,8 +107,8 @@ function customerEmail(value: unknown): string | null {
   return email.length <= 254 && emailPattern.test(email) ? email : null;
 }
 
-const planId = (value: unknown): PlanId | null =>
-  typeof value === "string" && (value === "starter" || value === "pro" || value === "team") ? value as PlanId : null;
+const planId = (value: unknown): CheckoutPlanId | null =>
+  typeof value === "string" && (value === "starter" || value === "vip") ? value as CheckoutPlanId : null;
 
 function paymentCode(text: string): string | null {
   const codes = [...text.toUpperCase().matchAll(orderCode)].map((match) => match[0]);
@@ -283,6 +283,18 @@ const token = cookieToken(req);
       return json(res, 200, { success: true, accepted: result === "paid", duplicate: result === "duplicate" });
     }
 
+    if (method === "POST" && path === "/api/tenant-auth/entitlement") {
+      const body = await readJson(req);
+      const slug = body.slug;
+      if (typeof slug !== "string" || !/^u-[a-f0-9]{20}$/.test(slug)) return json(res, 400, { error: "invalid tenant request" });
+      const presented = String(req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+      const account = store.accountForSlug(slug);
+      if (!account || !sameSecret(presented, tenantToken(config.tenantSigningKey, slug))) {
+        return json(res, 401, { error: "tenant entitlement unavailable" });
+      }
+      return json(res, 200, { ok: true, slug, ...store.accountEntitlement(account, now()) });
+    }
+
     if (method === "POST" && (path === "/api/tenant-auth/start" || path === "/api/tenant-auth/verify" ||
       path === "/api/tenant-auth/consume")) {
       const body = await readJson(req);
@@ -298,7 +310,7 @@ const token = cookieToken(req);
         const code = body.code;
         if (typeof code !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(code)) return json(res, 400, { error: "invalid handoff" });
         const email = store.consumeWorkspaceHandoff(slug, sha256(code), now());
-        return email ? json(res, 200, { email }) : json(res, 401, { error: "handoff expired or used" });
+        return email ? json(res, 200, { email, entitlement: store.accountEntitlement(account, now()) }) : json(res, 401, { error: "handoff expired or used" });
       }
       const email = customerEmail(body.email);
       if (!email) return json(res, 400, { error: "invalid tenant request" });
@@ -390,17 +402,20 @@ const token = cookieToken(req);
       return json(res, 200, {
         email: account.email, paidThrough: account.paidThrough, trialThrough: account.trialThrough,
         workspaceState: account.workspaceState, workspaceHandle: account.workspaceHandle,
+        rai2Plan: store.accountEntitlement(account, now()),
         workspaceUrl: account.workspaceState === "active" && Math.max(account.paidThrough, account.trialThrough) > now()
           ? workspaceUrl(account) : null,
       });
     }
     if (method === "GET" && path === "/api/billing") {
       const latestOrder = store.latestPaidOrder(account.id);
-      const currentPlan = latestOrder && PLANS[latestOrder.planId] ? PLANS[latestOrder.planId] : STARTER_PLAN;
+      const currentPlan = latestOrder && ALL_PLANS[latestOrder.planId] ? ALL_PLANS[latestOrder.planId] : STARTER_PLAN;
+      const rai2Entitlement = store.accountEntitlement(account, now());
       return json(res, 200, {
-        plan: currentPlan,
+        plan: rai2Entitlement.planId === "vip" ? PLANS.vip : currentPlan,
         availablePlans: Object.values(PLANS),
-        entitlement: account.paidThrough > now() ? "paid" : account.trialThrough > now() ? "trial" : "inactive",
+        entitlement: rai2Entitlement.entitlement,
+        rai2Entitlement,
         paidThrough: account.paidThrough,
         trialThrough: account.trialThrough,
         orders: store.billingOrders(account.id, now()).map((order) => ({

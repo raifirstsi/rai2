@@ -9,10 +9,17 @@ import { getPulseScheduler, getVietnamClock } from "../pulse-scheduler.ts";
 import { getPaybackRoiCalculator, type PaybackCalculatorInput } from "../payback-roi.ts";
 import { getExportingEngine } from "../exporting.ts";
 import { getArtifactDiffEngine } from "../artifact-diff.ts";
+import { requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export function createSprint5Routes(): RouteHandler {
   return async ({ req, res, path, method, auth, json, readBody }) => {
+    const isSprint5Path =
+      path.startsWith("/api/pulse/") ||
+      path.startsWith("/api/roi/") ||
+      path.startsWith("/api/export/");
+    if (!isSprint5Path) return PASS;
+    if (requireEnterpriseVip(res, json)) return;
     // 1. GET /api/pulse/today - Nhịp thở kinh doanh hôm nay
     if (method === "GET" && path === "/api/pulse/today") {
       const url = new URL(req.url ?? "", "http://localhost");

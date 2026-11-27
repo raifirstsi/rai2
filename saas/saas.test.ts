@@ -176,7 +176,7 @@ describe("RAI2 SaaS control plane", () => {
     expect((await consume(secondAccount.slug, tenantToken(TENANT_KEY, secondAccount.slug))).status).toBe(401);
     expect((await consume(ownerAccount.slug, tenantToken(TENANT_KEY, secondAccount.slug))).status).toBe(401);
     expect((await consume(ownerAccount.slug, tenantToken(TENANT_KEY, ownerAccount.slug))).body)
-      .toEqual({ email: "owner@example.test" });
+      .toMatchObject({ email: "owner@example.test", entitlement: { enterpriseAccess: true } });
     expect((await consume(ownerAccount.slug, tenantToken(TENANT_KEY, ownerAccount.slug))).status).toBe(401);
     const revoked = new URL((await f.call("/api/workspace/open", "GET", undefined, owner)).body.location);
     const revokedCode = new URLSearchParams(revoked.hash.slice(1)).get("code")!;
@@ -430,18 +430,17 @@ describe("RAI2 SaaS control plane", () => {
     expect((await f.call(order.body.qrUrl, "GET", undefined, alice, {}, true)).status).toBe(200);
     expect(f.qrRequests).toHaveLength(1);
     expect((await f.call("/api/orders", "POST", { planId: "starter" }, alice)).body.id).toBe(order.body.id);
-    const proOrder = await f.call("/api/orders", "POST", { planId: "pro" }, alice);
-    expect(proOrder.status).toBe(201);
-    expect(proOrder.body).toMatchObject({ planId: "pro", amount: 799000 });
-    const teamOrder = await f.call("/api/orders", "POST", { planId: "team" }, alice);
-    expect(teamOrder.status).toBe(201);
-    expect(teamOrder.body).toMatchObject({ planId: "team", amount: 1990000 });
+    expect((await f.call("/api/orders", "POST", { planId: "pro" }, alice)).status).toBe(400);
+    expect((await f.call("/api/orders", "POST", { planId: "team" }, alice)).status).toBe(400);
+    const vipOrder = await f.call("/api/orders", "POST", { planId: "vip" }, alice);
+    expect(vipOrder.status).toBe(201);
+    expect(vipOrder.body).toMatchObject({ planId: "vip", amount: 1990000 });
     expect((await f.call("/api/billing", "GET", undefined, alice)).body).toMatchObject({
       plan: { id: "starter", amount: 299000, interval: "month" }, entitlement: "inactive",
+      rai2Entitlement: expect.objectContaining({ planId: "none", enterpriseAccess: false }),
       orders: expect.arrayContaining([
         expect.objectContaining({ id: order.body.id, planId: "starter", amount: 299000, status: "pending" }),
-        expect.objectContaining({ id: proOrder.body.id, planId: "pro", amount: 799000, status: "pending" }),
-        expect.objectContaining({ id: teamOrder.body.id, planId: "team", amount: 1990000, status: "pending" }),
+        expect.objectContaining({ id: vipOrder.body.id, planId: "vip", amount: 1990000, status: "pending" }),
       ]),
     });
     const bob = await signIn(f, "b@example.test");
@@ -596,5 +595,63 @@ describe("RAI2 SaaS control plane", () => {
       store.close();
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it("enforces two-tier VIP enterprise entitlement across trial, starter, and vip", async () => {
+    const f = await fixture({ maxWorkspaces: 5, trialEnabled: true }); opened.push(f);
+    const trialCookie = await signIn(f, "trialuser@example.test");
+    const trialMe = await f.call("/api/me", "GET", undefined, trialCookie);
+    expect(trialMe.body.rai2Plan).toMatchObject({
+      planId: "trial",
+      entitlement: "trial",
+      enterpriseAccess: true,
+    });
+
+    const provisioner = new WorkspaceProvisioner({
+      store: f.store,
+      fleet: async () => ({ status: 200, body: { workspaces: [] } }),
+      tenantAuthOrigin: "https://app.rai2.si",
+      tenantSigningKey: TENANT_KEY,
+      tenantDomain: "rai2.si",
+    });
+    await provisioner.reconcile(f.now());
+
+    // Pay Starter -> personal only, enterpriseAccess becomes false
+    const starterOrder = (await f.call("/api/orders", "POST", { planId: "starter" }, trialCookie)).body;
+    await f.call("/api/webhooks/sepay", "POST", {
+      id: 99101, accountNumber: "1234567890", transferAmount: 299000, transferType: "in", content: starterOrder.code,
+    }, undefined, { authorization: `Apikey ${KEY}`, origin: "" });
+    const afterStarter = await f.call("/api/me", "GET", undefined, trialCookie);
+    expect(afterStarter.body.rai2Plan).toMatchObject({
+      planId: "starter",
+      entitlement: "paid",
+      enterpriseAccess: false,
+    });
+
+    // Tenant entitlement signed query matches starter lock
+    const acc = f.store.accountForSession(createHash("sha256").update(trialCookie.split("=")[1]!).digest("hex"), f.now())!;
+    const entStarter = await f.call("/api/tenant-auth/entitlement", "POST", { slug: acc.slug }, undefined, {
+      authorization: `Bearer ${tenantToken(TENANT_KEY, acc.slug)}`,
+      origin: "",
+    });
+    expect(entStarter.status).toBe(200);
+    expect(entStarter.body).toMatchObject({ ok: true, planId: "starter", enterpriseAccess: false });
+
+    // Upgrade to VIP -> enterpriseAccess becomes true immediately
+    const vipOrder = (await f.call("/api/orders", "POST", { planId: "vip" }, trialCookie)).body;
+    await f.call("/api/webhooks/sepay", "POST", {
+      id: 99102, accountNumber: "1234567890", transferAmount: 1990000, transferType: "in", content: vipOrder.code,
+    }, undefined, { authorization: `Apikey ${KEY}`, origin: "" });
+    const afterVip = await f.call("/api/me", "GET", undefined, trialCookie);
+    expect(afterVip.body.rai2Plan).toMatchObject({
+      planId: "vip",
+      entitlement: "paid",
+      enterpriseAccess: true,
+    });
+    const entVip = await f.call("/api/tenant-auth/entitlement", "POST", { slug: acc.slug }, undefined, {
+      authorization: `Bearer ${tenantToken(TENANT_KEY, acc.slug)}`,
+      origin: "",
+    });
+    expect(entVip.body).toMatchObject({ ok: true, planId: "vip", enterpriseAccess: true });
   });
 });

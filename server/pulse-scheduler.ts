@@ -294,6 +294,7 @@ export class AutonomousPulseScheduler {
 
   public async tick(now: Date = new Date()): Promise<PulseDispatchResult[] | null> {
     if (!this.config.enabled || this.runningTick) return null;
+    if (process.env.OMB_RAI2_TENANT === "1" && !isEnterpriseVipAllowed()) return null;
     const clock = getVietnamClock(now);
 
     // Check 08:30 Morning Briefing window (08:30 - 11:59 VN, strictly before afternoon/evening)

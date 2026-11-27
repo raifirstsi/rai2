@@ -238,7 +238,7 @@ const renderAccount = () => {
     updateHandleSave();
   }
 
-  const currentPlan = billing?.plan || { id: "starter", name: "RAI² Starter", amount: 299000 };
+  const currentPlan = billing?.plan || { id: "starter", name: "RAI² Starter (Cá Nhân)", amount: 299000 };
   const currentPlanShort = currentPlan.name.replace(/^RAI²\s*/, "");
   setText("plan-name", currentPlan.name);
   const formattedPrice = new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US").format(currentPlan.amount);
@@ -532,7 +532,7 @@ byId("workspace-handle-form").addEventListener("submit", async (event) => {
 });
 
 const startOrder = async (targetPlan = "starter") => {
-  const planToOrder = ["starter", "pro", "team"].includes(targetPlan) ? targetPlan : "starter";
+  const planToOrder = ["starter", "vip"].includes(targetPlan) ? targetPlan : "starter";
   const button = byId("order-button");
   if (button) button.disabled = true;
   message("");
@@ -604,7 +604,7 @@ const openUpgradeModal = () => {
       btn.textContent = locale === "vi" ? (currentPlanId ? "Nâng cấp" : "Đăng ký") : (currentPlanId ? "Upgrade" : "Subscribe");
       btn.disabled = false;
       btn.classList.remove("current");
-      if (target === "pro") btn.classList.add("primary");
+      if (target === "vip") btn.classList.add("primary");
     }
   });
   show("upgrade-modal", true);

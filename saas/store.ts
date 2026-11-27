@@ -3,15 +3,30 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-export const STARTER_PLAN = Object.freeze({ id: "starter" as const, name: "RAI² Starter", amount: 299_000, interval: "month" as const });
-export const PRO_PLAN = Object.freeze({ id: "pro" as const, name: "RAI² Pro", amount: 799_000, interval: "month" as const });
-export const TEAM_PLAN = Object.freeze({ id: "team" as const, name: "RAI² Team", amount: 1_990_000, interval: "month" as const });
-export type PlanId = "starter" | "pro" | "team";
-export const PLANS: Record<PlanId, { id: PlanId; name: string; amount: number; interval: "month" }> = Object.freeze({
+export const STARTER_PLAN = Object.freeze({ id: "starter" as const, name: "RAI² Starter (Cá Nhân)", amount: 299_000, interval: "month" as const });
+export const VIP_PLAN = Object.freeze({ id: "vip" as const, name: "RAI² Enterprise VIP", amount: 1_990_000, interval: "month" as const });
+export const PRO_PLAN = Object.freeze({ id: "pro" as const, name: "RAI² Pro (Legacy)", amount: 799_000, interval: "month" as const });
+export const TEAM_PLAN = Object.freeze({ id: "team" as const, name: "RAI² Team (Legacy VIP)", amount: 1_990_000, interval: "month" as const });
+export type CheckoutPlanId = "starter" | "vip";
+export type PlanId = "starter" | "vip" | "pro" | "team";
+export const PLANS: Record<CheckoutPlanId, { id: CheckoutPlanId; name: string; amount: number; interval: "month" }> = Object.freeze({
   starter: STARTER_PLAN,
+  vip: VIP_PLAN,
+});
+export const ALL_PLANS: Record<PlanId, { id: PlanId; name: string; amount: number; interval: "month" }> = Object.freeze({
+  starter: STARTER_PLAN,
+  vip: VIP_PLAN,
   pro: PRO_PLAN,
   team: TEAM_PLAN,
 });
+export interface AccountEntitlement {
+  planId: "starter" | "vip" | "trial" | "none";
+  planName: string;
+  entitlement: "paid" | "trial" | "inactive";
+  enterpriseAccess: boolean;
+  paidThrough: number;
+  trialThrough: number;
+}
 export const ORDER_TTL_MS = 24 * 60 * 60_000;
 export const TRIAL_MS = 14 * 86_400_000;
 export const WORKSPACE_HANDLE_COOLDOWN_MS = 60 * 60_000;
@@ -133,7 +148,7 @@ export class SaasStore {
       );
       CREATE TABLE IF NOT EXISTS orders (
         id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id),
-        plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'pro', 'team')),
+        plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'vip', 'pro', 'team')),
         code TEXT NOT NULL UNIQUE, amount INTEGER NOT NULL, status TEXT NOT NULL
           CHECK (status IN ('pending', 'paid')),
         created_at INTEGER NOT NULL, paid_at INTEGER
@@ -175,15 +190,15 @@ export class SaasStore {
       .run(Date.now());
     const orderColumns = this.#db.prepare("PRAGMA table_info(orders)").all() as Array<{ name: string }>;
     if (!orderColumns.some((column) => column.name === "plan_id")) {
-      this.#db.exec("ALTER TABLE orders ADD COLUMN plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'pro', 'team'))");
+      this.#db.exec("ALTER TABLE orders ADD COLUMN plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'vip', 'pro', 'team'))");
     } else {
       const sqlRow = this.#db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'orders'").get() as { sql: string } | undefined;
-      if (sqlRow?.sql && sqlRow.sql.includes("CHECK (plan_id IN ('starter'))")) {
+      if (sqlRow?.sql && !sqlRow.sql.includes("'vip'")) {
         this.#db.exec(`
           PRAGMA foreign_keys = OFF;
           CREATE TABLE orders_new (
             id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id),
-            plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'pro', 'team')),
+            plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'vip', 'pro', 'team')),
             code TEXT NOT NULL UNIQUE, amount INTEGER NOT NULL, status TEXT NOT NULL
               CHECK (status IN ('pending', 'paid')),
             created_at INTEGER NOT NULL, paid_at INTEGER
@@ -424,7 +439,7 @@ export class SaasStore {
   }
 
   createOrder(accountId: string, planId: PlanId, now: number, maxWorkspaces = Infinity): Order {
-    const plan = PLANS[planId];
+    const plan = ALL_PLANS[planId];
     if (!plan) throw new Error("invalid plan");
     this.#db.exec("BEGIN IMMEDIATE");
     try {
@@ -449,7 +464,7 @@ export class SaasStore {
   }
 
   latestPaidOrder(accountId: string): Order | null {
-    const row = this.#db.prepare("SELECT * FROM orders WHERE account_id = ? AND status = 'paid' ORDER BY paid_at DESC, created_at DESC LIMIT 1")
+    const row = this.#db.prepare("SELECT * FROM orders WHERE account_id = ? AND status = 'paid' ORDER BY paid_at DESC, created_at DESC, rowid DESC LIMIT 1")
       .get(accountId) as OrderRow | undefined;
     return row ? orderOf(row) : null;
   }
@@ -573,6 +588,39 @@ export class SaasStore {
     const rows = this.#db.prepare(`SELECT * FROM accounts WHERE workspace_state = 'active'
       AND MAX(paid_through, COALESCE(trial_expires_at, 0)) > ?`).all(now) as AccountRow[];
     return rows.map(accountOf);
+  }
+
+  accountEntitlement(account: Account, now: number): AccountEntitlement {
+    if (account.paidThrough > now) {
+      const paid = this.latestPaidOrder(account.id);
+      const isVip = paid?.planId === "vip" || paid?.planId === "team";
+      return {
+        planId: isVip ? "vip" : "starter",
+        planName: isVip ? VIP_PLAN.name : STARTER_PLAN.name,
+        entitlement: "paid",
+        enterpriseAccess: isVip,
+        paidThrough: account.paidThrough,
+        trialThrough: 0,
+      };
+    }
+    if (account.trialThrough > now) {
+      return {
+        planId: "trial",
+        planName: "Dùng Thử 14 Ngày (Full 2 Chế Độ)",
+        entitlement: "trial",
+        enterpriseAccess: true,
+        paidThrough: 0,
+        trialThrough: account.trialThrough,
+      };
+    }
+    return {
+      planId: "none",
+      planName: "Chưa kích hoạt",
+      entitlement: "inactive",
+      enterpriseAccess: false,
+      paidThrough: 0,
+      trialThrough: 0,
+    };
   }
 
   setWorkspaceState(accountId: string, state: WorkspaceState): void {

@@ -12,6 +12,18 @@ export type NestedKeyName = "ttsKey" | "fishAudioKey" | "geminiTtsKey" | "jevApi
 export interface ImageSlotStatus { provider: ImageProvider; model: string; configured: boolean }
 
 /** GET /api/config — configured flags only; secrets are never echoed. */
+export interface Rai2PlanStatus {
+  managed: boolean;
+  planId: "starter" | "vip" | "trial" | "none" | "local";
+  planName: string;
+  entitlement: "trial" | "paid" | "inactive" | "local";
+  enterpriseAccess: boolean;
+  paidThrough: number;
+  trialThrough: number;
+  checkedAt: number;
+  upgradeUrl?: string;
+}
+
 export interface ConfigStatus {
   /** The workspace's banner picture (GET /api/workspace/banner), by a version that changes with it; null without one. */
   workspaceBanner?: import("@/lib/place-banner").BannerSummary | null;
@@ -58,6 +70,7 @@ export interface ConfigStatus {
   newBots?: { effort?: EffortLevel };
   /** This Cloud is on the Starter plan, as the Admin last said; absent or false otherwise. */
   cloudStarter?: boolean;
+  rai2Plan?: Rai2PlanStatus;
   /** The most bots this Cloud's plan makes, its MausBot aside; absent when its plan has no such limit. */
   botLimit?: number;
   /** A task on this Cloud is waiting for memory right now. */

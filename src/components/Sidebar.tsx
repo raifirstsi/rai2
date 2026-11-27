@@ -2,7 +2,7 @@ import { OrganizationIdentity } from "./OrganizationIdentity";
 import { RaiLogo } from "./RaiLogo";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Archive, BookOpen, Bot as BotIcon, Building2, Check, ChevronRight, ClipboardCopy, Compass, Crown, FileCheck, FolderPlus, Gauge, GraduationCap, LayoutTemplate, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Phone, Pin, Plus, Search, ShieldAlert, Sparkles, SquarePen, TextQuote, Trash2, TrendingUp, Users, X } from "lucide-react";
+import { Activity, Archive, BookOpen, Building2, Check, ChevronRight, ClipboardCopy, Compass, Crown, FileCheck, FolderPlus, Gauge, GraduationCap, LayoutTemplate, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Phone, Pin, Plus, Search, ShieldAlert, Sparkles, SquarePen, TextQuote, Trash2, TrendingUp, Users, X } from "lucide-react";
 import { api, useStore, formatTime, visibleMessages, currentTaskBot, botOpensTo, openBot, openThread, type Action, type AppState, type Bot, type BotProject, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { approvalModeFor } from "../../shared/approval-mode";
 import { liveActivityLabel, sidebarMessage } from "@/lib/live-activity";
@@ -45,7 +45,7 @@ import { AutonomyGraduationModal } from "./AutonomyGraduationModal";
 import { useRai2Mode } from "@/lib/rai2-mode";
 import { isEnterpriseBot } from "@/lib/rai2-departments";
 import { hasBotAutonomyProfile } from "@/lib/autonomy-graduation";
-import { Rai2ModeSwitcher } from "./Rai2ModeSwitcher";
+import { Rai2ModeSwitcher, openRai2VipUpgradeModal } from "./Rai2ModeSwitcher";
 import { SidebarNewChatPanel } from "./SidebarNewChatPanel";
 import { openCommandPalette } from "./CommandPalette";
 import { TeamSettingsDialog } from "./TeamSettingsDialog";
@@ -114,7 +114,6 @@ import { SidebarAttentionPanel } from "./SidebarAttentionPanel";
 import { SidebarPinnedThreadsPanel } from "./SidebarPinnedThreadsPanel";
 import { useLiveMedia } from "@/lib/live-call-media";
 import { LiveCallPill, liveBadgeFor } from "./LiveCallPill";
-import { ShortcutHint } from "./ShortcutHint";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { myDefaultBot, useViewerEmail, useWelcomingBot } from "@/lib/default-bot";
@@ -990,7 +989,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const [plusOpen, setPlusOpen] = useState(false);
   const plusMotion = useMenuMotion(plusOpen);
   const advanced = useAdvancedMode();
-  const { isEnterprise, isCreator, setMode: setRai2Mode } = useRai2Mode();
+  const { isEnterprise, isCreator, enterpriseAllowed, setMode: setRai2Mode } = useRai2Mode();
   const attentionPinned = useAttentionPinned();
   const inboxSupport = useInboxSupport();
   const [newRoom, setNewRoom] = useState(false);
@@ -1040,6 +1039,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
     return () => window.removeEventListener("rai2:open-autonomy-modal", handleOpenAutonomy);
   }, []);
   const [addingReadyBotId, setAddingReadyBotId] = useState<string | null>(null);
+  const [creatorNewBotOpen, setCreatorNewBotOpen] = useState(false);
   const [archivedBotsOpen, setArchivedBotsOpen] = useState(false);
   const [teamFeedback, setTeamFeedback] = useState<{
     error: boolean;
@@ -1241,17 +1241,23 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             {t("sidebar.newChat.title")}
           </button>}
           {!advanced && plusBot && <><button role="menuitem" className={plusItem} onClick={() => { setPlusOpen(false); dispatch({ type: "newTask", botId: plusBot.id }); }}><SquarePen size={16} className="text-ink-secondary" />{t("sidebar.newChat.start")}</button><div role="separator" className={MENU_ITEM_SEPARATOR} /></>}
-          {teamSettingsAllowed !== false && <button
-            onClick={() => { setPlusOpen(false); dispatch({ type: "newBot" }); }}
+          {teamSettingsAllowed !== false && isCreator && <button
+            onClick={() => { setPlusOpen(false); setCreatorNewBotOpen(true); }}
             role="menuitem"
             className={plusItem}
             data-testid="sidebar-new-bot-btn"
           >
-            <BotIcon size={16} className="text-ink-secondary" />
-            <span className="flex-1 font-medium truncate">
-              {isCreator ? "Tạo RAI" : (advanced ? t("sidebar.newBot") : t("sidebar.newBotSimple"))}
-            </span>
-            {advanced && !isCreator && <ShortcutHint id="new-bot" />}
+            <Sparkles size={16} className="text-accent" />
+            <span className="flex-1 font-medium truncate">Tạo Bot Tự Do</span>
+          </button>}
+          {teamSettingsAllowed !== false && isEnterprise && <button
+            onClick={() => { setPlusOpen(false); setHireDialogOpen(true); }}
+            role="menuitem"
+            className={plusItem}
+            data-testid="sidebar-new-bot-btn"
+          >
+            <Crown size={16} className="text-amber-500" />
+            <span className="flex-1 font-medium truncate">Tuyển Nhân Sự Số (7 Vùng)</span>
           </button>}
           <button
             onClick={() => {
@@ -1369,13 +1375,14 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
               <button
                 onClick={() => {
                   setPlusOpen(false);
-                  setRai2Mode("enterprise");
+                  if (!enterpriseAllowed) openRai2VipUpgradeModal();
+                  else setRai2Mode("enterprise");
                 }}
                 role="menuitem"
                 className={plusItem}
               >
                 <Crown size={16} className="text-amber-500 shrink-0" />
-                <span className="flex-1 font-semibold text-ink truncate">Chuyển: Enterprise OS</span>
+                <span className="flex-1 font-semibold text-ink truncate">{enterpriseAllowed ? "Chuyển: Enterprise OS" : "Enterprise OS (Cần gói VIP)"}</span>
               </button>
             </>
           )}
@@ -1505,7 +1512,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <div className={cn("px-3 pb-2 pt-1", density === "icons" && "px-1 pb-1 pt-0")}>
         <Rai2ModeSwitcher compact={density === "icons"} />
       </div>
-      {fridayPulseDue && density !== "icons" && (
+      {isEnterprise && enterpriseAllowed && fridayPulseDue && density !== "icons" && (
         <div className="px-3 pb-2 pt-0.5">
           <div className="flex items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/10 p-2.5 text-ink shadow-sm">
             <div className="flex items-center gap-2 min-w-0">
@@ -1890,14 +1897,26 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           }}
         />
       )}
+      {creatorNewBotOpen &&
+        createPortal(
+          <NewBotDialog
+            onClose={() => setCreatorNewBotOpen(false)}
+            onCreated={(bot) => {
+              setCreatorNewBotOpen(false);
+              setTeamFeedback({ error: false, text: `Đã tạo bot tự do ${bot.name}!` });
+            }}
+          />,
+          document.body,
+        )}
       {hireDialogOpen && (
         <HireAgentDialog
           open={hireDialogOpen}
           onClose={() => setHireDialogOpen(false)}
           initialZone={hireDialogZone}
-          onSelectAgent={(agent) => {
+          onHired={(bot) => {
             setHireDialogOpen(false);
-            setAddingReadyBotId(agent.key);
+            dispatch({ type: "select", id: bot.id });
+            setTeamFeedback({ error: false, text: `Đã tuyển & onboard ${bot.name} vào phòng ban!` });
           }}
         />
       )}
