@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { resolveCustomLicenseTokenFromEnv, verifyRai2CustomLicense } from "./rai2-license.ts";
 import type { ServerResponse } from "node:http";
 
 export type Rai2PlanId = "starter" | "vip" | "trial" | "none" | "local";
@@ -152,6 +153,7 @@ export function configureRai2Entitlement(options: {
 }
 
 function forceTestPlan(env: NodeJS.ProcessEnv): Rai2PlanEntitlement | null {
+  if (env.RAI2_CUSTOM_ONPREM === "1" || env.RAI2_LICENSE_KEY || env.RAI2_LICENSE_FILE) return null;
   const forced = env.OMB_RAI2_FORCE_PLAN?.trim().toLowerCase();
   if (!forced) return null;
   const now = Date.now();
@@ -199,6 +201,43 @@ function forceTestPlan(env: NodeJS.ProcessEnv): Rai2PlanEntitlement | null {
 export function getRai2EntitlementSnapshot(env: NodeJS.ProcessEnv = runtime.env): Rai2PlanEntitlement {
   const forced = forceTestPlan(env);
   if (forced) return forced;
+
+  if (env.RAI2_CUSTOM_ONPREM === "1" || env.RAI2_LICENSE_KEY || env.RAI2_LICENSE_FILE) {
+    const token = resolveCustomLicenseTokenFromEnv(env);
+    let publicDomain: string | undefined;
+    try {
+      if (env.OMB_PUBLIC_URL) {
+        publicDomain = new URL(env.OMB_PUBLIC_URL).hostname;
+      }
+    } catch {
+      publicDomain = undefined;
+    }
+    const verified = verifyRai2CustomLicense(token, { domain: publicDomain });
+    const now = Date.now();
+    if (verified.valid && verified.payload) {
+      return {
+        managed: true,
+        planId: "vip",
+        planName: `RAI² Custom (${verified.payload.customerName})`,
+        entitlement: "paid",
+        enterpriseAccess: true,
+        paidThrough: verified.payload.expiresAt,
+        trialThrough: 0,
+        checkedAt: now,
+      };
+    }
+    return {
+      managed: true,
+      planId: "none",
+      planName: `RAI² Custom (${verified.reason ?? "License không hợp lệ"})`,
+      entitlement: "inactive",
+      enterpriseAccess: false,
+      paidThrough: verified.payload?.expiresAt ?? 0,
+      trialThrough: 0,
+      checkedAt: now,
+      upgradeUrl: "mailto:contact@raifirst.si?subject=Gia%20han%20RAI2%20Custom%20License",
+    };
+  }
 
   if (env.OMB_RAI2_TENANT !== "1") {
     return {
