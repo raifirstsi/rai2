@@ -1,0 +1,33 @@
+services:
+  rai2-custom:
+    build:
+      context: ../..
+      dockerfile: deploy/rai2-custom/Dockerfile
+    image: ${RAI2_CUSTOM_IMAGE:-ghcr.io/raifirstsi/rai2-custom:latest}
+    container_name: rai2-custom-runtime
+    restart: unless-stopped
+    init: true
+    shm_size: 512m
+    volumes:
+      - rai2_custom_data:/data
+    ports:
+      - "${RAI2_HTTP_BIND:-127.0.0.1:8799}:8799"
+    environment:
+      NODE_ENV: production
+      DATA_DIR: /data
+      OMB_PORT: "8799"
+      RAI2_CUSTOM_ONPREM: "1"
+      RAI2_LICENSE_KEY: ${RAI2_LICENSE_KEY:?RAI2_LICENSE_KEY is required}
+      OMB_PUBLIC_URL: https://${DOMAIN:?DOMAIN is required}
+      OMB_SERVER_NAME: ${OMB_SERVER_NAME:-RAI2 Custom Enterprise}
+      OMB_SIGNIN_EMAILS: ${OMB_SIGNIN_EMAILS:-}
+      OMB_SIGNIN_SMTP_URL: ${OMB_SIGNIN_SMTP_URL:-}
+      OMB_SIGNIN_SMTP_FROM: ${OMB_SIGNIN_SMTP_FROM:-}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8799/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rai2_custom_data:
