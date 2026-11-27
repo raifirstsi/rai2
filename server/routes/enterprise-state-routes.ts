@@ -73,7 +73,7 @@ export function createEnterpriseStateRoutes(): RouteHandler {
       const next = store.updateState(ws, patch);
       if (patch.contextVault || patch.marginGuard || patch.architectureAssessment) {
         try {
-          const actor = auth.kind === "session" ? auth.session.email : "service";
+          const actor = (auth.kind === "session" ? auth.session.email : undefined) || "service";
           getWorkspaceAuditLedger().append(ws, actor, "enterprise.state.updated", {
             sections: Object.keys(patch),
           });
@@ -105,7 +105,7 @@ export function createEnterpriseStateRoutes(): RouteHandler {
       };
       const ws = typeof p?.workspaceId === "string" && p.workspaceId.trim() ? p.workspaceId.trim() : "default";
       const messageId = typeof p?.messageId === "string" && p.messageId.trim() ? p.messageId.trim() : `manual_${Date.now()}`;
-      const approvedBy = auth.kind === "session" ? auth.session.email : "founder";
+      const approvedBy = (auth.kind === "session" ? auth.session.email : undefined) || "founder";
       const record = {
         approvedAt: new Date().toISOString(),
         approvedBy,
@@ -196,7 +196,7 @@ export function createEnterpriseStateRoutes(): RouteHandler {
         },
       });
       try {
-        const actor = auth.kind === "session" ? auth.session.email : "admin";
+        const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
         getWorkspaceAuditLedger().append(ws, actor, "enterprise.friday_pulse_sent", {
           weekDisplay,
           webhookDelivered,
@@ -246,14 +246,17 @@ export function createEnterpriseStateRoutes(): RouteHandler {
           const gate = getPromotionGate();
           gate.evaluateAndPromote(
             {
+              evalId: `eval_${botId}_${Date.now()}`,
               botId,
               botName: String((p.profile as { botName?: unknown }).botName ?? botId),
+              evaluatedAt: Date.now(),
               totalScore: tier === "TIER_3_AUTONOMOUS" ? 21 : 18,
               maxScore: 21,
+              passingScore: 19,
               passed: true,
-              evaluatedAt: Date.now(),
-              criteriaScores: [],
-              blockers: [],
+              percentage: tier === "TIER_3_AUTONOMOUS" ? 100 : 85.7,
+              criterionScores: [],
+              summary: "Autonomy graduation evaluation",
             },
             ws,
             auth.kind === "session" ? auth.session.email : "admin",
@@ -263,7 +266,7 @@ export function createEnterpriseStateRoutes(): RouteHandler {
         }
       }
       try {
-        const actor = auth.kind === "session" ? auth.session.email : "admin";
+        const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
         getWorkspaceAuditLedger().append(ws, actor, "enterprise.autonomy_updated", {
           botId,
           tier,
