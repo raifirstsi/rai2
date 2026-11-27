@@ -7,6 +7,7 @@ import { HARNESS_PROXY_TIMEOUT_MS, HARNESS_PROXY_TIMEOUTS_MS } from "./harness-b
 import { capToolListResult } from "./tool-count-limit.ts";
 import { ToolLoopGuard } from "./agent/loop-guard.ts";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
+import { safeJsonParse } from "./agent/json-repair.ts";
 
 const loopGuards = new Map<string, ToolLoopGuard>();
 function getLoopGuardForToken(token: string): ToolLoopGuard {
@@ -73,7 +74,10 @@ async function boundedJson(response: Response, name: string): Promise<unknown> {
       if (size > MAX_OUTPUT_BYTES) throw new Error(`${name} response exceeded the size limit.`);
       chunks.push(Buffer.from(value));
     }
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    const rawText = Buffer.concat(chunks).toString("utf8");
+    const parsed = safeJsonParse<unknown>(rawText, undefined);
+    if (parsed !== undefined) return parsed;
+    return JSON.parse(rawText);
   } finally { await reader.cancel().catch(() => {}); }
 }
 

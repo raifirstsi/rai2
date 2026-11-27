@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { BusinessPulseEngine, getVietnamDateString } from "./business-pulse.ts";
-import { AutonomousPulseScheduler, format17PmZaloReport } from "./pulse-scheduler.ts";
+import { AutonomousPulseScheduler, format0830MorningReport, format17PmZaloReport } from "./pulse-scheduler.ts";
 import { ExportingEngine, sanitizeCsvField } from "./exporting.ts";
 import { PaybackRoiCalculator } from "./payback-roi.ts";
 
@@ -363,5 +363,33 @@ describe("Sprint 5 Step 2: Autonomous 17:00 Pulse Scheduler & Zalo Report", () =
     });
     expect(status).toBe(403);
     expect((body as { error: string }).error).toContain("admin scope required");
+  });
+
+  it("tự động phát Bản tin sáng 08:30 UTC+7 (Morning Briefing) một lần mỗi sáng", async () => {
+    const engine = new BusinessPulseEngine(`/tmp/test-morn-${Date.now()}.json`);
+    const sent: string[] = [];
+    const scheduler = new AutonomousPulseScheduler({
+      engine,
+      configPath: `/tmp/test-morn-cfg-${Date.now()}.json`,
+      sendZalo: async (p) => {
+        sent.push(p.text);
+        return { ok: true };
+      },
+    });
+    scheduler.updateConfig({ zaloToId: "owner_zalo", enabled: true });
+
+    // 08:35 VN (01:35 UTC) -> triggers morning briefing once
+    const morning = await scheduler.tick(new Date("2026-11-26T01:35:00.000Z"));
+    expect(morning).not.toBeNull();
+    expect(sent.length).toBe(1);
+    expect(sent[0]).toContain("BẢN TIN SÁNG 08:30");
+
+    // 09:00 VN (02:00 UTC) -> idempotent
+    const second = await scheduler.tick(new Date("2026-11-26T02:00:00.000Z"));
+    expect(second).toBeNull();
+    expect(sent.length).toBe(1);
+
+    const txt = format0830MorningReport("default", "2026-11-26", engine.getDailyPulse("default", "2026-11-26"));
+    expect(txt).toContain("Mục tiêu hôm nay");
   });
 });

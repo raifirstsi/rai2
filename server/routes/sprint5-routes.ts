@@ -312,6 +312,21 @@ export function createSprint5Routes(): RouteHandler {
       return json(res, 200, { success: true, dispatched: results.length, results });
     }
 
+    // 11. POST /api/pulse/scheduler/run-morning - Chạy Bản tin sáng 08:30 chủ động
+    if (method === "POST" && path === "/api/pulse/scheduler/run-morning") {
+      let body: unknown;
+      try {
+        body = await readBody(req, 16_384);
+      } catch {
+        body = {};
+      }
+      const p = (body || {}) as { workspaceId?: unknown; date?: unknown };
+      const workspaceIds = typeof p.workspaceId === "string" && p.workspaceId ? [p.workspaceId] : undefined;
+      const date = typeof p.date === "string" ? p.date : undefined;
+      const results = await getPulseScheduler().dispatchMorningNow(workspaceIds, date);
+      return json(res, 200, { success: true, dispatched: results.length, results });
+    }
+
     return PASS;
   };
 }
