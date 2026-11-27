@@ -73,10 +73,9 @@ export function createEnterpriseStateRoutes(): RouteHandler {
       const next = store.updateState(ws, patch);
       if (patch.contextVault || patch.marginGuard || patch.architectureAssessment) {
         try {
-          getWorkspaceAuditLedger().append("enterprise.state.updated", {
-            workspaceId: ws,
+          const actor = auth.kind === "session" ? auth.session.email : "service";
+          getWorkspaceAuditLedger().append(ws, actor, "enterprise.state.updated", {
             sections: Object.keys(patch),
-            actor: auth.kind === "session" ? auth.session.email : "service",
           });
         } catch {
           // Non-fatal
@@ -117,8 +116,7 @@ export function createEnterpriseStateRoutes(): RouteHandler {
       };
       const next = store.recordMarginApproval(ws, messageId, record);
       try {
-        getWorkspaceAuditLedger().append("enterprise.margin_exception_approved", {
-          workspaceId: ws,
+        getWorkspaceAuditLedger().append(ws, approvedBy, "enterprise.margin_exception_approved", {
           messageId,
           ...record,
         });
@@ -198,8 +196,8 @@ export function createEnterpriseStateRoutes(): RouteHandler {
         },
       });
       try {
-        getWorkspaceAuditLedger().append("enterprise.friday_pulse_sent", {
-          workspaceId: ws,
+        const actor = auth.kind === "session" ? auth.session.email : "admin";
+        getWorkspaceAuditLedger().append(ws, actor, "enterprise.friday_pulse_sent", {
           weekDisplay,
           webhookDelivered,
           zaloDispatched,
@@ -253,7 +251,7 @@ export function createEnterpriseStateRoutes(): RouteHandler {
               totalScore: tier === "TIER_3_AUTONOMOUS" ? 21 : 18,
               maxScore: 21,
               passed: true,
-              evaluatedAt: new Date().toISOString(),
+              evaluatedAt: Date.now(),
               criteriaScores: [],
               blockers: [],
             },
@@ -265,8 +263,8 @@ export function createEnterpriseStateRoutes(): RouteHandler {
         }
       }
       try {
-        getWorkspaceAuditLedger().append("enterprise.autonomy_updated", {
-          workspaceId: ws,
+        const actor = auth.kind === "session" ? auth.session.email : "admin";
+        getWorkspaceAuditLedger().append(ws, actor, "enterprise.autonomy_updated", {
           botId,
           tier,
         });
