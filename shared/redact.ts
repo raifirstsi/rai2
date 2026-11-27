@@ -35,6 +35,7 @@ const KEY_PREFIXES: RegExp[] = [
   /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, // sendgrid api keys
   /\bbak_[A-Za-z0-9_-]{20,}/g, // Bot API keys
   /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, // jwt
+  /\bRAI2C1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, // rai2 custom license token
 ];
 const KEY_PREFIX_TESTS = KEY_PREFIXES.map((re) => new RegExp(re.source));
 const PRIVATE_KEY_BLOCK = /-----BEGIN [A-Z ]*PRIVATE KEY-----/;
