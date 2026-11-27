@@ -16,10 +16,13 @@ export interface PulseSchedulerConfig {
   enabled: boolean;
   triggerHourVn: number;
   triggerMinuteVn: number;
+  morningHourVn?: number;
+  morningMinuteVn?: number;
   zaloToId?: string;
   zaloWorkspaceId?: string;
   gatewayUrl?: string;
   lastTriggeredDate?: string;
+  lastMorningDate?: string;
 }
 
 export interface PulseDispatchResult {
@@ -45,6 +48,25 @@ export function getVietnamClock(date: Date = new Date()): { dateStr: string; hou
     hour: vnDate.getUTCHours(),
     minute: vnDate.getUTCMinutes(),
   };
+}
+
+export function format0830MorningReport(workspaceId: string, dateStr: string, pulse: DailyPulseSummary): string {
+  const lines: string[] = [
+    `☀️ BẢN TIN SÁNG 08:30 (${dateStr}) · RAI² FIRST OS`,
+    `────────────────────────`,
+    `📌 Workspace: ${workspaceId}`,
+    `🔍 Tồn đọng TOC hiện tại: ${pulse.bottlenecks.length} điểm nghẽn`,
+  ];
+  if (pulse.bottlenecks.length === 0) {
+    lines.push(`✅ Sẵn sàng mở ngày mới: Không có báo giá treo hay đơn chậm giao.`);
+  } else {
+    for (const bn of pulse.bottlenecks.slice(0, 5)) {
+      lines.push(`• [${bn.severity.toUpperCase()}] ${bn.title}`);
+      lines.push(`  ↳ ${bn.suggestedAction}`);
+    }
+  }
+  lines.push(`🎯 Mục tiêu hôm nay: Bảo vệ Margin ≥ 15% & xử lý dứt điểm điểm nghẽn TOC trước 17:00.`);
+  return lines.join("\n");
 }
 
 export function format17PmZaloReport(pulse: DailyPulseSummary): string {
@@ -125,6 +147,8 @@ export class AutonomousPulseScheduler {
       enabled: true,
       triggerHourVn: 17,
       triggerMinuteVn: 0,
+      morningHourVn: 8,
+      morningMinuteVn: 30,
       zaloToId: process.env.RAI2_PULSE_ZALO_TO_ID || undefined,
       zaloWorkspaceId: defaultTenantSlug,
       gatewayUrl: process.env.RAI2_ZALO_GATEWAY_URL || "http://127.0.0.1:18789",
@@ -234,9 +258,60 @@ export class AutonomousPulseScheduler {
     return results;
   }
 
+  public async dispatchMorningNow(workspaceIds?: string[], dateString?: string): Promise<PulseDispatchResult[]> {
+    const engine = this.deps.engine ?? getBusinessPulseEngine();
+    const targetDate = dateString || getVietnamDateString();
+    const targets = workspaceIds && workspaceIds.length > 0 ? workspaceIds : engine.listWorkspaces();
+    const sender = this.deps.sendZalo ?? defaultSendZalo;
+    const results: PulseDispatchResult[] = [];
+
+    for (const ws of targets) {
+      const pulse = engine.getDailyPulse(ws, targetDate);
+      const reportText = format0830MorningReport(ws, targetDate, pulse);
+      if (this.deps.onPulseTriggered) {
+        try {
+          this.deps.onPulseTriggered(pulse, reportText);
+        } catch {}
+      }
+      let zaloSent = false;
+      let zaloError: string | undefined;
+      if (this.config.zaloToId && (ws === "default" || targets.length === 1)) {
+        const res = await sender({
+          gatewayUrl: this.config.gatewayUrl || "http://127.0.0.1:18789",
+          workspaceId: this.config.zaloWorkspaceId || ws,
+          toId: this.config.zaloToId,
+          text: reportText,
+        });
+        zaloSent = res.ok;
+        zaloError = res.error;
+      }
+      results.push({ workspaceId: ws, date: targetDate, snapshot: pulse, reportText, zaloSent, ...(zaloError ? { zaloError } : {}) });
+    }
+    this.config.lastMorningDate = targetDate;
+    this.saveConfig();
+    return results;
+  }
+
   public async tick(now: Date = new Date()): Promise<PulseDispatchResult[] | null> {
     if (!this.config.enabled || this.runningTick) return null;
     const clock = getVietnamClock(now);
+
+    // Check 08:30 Morning Briefing window (08:30 - 11:59 VN, strictly before afternoon/evening)
+    const mHour = this.config.morningHourVn ?? 8;
+    const mMin = this.config.morningMinuteVn ?? 30;
+    const inMorningWindow =
+      clock.hour < Math.min(12, this.config.triggerHourVn) &&
+      (clock.hour > mHour || (clock.hour === mHour && clock.minute >= mMin));
+
+    if (inMorningWindow && this.config.lastMorningDate !== clock.dateStr) {
+      this.runningTick = true;
+      try {
+        return await this.dispatchMorningNow(undefined, clock.dateStr);
+      } finally {
+        this.runningTick = false;
+      }
+    }
+
     const pastTriggerTime =
       clock.hour > this.config.triggerHourVn ||
       (clock.hour === this.config.triggerHourVn && clock.minute >= this.config.triggerMinuteVn);
