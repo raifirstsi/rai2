@@ -33,7 +33,7 @@ COPY --from=build /src/dist ./dist
 COPY --from=build /src/dist-server ./dist-server
 COPY --from=build /src/skills ./skills
 COPY --from=build /src/dist-native ./dist-native
-RUN npm install --omit=dev --no-audit --no-fund
+RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund
 VOLUME ["/data"]
 EXPOSE 8799
 ENTRYPOINT ["/usr/bin/tini", "--"]

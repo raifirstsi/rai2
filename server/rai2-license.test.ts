@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { signRai2CustomLicense, verifyRai2CustomLicense } from "./rai2-license.ts";
 import { configureRai2Entitlement, getRai2EntitlementSnapshot } from "./rai2-entitlement.ts";
+import { createBotCreateRoutes } from "./routes/bots-create.ts";
 
 describe("RAI2 Custom On-Premise Ed25519 License", () => {
   const { publicKey, privateKey } = generateKeyPairSync("ed25519", {
@@ -73,6 +74,51 @@ describe("RAI2 Custom On-Premise Ed25519 License", () => {
 
     const bad = getRai2EntitlementSnapshot({ RAI2_CUSTOM_ONPREM: "1", RAI2_LICENSE_KEY: "RAI2C1.fake.sig" });
     expect(bad.enterpriseAccess).toBe(false);
+  });
+
+  it("blocks creating bots above maxBots and blocks Enterprise bots even when caller passes a custom id", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "lic-botcap-"));
+    configureRai2Entitlement({ dataDir: tmp, env: { RAI2_CUSTOM_ONPREM: "1" } });
+    let status = 0;
+    let body: unknown = null;
+    const route = createBotCreateRoutes({
+      store: { bots: [{ id: "b1", threadId: "t1" }], bot: () => null, botByThread: () => null, groupByThread: () => null } as never,
+      cfg: {} as never,
+      presetStore: { get: () => null } as never,
+      orgInstallStatuses: {} as never,
+      hostedWorkspace: false,
+      hostedFullAccessRefusal: null,
+      desktopManaged: false,
+      maxWorkspaceBots: 50,
+      cloudOwnerKey: null,
+      hostedModels: null,
+      cloudRoutineAuthors: null,
+      storedAvatarExists: () => false,
+      defaultSelection: async () => ({ instanceId: "default", model: "gpt-4o" }),
+      checkedModelSelection: () => ({ ok: true, selection: { instanceId: "default", model: "gpt-4o" } }),
+      cloudOwnerSession: () => false,
+      wireBot: (b: unknown) => b as never,
+      routines: () => ({}) as never,
+      botLimit: { refusal: () => null } as never,
+      notify: () => {},
+      broadcast: () => {},
+      onBotCreated: () => {},
+    } as never);
+    await route({
+      req: { headers: {} } as never,
+      res: {} as never,
+      path: "/api/bots",
+      method: "POST",
+      url: new URL("http://localhost/api/bots"),
+      auth: { kind: "session", session: { email: "ceo@abc.vn" }, scopes: ["admin"] } as never,
+      readBody: async () => ({ id: "bypass-id", name: "Sale Bot", zone: 3, section: "Phòng Kinh Doanh & Chốt Hợp Đồng" }),
+      json(_r: unknown, s: number, b: unknown) {
+        status = s;
+        body = b;
+      },
+    });
+    expect(status).toBe(403);
+    expect((body as { code: string }).code).toBe("ENTERPRISE_VIP_REQUIRED");
   });
 
   it("unlocks Enterprise when RAI2_LICENSE_FILE holds a valid key signed by the embedded keypair", () => {

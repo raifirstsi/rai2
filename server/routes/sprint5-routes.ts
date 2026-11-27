@@ -34,6 +34,7 @@ export function createSprint5Routes(): RouteHandler {
 
     // 1b. POST /api/pulse/trigger-17pm - Lưu snapshot chốt sổ 17:00 chiều
     if (method === "POST" && path === "/api/pulse/trigger-17pm") {
+      if (!auth?.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       let body: unknown;
       try {
         body = await readBody(req, 16_384);
@@ -306,6 +307,7 @@ export function createSprint5Routes(): RouteHandler {
 
     // 10. POST /api/pulse/scheduler/run-now - Chạy chốt sổ 17:00 & gửi báo cáo ngay lập tức
     if (method === "POST" && path === "/api/pulse/scheduler/run-now") {
+      if (!auth?.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       let body: unknown;
       try {
         body = await readBody(req, 16_384);
@@ -321,6 +323,7 @@ export function createSprint5Routes(): RouteHandler {
 
     // 11. POST /api/pulse/scheduler/run-morning - Chạy Bản tin sáng 08:30 chủ động
     if (method === "POST" && path === "/api/pulse/scheduler/run-morning") {
+      if (!auth?.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       let body: unknown;
       try {
         body = await readBody(req, 16_384);
