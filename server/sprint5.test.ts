@@ -342,4 +342,26 @@ describe("Sprint 5 Step 2: Autonomous 17:00 Pulse Scheduler & Zalo Report", () =
     const formatted = format17PmZaloReport(triggered![0].snapshot);
     expect(formatted).toContain("BÁO CÁO NHỊP THỞ KINH DOANH 17:00");
   });
+
+  it("enforces admin RBAC scope on scheduler configuration route", async () => {
+    const { createSprint5Routes } = await import("./routes/sprint5-routes.ts");
+    const handler = createSprint5Routes();
+    let status = 0;
+    let body: unknown = null;
+    await handler({
+      req: {} as any,
+      res: {} as any,
+      url: new URL("http://localhost/api/pulse/scheduler/config"),
+      path: "/api/pulse/scheduler/config",
+      method: "POST",
+      auth: { kind: "loopback", scopes: ["client"], trust: "service" },
+      json: (_res, code, payload) => {
+        status = code;
+        body = payload;
+      },
+      readBody: async () => ({ enabled: false }),
+    });
+    expect(status).toBe(403);
+    expect((body as { error: string }).error).toContain("admin scope required");
+  });
 });

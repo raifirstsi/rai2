@@ -12,7 +12,7 @@ import { getArtifactDiffEngine } from "../artifact-diff.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export function createSprint5Routes(): RouteHandler {
-  return async ({ req, res, path, method, json, readBody }) => {
+  return async ({ req, res, path, method, auth, json, readBody }) => {
     // 1. GET /api/pulse/today - Nhịp thở kinh doanh hôm nay
     if (method === "GET" && path === "/api/pulse/today") {
       const url = new URL(req.url ?? "", "http://localhost");
@@ -273,8 +273,11 @@ export function createSprint5Routes(): RouteHandler {
       });
     }
 
-    // 9. POST /api/pulse/scheduler/config - Cập nhật cấu hình lịch 17:00 & Zalo ID
+    // 9. POST /api/pulse/scheduler/config - Cập nhật cấu hình lịch 17:00 & Zalo ID (admin only)
     if (method === "POST" && path === "/api/pulse/scheduler/config") {
+      if (!auth?.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required to configure 17:00 scheduler" });
+      }
       let body: unknown;
       try {
         body = await readBody(req, 16_384);
