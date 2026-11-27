@@ -1,4 +1,4 @@
-import { approveMarginExceptionOnServer } from "@/lib/enterprise-state-client";
+import { approveMarginExceptionOnServer, fetchEnterpriseState } from "@/lib/enterprise-state-client";
 import { useEffect, useState, useMemo } from "react";
 import { ShieldAlert, Check, TrendingUp, CheckCircle2 } from "lucide-react";
 import {
@@ -23,12 +23,21 @@ export function MarginGuardChatCard({
   const [approval, setApproval] = useState(() => loadMarginApprovals()[messageId]);
 
   useEffect(() => {
+    let alive = true;
+    void fetchEnterpriseState().then(({ state }) => {
+      if (!alive || !state?.marginGuard?.approvals?.[messageId]) return;
+      const srv = state.marginGuard.approvals[messageId];
+      if (srv?.approvedAt) {
+        setApproval({ approvedAt: srv.approvedAt });
+      }
+    });
     const handleUpdate = () => {
       setApproval(loadMarginApprovals()[messageId]);
     };
     window.addEventListener("rai2:margin-approval-updated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
+      alive = false;
       window.removeEventListener("rai2:margin-approval-updated", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };

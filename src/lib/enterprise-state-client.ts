@@ -141,19 +141,33 @@ export async function sendFridayPulseOnServer(payload: {
   }
 }
 
+export interface AutonomyServerRecordResult {
+  ok: boolean;
+  evalResult?: { totalScore?: number; maxScore?: number; passed?: boolean; summary?: string };
+  promotionResult?: { status?: string; rejectionReason?: string };
+}
+
 export async function recordAutonomyOnServer(
   botId: string,
   profile: BotAutonomyProfile,
   workspaceId = "default",
-): Promise<boolean> {
+): Promise<AutonomyServerRecordResult> {
   try {
-    const resp = await api<{ success?: boolean }>("/api/enterprise/autonomy/record", {
+    const resp = await api<{
+      success?: boolean;
+      evalResult?: AutonomyServerRecordResult["evalResult"];
+      promotionResult?: AutonomyServerRecordResult["promotionResult"];
+    }>("/api/enterprise/autonomy/record", {
       method: "POST",
       body: JSON.stringify({ workspaceId, botId, profile }),
     });
-    return resp?.success === true;
+    return {
+      ok: resp?.success === true,
+      evalResult: resp?.evalResult,
+      promotionResult: resp?.promotionResult,
+    };
   } catch {
-    return false;
+    return { ok: false };
   }
 }
 
