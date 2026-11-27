@@ -93,11 +93,20 @@ export function buildEnterprisePromptSection(
 
   if (state.tocDiagnosis && typeof state.tocDiagnosis === "object") {
     const d = state.tocDiagnosis as Record<string, unknown>;
+    const zoneNum = typeof d.zoneNumber === "number" ? `Vùng ${d.zoneNumber}: ` : "";
+    const deptName = sanitizePromptField(d.departmentName, 200);
+    const legacyZone = sanitizePromptField(d.bottleneckZone, 300);
+    const zoneLabel = deptName ? `${zoneNum}${deptName}` : legacyZone;
+    const titleVal = sanitizePromptField(d.title, 300);
+    const symptomVal = sanitizePromptField(d.symptomExplanation, 400) || sanitizePromptField(d.symptom, 400);
+    const descVal = sanitizePromptField(d.description, 400) || sanitizePromptField(d.rootCause, 400);
+    const actionVal = sanitizePromptField(d.actionPlan, 500) || (typeof d.recommendedAgentKey === "string" && d.recommendedAgentKey ? `Nhân sự ưu tiên tháo nghẽn: ${sanitizePromptField(d.recommendedAgentKey, 100)}` : "");
     const summaryBits = [
-      sanitizePromptField(d.bottleneckZone, 300) ? `Vùng nghẽn #1: ${sanitizePromptField(d.bottleneckZone, 300)}` : "",
-      sanitizePromptField(d.symptom, 400) ? `Triệu chứng: ${sanitizePromptField(d.symptom, 400)}` : "",
-      sanitizePromptField(d.rootCause, 400) ? `Nguyên nhân gốc: ${sanitizePromptField(d.rootCause, 400)}` : "",
-      sanitizePromptField(d.actionPlan, 500) ? `Hành động tháo nghẽn: ${sanitizePromptField(d.actionPlan, 500)}` : "",
+      zoneLabel ? `Vùng nghẽn #1: ${zoneLabel}` : "",
+      titleVal ? `Chẩn đoán TOC: ${titleVal}` : "",
+      symptomVal ? `Triệu chứng: ${symptomVal}` : "",
+      descVal ? `Nguyên nhân / Mô tả: ${descVal}` : "",
+      actionVal ? `Hành động tháo nghẽn: ${actionVal}` : "",
     ].filter(Boolean);
     if (summaryBits.length > 0) {
       parts.push(`### ĐIỂM NGHẼN TOC HIỆN TẠI\n${summaryBits.map((b) => `- ${b}`).join("\n")}`);
