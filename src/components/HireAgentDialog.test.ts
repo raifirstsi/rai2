@@ -50,6 +50,6 @@ describe("HireAgentDialog - Data & Department Mapping", () => {
       }),
     );
     expect(html).toContain("Tiếp tục: Thiết lập KPI");
-    expect(html).toContain("Bàn Tuyển Dụng Nhân Sự Số (Enterprise OS)");
+    expect(html).toContain("Bàn Tuyển Dụng Nhân Sự Số (Enterprise)");
   });
 });

@@ -157,7 +157,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
       else parent.dispatch(action);
     },
   };
-  const title = defaultsMode ? t("newBot.defaults") : isCreator ? "Tạo Bot Tự Do (Cá Nhân)" : t("sidebar.newBot");
+  const title = defaultsMode ? t("newBot.defaults") : isCreator ? "Cá nhân" : t("sidebar.newBot");
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3 sm:p-5" hidden={!defaultsMode && parent.state.appSettingsOpen}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-label={title} aria-busy={saving} tabIndex={-1}
       className="flex h-[min(760px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl outline-none">
@@ -278,7 +278,7 @@ function DraftSection({ active, draft, defaultsMode, isEnterprise, owner }: { ac
           {[...new Set([...(state.sections ?? []), ...state.bots.map(b => b.section ?? "")])].filter(Boolean).filter(s => !RAI2_DEPARTMENT_ZONES.some(z => z.name === s)).map(name => <option key={name}>{name}</option>)}
         </Select>
         <span className="mt-1 block text-[11px] text-ink-tertiary">
-          Chế độ Tạo Bot Tự Do hoàn toàn độc lập với doanh nghiệp (tự cấu hình Soul, Memory &amp; Routines riêng).
+          Chế độ Cá nhân hoàn toàn độc lập với doanh nghiệp (tự cấu hình Soul, Memory &amp; Routines riêng).
         </span>
       </label>
     )}

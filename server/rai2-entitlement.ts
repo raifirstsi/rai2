@@ -108,7 +108,7 @@ function readDiskCache(): Rai2PlanEntitlement | null {
       return {
         managed: true,
         planId: parsed.planId as Rai2PlanId,
-        planName: typeof parsed.planName === "string" ? parsed.planName : "RAI² Starter (Cá Nhân)",
+        planName: typeof parsed.planName === "string" ? parsed.planName : "RAI² Personal (Cá Nhân)",
         entitlement: (parsed.entitlement as Rai2EntitlementStatus) ?? "inactive",
         enterpriseAccess: parsed.enterpriseAccess,
         paidThrough: typeof parsed.paidThrough === "number" ? parsed.paidThrough : 0,
@@ -159,7 +159,7 @@ function forceTestPlan(env: NodeJS.ProcessEnv): Rai2PlanEntitlement | null {
     return {
       managed: true,
       planId: forced,
-      planName: forced === "starter" ? "RAI² Starter (Cá Nhân)" : "Chưa kích hoạt",
+      planName: forced === "starter" ? "RAI² Personal (Cá Nhân)" : "Chưa kích hoạt",
       entitlement: forced === "starter" ? "paid" : "inactive",
       enterpriseAccess: false,
       paidThrough: forced === "starter" ? now + 30 * 86_400_000 : 0,
@@ -227,7 +227,7 @@ export function getRai2EntitlementSnapshot(env: NodeJS.ProcessEnv = runtime.env)
   return {
     managed: true,
     planId: "starter",
-    planName: "RAI² Starter (Cá Nhân)",
+    planName: "RAI² Personal (Cá Nhân)",
     entitlement: "inactive",
     enterpriseAccess: false,
     paidThrough: 0,
@@ -264,7 +264,7 @@ export function applyHandoffEntitlement(payload: unknown): void {
   const next: Rai2PlanEntitlement = {
     managed: true,
     planId: p.planId as Rai2PlanId,
-    planName: typeof p.planName === "string" ? p.planName : "RAI² Starter (Cá Nhân)",
+    planName: typeof p.planName === "string" ? p.planName : "RAI² Personal (Cá Nhân)",
     entitlement: (p.entitlement as Rai2EntitlementStatus) ?? "inactive",
     enterpriseAccess: p.enterpriseAccess,
     paidThrough: typeof p.paidThrough === "number" ? p.paidThrough : 0,
@@ -316,7 +316,7 @@ export async function refreshRai2Entitlement(force = false): Promise<Rai2PlanEnt
       return updateCached({
         managed: true,
         planId: data.planId as Rai2PlanId,
-        planName: typeof data.planName === "string" ? data.planName : "RAI² Starter (Cá Nhân)",
+        planName: typeof data.planName === "string" ? data.planName : "RAI² Personal (Cá Nhân)",
         entitlement: (data.entitlement as Rai2EntitlementStatus) ?? "inactive",
         enterpriseAccess: data.enterpriseAccess,
         paidThrough: typeof data.paidThrough === "number" ? data.paidThrough : 0,
@@ -349,7 +349,7 @@ export function requireEnterpriseVip(
   if (isEnterpriseVipAllowed()) return false;
   const snap = getRai2EntitlementSnapshot(runtime.env);
   jsonFn(res, 403, {
-    error: "Chế độ Enterprise OS chỉ dành cho gói Enterprise VIP (hoặc tài khoản đang trong 14 ngày dùng thử).",
+    error: "Chế độ Enterprise (Doanh nghiệp) chỉ dành cho gói Enterprise VIP (hoặc tài khoản đang trong 14 ngày dùng thử).",
     code: "ENTERPRISE_VIP_REQUIRED",
     planId: snap.planId,
     upgradeUrl: snap.upgradeUrl ?? "https://app.rai2.si/?plan=vip&checkout=1",

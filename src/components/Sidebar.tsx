@@ -1248,7 +1248,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             data-testid="sidebar-new-bot-btn"
           >
             <Sparkles size={16} className="text-accent" />
-            <span className="flex-1 font-medium truncate">Tạo Bot Tự Do</span>
+            <span className="flex-1 font-medium truncate">Cá nhân</span>
           </button>}
           {teamSettingsAllowed !== false && isEnterprise && <button
             onClick={() => { setPlusOpen(false); setHireDialogOpen(true); }}
@@ -1382,7 +1382,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
                 className={plusItem}
               >
                 <Crown size={16} className="text-amber-500 shrink-0" />
-                <span className="flex-1 font-semibold text-ink truncate">{enterpriseAllowed ? "Chuyển: Enterprise OS" : "Enterprise OS (Cần gói VIP)"}</span>
+                <span className="flex-1 font-semibold text-ink truncate">{enterpriseAllowed ? "Chuyển: Enterprise" : "Enterprise (Cần gói VIP)"}</span>
               </button>
             </>
           )}
@@ -1398,7 +1398,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
                 className={plusItem}
               >
                 <Sparkles size={16} className="text-accent shrink-0" />
-                <span className="flex-1 text-ink-secondary truncate">Chuyển: Tạo Bot Tự Do</span>
+                <span className="flex-1 text-ink-secondary truncate">Chuyển: Cá nhân</span>
               </button>
             </>
           )}

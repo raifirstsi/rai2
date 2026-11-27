@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-export const STARTER_PLAN = Object.freeze({ id: "starter" as const, name: "RAI² Starter (Cá Nhân)", amount: 299_000, interval: "month" as const });
+export const STARTER_PLAN = Object.freeze({ id: "starter" as const, name: "RAI² Personal (Cá Nhân)", amount: 299_000, interval: "month" as const });
 export const VIP_PLAN = Object.freeze({ id: "vip" as const, name: "RAI² Enterprise VIP", amount: 1_990_000, interval: "month" as const });
 export const PRO_PLAN = Object.freeze({ id: "pro" as const, name: "RAI² Pro (Legacy)", amount: 799_000, interval: "month" as const });
 export const TEAM_PLAN = Object.freeze({ id: "team" as const, name: "RAI² Team (Legacy VIP)", amount: 1_990_000, interval: "month" as const });
