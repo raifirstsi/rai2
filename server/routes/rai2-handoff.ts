@@ -1,3 +1,4 @@
+import { applyHandoffEntitlement } from "../rai2-entitlement.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { allowedScopes, type SignInAllowList } from "../account-signin.ts";

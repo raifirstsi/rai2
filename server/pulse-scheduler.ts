@@ -1,3 +1,4 @@
+import { isEnterpriseVipAllowed } from "./rai2-entitlement.ts";
 /**
  * Phân hệ 39 & 40: Autonomous 17:00 Business Pulse Scheduler & Zalo Proactive Dispatcher
  * Tự động chốt sổ Nhịp thở kinh doanh lúc 17:00 (UTC+7 Việt Nam) và đẩy báo cáo tới Web UI + Zalo Gateway.
