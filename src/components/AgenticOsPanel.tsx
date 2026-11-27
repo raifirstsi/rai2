@@ -442,7 +442,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
   return (
     <>
-      <div className="mx-5 mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline/40 bg-inset/80 px-3 py-1.5 text-[12px] text-ink-secondary">
+      <div className="mx-3 sm:mx-5 mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline/50 bg-card/95 px-3 py-1.5 text-[12px] text-ink-secondary shadow-xs">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -477,23 +477,33 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-hairline bg-surface text-ink shadow-2xl">
-            <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
-              <div className="flex items-center gap-2">
-                <Activity size={18} className="text-accent" />
-                <h2 className="text-base font-semibold">Trung tâm Điều hành AgenticOS · rai2.si</h2>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2.5 sm:p-5 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Trung tâm Điều hành AgenticOS"
+            onClick={(e) => e.stopPropagation()}
+            className="flex max-h-[92dvh] sm:max-h-[88dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-hairline/70 bg-card text-ink shadow-2xl outline-none"
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-hairline/60 bg-card px-4 py-3 sm:px-5 sm:py-3.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <Activity size={18} className="shrink-0 text-accent" />
+                <h2 className="truncate text-sm sm:text-base font-semibold text-ink">Trung tâm Điều hành AgenticOS · rai2.si</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg p-1 text-ink-secondary hover:bg-raised hover:text-ink"
+                aria-label="Đóng"
+                className="ui-icon-button shrink-0"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="flex gap-1 border-b border-hairline bg-inset/50 px-5 py-2 text-xs font-medium">
+            <div className="flex items-center gap-1.5 overflow-x-auto border-b border-hairline/60 bg-raised/60 px-3.5 py-2 sm:px-5 text-xs font-medium">
               {(
                 [
                   { id: "pulse", label: "Nhịp thở 17:00 & TOC", icon: Activity },
@@ -510,7 +520,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                     setStatusMsg(null);
                     setErrorMsg(null);
                   }}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                  className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 transition ${
                     tab === id ? "bg-accent text-white" : "text-ink-secondary hover:bg-raised hover:text-ink"
                   }`}
                 >
@@ -520,7 +530,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
               ))}
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto p-5 text-sm">
+            <div className="flex-1 space-y-4 overflow-y-auto bg-card p-3.5 sm:p-5 text-sm">
               {errorMsg && (
                 <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
                   <AlertTriangle size={14} />
@@ -536,26 +546,26 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
               {tab === "pulse" && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-xl border border-hairline bg-inset p-3">
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+                    <div className="rounded-xl border border-hairline bg-raised/60 p-3">
                       <div className="text-xs text-ink-secondary">Doanh thu hôm nay</div>
                       <div className="mt-1 text-lg font-bold">{pulse?.formattedWidget.revenueDisplay ?? "0 đ"}</div>
                     </div>
-                    <div className="rounded-xl border border-hairline bg-inset p-3">
+                    <div className="rounded-xl border border-hairline bg-raised/60 p-3">
                       <div className="text-xs text-ink-secondary">Lãi / Lỗ ròng</div>
                       <div className="mt-1 text-lg font-bold">{pulse?.formattedWidget.profitDisplay ?? "0 đ"}</div>
                     </div>
-                    <div className="rounded-xl border border-hairline bg-inset p-3">
+                    <div className="rounded-xl border border-hairline bg-raised/60 p-3">
                       <div className="text-xs text-ink-secondary">Biên lợi nhuận</div>
                       <div className="mt-1 text-lg font-bold">{pulse?.formattedWidget.marginDisplay ?? "0.0%"}</div>
                     </div>
-                    <div className="rounded-xl border border-hairline bg-inset p-3">
+                    <div className="rounded-xl border border-hairline bg-raised/60 p-3">
                       <div className="text-xs text-ink-secondary">Điểm nghẽn TOC</div>
                       <div className="mt-1 text-lg font-bold">{pulse?.bottlenecks.length ?? 0}</div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <button
                       type="button"
                       disabled={busy}
@@ -569,7 +579,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                       type="button"
                       disabled={busy}
                       onClick={() => void handleExportCsv()}
-                      className="flex items-center gap-1.5 rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs font-medium hover:bg-inset"
+                      className="flex items-center gap-1.5 rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs font-medium hover:bg-raised/60"
                     >
                       <FileSpreadsheet size={14} />
                       <span>Xuất P&amp;L (.csv)</span>
@@ -578,7 +588,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                       type="button"
                       disabled={busy}
                       onClick={() => void handleExportAuditBundle()}
-                      className="flex items-center gap-1.5 rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs font-medium hover:bg-inset"
+                      className="flex items-center gap-1.5 rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs font-medium hover:bg-raised/60"
                     >
                       <Download size={14} />
                       <span>Tải Hồ sơ Kiểm toán Merkle</span>
@@ -587,7 +597,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                       type="button"
                       disabled={busy}
                       onClick={() => void loadPulse()}
-                      className="flex items-center gap-1 rounded-lg border border-hairline px-2.5 py-1.5 text-xs text-ink-secondary hover:text-ink"
+                      className="flex items-center justify-center gap-1.5 rounded-lg border border-hairline/70 bg-raised/70 px-3 py-1.5 text-xs font-medium text-ink hover:bg-raised"
                     >
                       <RefreshCw size={13} />
                       <span>Làm mới</span>
@@ -612,47 +622,47 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                     </div>
                   )}
 
-                  <div className="rounded-xl border border-hairline bg-inset p-3.5">
+                  <div className="rounded-xl border border-hairline bg-raised/60 p-3.5">
                     <div className="mb-2 text-xs font-semibold">Ghi nhận nhanh giao dịch trong ngày</div>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <input
                         value={txOrder}
                         onChange={(e) => setTxOrder(e.target.value)}
                         placeholder="Mã đơn"
-                        className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs"
+                        className="rounded-lg border border-hairline bg-card text-ink px-2.5 py-1.5 text-xs"
                       />
                       <input
                         value={txCustomer}
                         onChange={(e) => setTxCustomer(e.target.value)}
                         placeholder="Khách hàng"
-                        className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs"
+                        className="rounded-lg border border-hairline bg-card text-ink px-2.5 py-1.5 text-xs"
                       />
                       <input
                         type="number"
                         value={txRevenue}
                         onChange={(e) => setTxRevenue(Number(e.target.value))}
                         placeholder="Doanh thu"
-                        className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs"
+                        className="rounded-lg border border-hairline bg-card text-ink px-2.5 py-1.5 text-xs"
                       />
                       <input
                         type="number"
                         value={txCost}
                         onChange={(e) => setTxCost(Number(e.target.value))}
                         placeholder="Giá vốn"
-                        className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs"
+                        className="rounded-lg border border-hairline bg-card text-ink px-2.5 py-1.5 text-xs"
                       />
                     </div>
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => void handleRecordTx()}
-                      className="mt-2.5 rounded-lg bg-raised px-3 py-1.5 text-xs font-medium border border-hairline hover:bg-surface"
+                      className="mt-2.5 w-full sm:w-auto rounded-lg bg-raised px-3 py-2 sm:py-1.5 text-xs font-medium text-ink border border-hairline/70 hover:bg-control"
                     >
                       + Ghi nhận vào Sổ Nhịp thở
                     </button>
                   </div>
 
-                  <div className="rounded-xl border border-hairline bg-inset p-3.5">
+                  <div className="rounded-xl border border-hairline bg-raised/60 p-3.5">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-xs font-semibold">Lịch Tự Hành 17:00 (UTC+7) &amp; Đẩy Báo Cáo Zalo</span>
                       <label className="flex items-center gap-1.5 text-xs">
@@ -664,18 +674,18 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                         <span>Bật tự động</span>
                       </label>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         value={zaloToId}
                         onChange={(e) => setZaloToId(e.target.value)}
                         placeholder="Zalo UID nhận báo cáo 17:00 (tuỳ chọn)"
-                        className="flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs"
+                        className="flex-1 rounded-lg border border-hairline/70 bg-card px-2.5 py-2 sm:py-1.5 text-xs text-ink"
                       />
                       <button
                         type="button"
                         disabled={busy}
                         onClick={() => void handleSaveScheduler()}
-                        className="rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs font-medium hover:bg-surface"
+                        className="rounded-lg border border-hairline/70 bg-raised px-3 py-2 sm:py-1.5 text-xs font-medium text-ink hover:bg-control"
                       >
                         Lưu lịch 17:00
                       </button>
@@ -686,14 +696,14 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
               {tab === "roi" && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <label className="space-y-1 text-xs">
                       <span className="text-ink-secondary">Tổng đầu tư ban đầu (VND)</span>
                       <input
                         type="number"
                         value={roiInvestment}
                         onChange={(e) => setRoiInvestment(Number(e.target.value))}
-                        className="w-full rounded-lg border border-hairline bg-inset px-3 py-1.5"
+                        className="w-full rounded-lg border border-hairline bg-raised/60 px-3 py-1.5"
                       />
                     </label>
                     <label className="space-y-1 text-xs">
@@ -702,7 +712,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                         type="number"
                         value={roiOpex}
                         onChange={(e) => setRoiOpex(Number(e.target.value))}
-                        className="w-full rounded-lg border border-hairline bg-inset px-3 py-1.5"
+                        className="w-full rounded-lg border border-hairline bg-raised/60 px-3 py-1.5"
                       />
                     </label>
                     <label className="space-y-1 text-xs">
@@ -711,7 +721,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                         type="number"
                         value={roiHours}
                         onChange={(e) => setRoiHours(Number(e.target.value))}
-                        className="w-full rounded-lg border border-hairline bg-inset px-3 py-1.5"
+                        className="w-full rounded-lg border border-hairline bg-raised/60 px-3 py-1.5"
                       />
                     </label>
                     <label className="space-y-1 text-xs">
@@ -720,7 +730,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                         type="number"
                         value={roiIncRev}
                         onChange={(e) => setRoiIncRev(Number(e.target.value))}
-                        className="w-full rounded-lg border border-hairline bg-inset px-3 py-1.5"
+                        className="w-full rounded-lg border border-hairline bg-raised/60 px-3 py-1.5"
                       />
                     </label>
                   </div>
@@ -734,7 +744,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                     <span>Tính Thời Gian Hoàn Vốn 90 Ngày</span>
                   </button>
                   {roiResult && (
-                    <div className="space-y-2 rounded-xl border border-hairline bg-inset p-4 text-xs">
+                    <div className="space-y-2 rounded-xl border border-hairline bg-raised/60 p-4 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">
                           Thời gian hoàn vốn: {roiResult.isCashflowNegative ? "Không thể hoàn vốn (Âm dòng tiền)" : `${roiResult.paybackPeriodDays} ngày`}
@@ -757,7 +767,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
               {tab === "evals" && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-hairline bg-inset p-3.5 space-y-2">
+                  <div className="rounded-xl border border-hairline bg-raised/60 p-3.5 space-y-2">
                     <div className="text-xs font-semibold">1. Cổng Sát Hạch Bot 21 Tiêu Chí (Promotion Gate)</div>
                     <button
                       type="button"
@@ -770,22 +780,22 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                     {evalSummary && <div className="text-xs text-success font-medium">{evalSummary}</div>}
                   </div>
 
-                  <div className="rounded-xl border border-hairline bg-inset p-3.5 space-y-2">
+                  <div className="rounded-xl border border-hairline bg-raised/60 p-3.5 space-y-2">
                     <div className="flex items-center gap-1.5 text-xs font-semibold">
                       <Mic size={14} />
                       <span>2. Voice-Text P&amp;L Hand-off (&lt; 15ms)</span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         value={voiceInput}
                         onChange={(e) => setVoiceInput(e.target.value)}
-                        className="flex-1 rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs"
+                        className="flex-1 rounded-lg border border-hairline/70 bg-card px-3 py-2 sm:py-1.5 text-xs text-ink"
                       />
                       <button
                         type="button"
                         disabled={busy}
                         onClick={() => void handleVoicePnl()}
-                        className="rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs font-medium"
+                        className="rounded-lg border border-hairline/70 bg-raised px-3 py-2 sm:py-1.5 text-xs font-medium text-ink hover:bg-control"
                       >
                         Bóc P&amp;L &amp; Nạp Sổ
                       </button>
@@ -793,7 +803,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                     {voiceOutput && <div className="text-xs text-ink">{voiceOutput}</div>}
                   </div>
 
-                  <div className="rounded-xl border border-hairline bg-inset p-3.5 space-y-2">
+                  <div className="rounded-xl border border-hairline bg-raised/60 p-3.5 space-y-2">
                     <div className="text-xs font-semibold">3. Artifact Diff &amp; Ký Duyệt Chuỗi Băm Merkle</div>
                     <button
                       type="button"
@@ -810,10 +820,10 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
               {tab === "tables" && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-hairline bg-inset p-3.5 space-y-2">
+                  <div className="rounded-xl border border-hairline bg-raised/60 p-3.5 space-y-2">
                     <div className="text-xs font-semibold">Ngân sách Token &amp; Token Arbitrage (Budget Guard)</div>
                     {budget ? (
-                      <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-xs">
                         <div>Trần tháng: ${budget.monthlyCapUsd.toFixed(2)}</div>
                         <div>Đã dùng: ${budget.currentSpendUsd.toFixed(4)}</div>
                         <div>Arbitrage: {budget.arbitrageEnabled ? "Đang bật" : "Tắt"}</div>
@@ -823,7 +833,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-hairline bg-inset p-3.5 space-y-2">
+                  <div className="rounded-xl border border-hairline bg-raised/60 p-3.5 space-y-2">
                     <div className="text-xs font-semibold">Bảng tính phản ứng Virtual Tables &amp; DuckDB Sandbox</div>
                     <button
                       type="button"
@@ -834,7 +844,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                       Tạo &amp; Tính Bảng Giá Margin Tức Thì
                     </button>
                     {tableMarkdown && (
-                      <pre className="overflow-x-auto rounded-lg border border-hairline bg-surface p-3 text-xs">{tableMarkdown}</pre>
+                      <pre className="overflow-x-auto rounded-lg border border-hairline bg-card text-ink p-3 text-xs">{tableMarkdown}</pre>
                     )}
                   </div>
                 </div>
