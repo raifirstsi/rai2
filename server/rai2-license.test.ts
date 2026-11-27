@@ -41,6 +41,21 @@ describe("RAI2 Custom On-Premise Ed25519 License", () => {
     const badSig = verifyRai2CustomLicense(tampered, { publicKeyPem: publicKey, now });
     expect(badSig.valid).toBe(false);
 
+    // Invalid maxBots (0 or negative)
+    const badBotsToken = signRai2CustomLicense(
+      {
+        v: 1,
+        licenseId: "lic_bad_bots",
+        customerName: "Bad Bots",
+        plan: "custom",
+        issuedAt: now - 1000,
+        expiresAt: now + 86_400_000,
+        maxBots: 0,
+      },
+      privateKey,
+    );
+    expect(verifyRai2CustomLicense(badBotsToken, { publicKeyPem: publicKey, now }).valid).toBe(false);
+
     // Expired
     const expired = verifyRai2CustomLicense(token, { publicKeyPem: publicKey, now: now + 2 * 86_400_000 });
     expect(expired.valid).toBe(false);

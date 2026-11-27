@@ -21,7 +21,7 @@ import type { TeamPeople } from "../team-people.ts";
 import { writeMemoryFile, writeMemoryTopic } from "../workspace.ts";
 import { refusalBody, userError } from "../user-errors.ts";
 import type { ServerErrorBody } from "../../shared/server-text.ts";
-import { isEnterpriseBotRequest, requireEnterpriseVip } from "../rai2-entitlement.ts";
+import { getRai2EntitlementSnapshot, isEnterpriseBotRequest, requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export type ModelSelectionCheck = { ok: true; selection: ModelSelection } | ({ ok: false; status: number } & ServerErrorBody);
@@ -208,6 +208,13 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       // The capacity check sits beside the synchronous write, after every await.
       if (store.bots.length >= MAX_WORKSPACE_BOTS) {
         return json(res, 409, { error: `this workspace is limited to ${MAX_WORKSPACE_BOTS} bots` });
+      }
+      const entSnap = getRai2EntitlementSnapshot();
+      if (!kept.id && typeof entSnap.maxBots === "number" && entSnap.maxBots > 0 && store.bots.length >= entSnap.maxBots) {
+        return json(res, 403, {
+          error: `License Custom giới hạn tối đa ${entSnap.maxBots} bot. Liên hệ RAI² để mở rộng giới hạn.`,
+          code: "CUSTOM_LICENSE_BOT_LIMIT",
+        });
       }
       // A bot with its own id is arriving from the person's other computer: a move never loses a bot to a plan's limit.
       const overPlan = kept.id ? null : deps.botLimit.refusal();

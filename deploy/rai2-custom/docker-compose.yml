@@ -11,14 +11,17 @@ services:
     volumes:
       - rai2_custom_data:/data
     ports:
-      - "${RAI2_HTTP_BIND:-127.0.0.1:8799}:8799"
+      - "80:80"
+      - "443:443"
     environment:
       NODE_ENV: production
       DATA_DIR: /data
       OMB_PORT: "8799"
+      OMB_WEBHOOK_PORT: "8800"
       RAI2_CUSTOM_ONPREM: "1"
       RAI2_LICENSE_KEY: ${RAI2_LICENSE_KEY:?RAI2_LICENSE_KEY is required}
       OMB_PUBLIC_URL: https://${DOMAIN:?DOMAIN is required}
+      OMB_WEBHOOK_PUBLIC_URL: https://${DOMAIN:?DOMAIN is required}
       OMB_SERVER_NAME: ${OMB_SERVER_NAME:-RAI2 Custom Enterprise}
       OMB_SIGNIN_EMAILS: ${OMB_SIGNIN_EMAILS:-}
       OMB_SIGNIN_SMTP_URL: ${OMB_SIGNIN_SMTP_URL:-}
@@ -29,5 +32,22 @@ services:
       timeout: 5s
       retries: 5
 
+  caddy:
+    image: caddy:2.10.2
+    container_name: rai2-custom-caddy
+    restart: unless-stopped
+    network_mode: "service:rai2-custom"
+    depends_on:
+      rai2-custom:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN is required}
+    volumes:
+      - ../Caddyfile:/etc/caddy/Caddyfile:ro
+      - rai2_custom_caddy_data:/data
+      - rai2_custom_caddy_config:/config
+
 volumes:
   rai2_custom_data:
+  rai2_custom_caddy_data:
+  rai2_custom_caddy_config:

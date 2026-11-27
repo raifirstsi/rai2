@@ -20,16 +20,21 @@ set -a
 source .env
 set +a
 
-if [ -z "${RAI2_LICENSE_KEY:-}" ] || [ "${RAI2_LICENSE_KEY}" = "RAI2C1.replace_with_signed_token" ]; then
-  echo "[FAIL] Thieu RAI2_LICENSE_KEY hop le trong .env"
+if [ -z "${DOMAIN:-}" ] || [ "${DOMAIN}" = "ai.doanhnghiep.vn" ]; then
+  echo "[FAIL] Hay cau hinh DOMAIN that cua doanh nghiep trong .env"
+  exit 1
+fi
+
+if [ -z "${RAI2_LICENSE_KEY:-}" ] || [[ ! "${RAI2_LICENSE_KEY}" =~ ^RAI2C1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]]; then
+  echo "[FAIL] RAI2_LICENSE_KEY trong .env khong dung dinh dang RAI2C1.<payload>.<sig>"
   exit 1
 fi
 
 docker compose up -d --build
-echo "Dang cho runtime khoi dong..."
+echo "Dang cho runtime & Caddy TLS khoi dong..."
 for i in $(seq 1 30); do
-  if curl -sf http://127.0.0.1:8799/api/health >/dev/null 2>&1; then
-    echo "[OK] RAI2 Custom On-Premise da san sang tai http://127.0.0.1:8799"
+  if docker compose exec -T rai2-custom curl -sf http://127.0.0.1:8799/api/health >/dev/null 2>&1; then
+    echo "[OK] RAI2 Custom On-Premise da san sang tai https://${DOMAIN}"
     exit 0
   fi
   sleep 2

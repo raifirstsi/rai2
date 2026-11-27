@@ -86,7 +86,8 @@ export function verifyRai2CustomLicense(
     typeof p.licenseId !== "string" || !p.licenseId.trim() ||
     typeof p.customerName !== "string" || !p.customerName.trim() ||
     typeof p.issuedAt !== "number" || !Number.isFinite(p.issuedAt) ||
-    typeof p.expiresAt !== "number" || !Number.isFinite(p.expiresAt)
+    typeof p.expiresAt !== "number" || !Number.isFinite(p.expiresAt) ||
+    (p.maxBots !== undefined && (typeof p.maxBots !== "number" || !Number.isInteger(p.maxBots) || p.maxBots < 1))
   ) {
     return { valid: false, reason: "Trường dữ liệu License không hợp lệ" };
   }
