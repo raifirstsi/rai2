@@ -43,7 +43,7 @@ services:
     environment:
       DOMAIN: ${DOMAIN:?DOMAIN is required}
     volumes:
-      - ../Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - rai2_custom_caddy_data:/data
       - rai2_custom_caddy_config:/config
 
