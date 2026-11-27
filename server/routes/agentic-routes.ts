@@ -1,5 +1,6 @@
 import { getTurnSteeringManager, type SteeringAction } from "../turn-steering.ts";
 import { convertOfficeDocument } from "../office-convert.ts";
+import { requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export interface AgenticOsRouteDeps {
@@ -8,6 +9,10 @@ export interface AgenticOsRouteDeps {
 
 export function createAgenticOsRoutes(deps?: AgenticOsRouteDeps): RouteHandler {
   return async ({ req, res, path, method, json, readBody }) => {
+    if (path === "/api/chat/steer" || path === "/api/office/convert") {
+      if (requireEnterpriseVip(res, json)) return;
+    }
+
     // 1. POST /api/chat/steer
     if (method === "POST" && path === "/api/chat/steer") {
       let body: unknown;

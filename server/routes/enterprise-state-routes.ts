@@ -3,6 +3,7 @@ import { getEnterpriseStateStore, type EnterpriseStatePatch } from "../enterpris
 import { requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { getBusinessPulseEngine } from "../business-pulse.ts";
 import { getWorkspaceAuditLedger } from "../agent/merkle-audit.ts";
+import { getEvalsRunner, type BotSampleInteraction } from "../evals-runner.ts";
 import { getPromotionGate } from "../promotion-gate.ts";
 import { getPulseScheduler } from "../pulse-scheduler.ts";
 import { PASS, type RouteHandler } from "./table.ts";
@@ -40,7 +41,11 @@ function isSafeWebhookUrl(raw: string): URL | null {
   }
 }
 
-export function createEnterpriseStateRoutes(): RouteHandler {
+export interface EnterpriseStateRouteDeps {
+  getBotInteractions?: (botId: string) => { botName: string; interactions: BotSampleInteraction[]; systemPrompt?: string };
+}
+
+export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): RouteHandler {
   return async ({ req, res, path, method, auth, json, readBody }) => {
     if (!path.startsWith("/api/enterprise/")) return PASS;
     if (requireEnterpriseVip(res, json)) return;
@@ -241,26 +246,21 @@ export function createEnterpriseStateRoutes(): RouteHandler {
         autonomyProfiles: { [botId]: p.profile },
       });
       const tier = String((p.profile as { currentTier?: unknown }).currentTier ?? "");
-      if (tier === "TIER_2_COPILOT" || tier === "TIER_3_AUTONOMOUS") {
+      let evalResult = null;
+      let promotionResult = null;
+      if (tier === "TIER_2_COPILOT" || tier === "TIER_3_AUTONOMOUS" || Array.isArray((p as { interactions?: unknown }).interactions)) {
         try {
+          const runner = getEvalsRunner();
           const gate = getPromotionGate();
-          gate.evaluateAndPromote(
-            {
-              evalId: `eval_${botId}_${Date.now()}`,
-              botId,
-              botName: String((p.profile as { botName?: unknown }).botName ?? botId),
-              evaluatedAt: Date.now(),
-              totalScore: tier === "TIER_3_AUTONOMOUS" ? 21 : 18,
-              maxScore: 21,
-              passingScore: 19,
-              passed: true,
-              percentage: tier === "TIER_3_AUTONOMOUS" ? 100 : 85.7,
-              criterionScores: [],
-              summary: "Autonomy graduation evaluation",
-            },
-            ws,
-            auth.kind === "session" ? auth.session.email : "admin",
-          );
+          const reqInteractions = Array.isArray((p as { interactions?: unknown }).interactions)
+            ? ((p as { interactions: BotSampleInteraction[] }).interactions)
+            : undefined;
+          const fetched = deps?.getBotInteractions?.(botId);
+          const botName = fetched?.botName || String((p.profile as { botName?: unknown }).botName ?? botId);
+          const interactions = reqInteractions && reqInteractions.length > 0 ? reqInteractions : (fetched?.interactions ?? []);
+          evalResult = runner.evaluateBot(botId, botName, interactions, fetched?.systemPrompt ?? "");
+          const actorName = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+          promotionResult = gate.evaluateAndPromote(evalResult, ws, actorName);
         } catch {
           // Non-fatal
         }
@@ -274,7 +274,7 @@ export function createEnterpriseStateRoutes(): RouteHandler {
       } catch {
         // Non-fatal
       }
-      return json(res, 200, { success: true, state: next });
+      return json(res, 200, { success: true, state: next, evalResult, promotionResult });
     }
 
     return PASS;

@@ -323,7 +323,8 @@ import * as tts from "./tts/index.ts";
 import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
-import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts";
+import { buildEnterprisePromptSection, checkServerMarginGuard, isEnterpriseRuntimeBot } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -1364,7 +1365,20 @@ const attributeUsage = createUsageAttribution({ section: (botId) => store.bot(bo
   const booked = attributeUsage({ ...row, ...cost, ...usageTrace.settle(row.threadId), at: new Date().toISOString() });
   // The append is async; noteSpend counts the row from memory until it lands, so the cap check sees it.
   noteSpend(DATA_DIR, booked, appendUsage(DATA_DIR, booked));
-  try { getBudgetGuard().recordSpend({ workspaceId: "default", turnId: `${row.threadId}:${Date.now()}`, model: booked.model || "claude-3-5-sonnet", promptTokens: booked.input || 0, outputTokens: booked.output || 0 }); getWorkspaceAuditLedger().append("default", row.botName || row.botId, "turn_settled", { threadId: row.threadId, model: booked.model, input: booked.input, output: booked.output, costUsd: booked.costUsd }); } catch {}
+  try {
+    getBudgetGuard().recordSpend({ workspaceId: "default", turnId: `${row.threadId}:${Date.now()}`, model: booked.model || "claude-3-5-sonnet", promptTokens: booked.input || 0, outputTokens: booked.output || 0 });
+    getWorkspaceAuditLedger().append("default", row.botName || row.botId, "turn_settled", { threadId: row.threadId, model: booked.model, input: booked.input, output: booked.output, costUsd: booked.costUsd });
+    const guardBot = store.bot(row.botId);
+    if (getRai2EntitlementSnapshot().enterpriseAccess && isEnterpriseRuntimeBot(guardBot)) {
+      const lastBotMsg = store.messagesFor(row.threadId).findLast((m) => m.role === "bot" && m.kind === "text" && typeof m.text === "string");
+      if (lastBotMsg?.text) {
+        const guardRes = checkServerMarginGuard(lastBotMsg.text, "default", row.botName || row.botId);
+        if (guardRes.violated && guardRes.warningBanner) {
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: guardRes.warningBanner, ok: false } });
+        }
+      }
+    }
+  } catch {}
   const state = spendState(cfg, DATA_DIR);
   const alert = takeSpendAlert(DATA_DIR, state);
   if (alert && state) {
@@ -2996,7 +3010,7 @@ function previewSystemPrompt(bot: BotRecord) {
     { id: "credential", label: "Credentials", text: agentsMounted ? CREDENTIAL_PROMPT + savedSecretsPrompt(botLogins.secretNamesFor(bot.id)) : "" },
     { id: "routine", label: "Triggers", text: agentsMounted ? TRIGGER_PROMPT : "" },
     { id: "profile", label: "Profile changes", text: agentsMounted ? PROFILE_PROMPT : "" },
-    { id: "section-context", label: "Section context", text: sectionContextSystemPrompt(bot.section) },
+    { id: "section-context", label: "Section context", text: sectionContextSystemPrompt(bot.section) + buildEnterprisePromptSection(bot) },
     { id: "team-memory", label: "Team memory", text: teamMemory.systemPrompt(bot.section) + (agentsMounted ? TEAM_MEMORY_PROMPT : "") },
     teamAvailabilityPart(agentsMounted && coordination ? peers : []),
     { id: "memory", label: "Memory", text: memorySystemPrompt(bot.id, { managedWrites: agentsMounted, fileTools: Boolean(privateWorkspace), enabled: bot.memoryEnabled !== false }) },
@@ -8411,7 +8425,7 @@ async function beginTurn(
         { id: "routine-execution", label: "Routine execution", text: opts?.automationSource === "schedule" || opts?.automationSource === "manual" || opts?.automationSource === "startup" ? (confined ? READ_ONLY_ROUTINE_EXECUTION_PROMPT : ROUTINE_EXECUTION_PROMPT) : "" },
         { id: "profile", label: "Profile changes", text: profilePrompt },
         { id: "learn", label: "Skill authoring", text: learnPrompt },
-        { id: "section-context", label: "Section context", text: sectionContextSystemPrompt(bot.section) },
+        { id: "section-context", label: "Section context", text: sectionContextSystemPrompt(bot.section) + buildEnterprisePromptSection(bot) },
         { id: "team-memory", label: "Team memory", text: teamMemory.systemPrompt(bot.section) + (integrations.agents ? TEAM_MEMORY_PROMPT : "") },
         // Volatile, so a teammate starting or finishing never changes the stable half.
         teamAvailabilityPart(coordinationPrompt ? sectionPeers : []),
@@ -10216,7 +10230,7 @@ async function runClaimedGroupMemberTurn(
     { id: "recall", label: "Recall", text: integrations.agents && bot.memoryEnabled !== false ? SESSION_SEARCH_SYSTEM_PROMPT : "" }, { id: "just-do-it", label: "Just do it", text: preparedApprovalMode === "full" && !isUnattended(bot.id, threadId) ? JUST_DO_IT_PROMPT : "" },
     teamAvailabilityPart(outsideRoom),
     { id: "recent", label: "Recent work", text: recentWorkPrompt(recentLines) },
-    { id: "section-context", label: "Section context", text: sectionContextSystemPrompt(bot.section) },
+    { id: "section-context", label: "Section context", text: sectionContextSystemPrompt(bot.section) + buildEnterprisePromptSection(bot) },
     { id: "team-memory", label: "Team memory", text: teamMemory.systemPrompt(bot.section) + (integrations.agents ? TEAM_MEMORY_PROMPT : "") },
     { id: "memory", label: "Memory", text: roomMemory ? `\n${roomMemory.trim()}` : "" },
     { id: "skills", label: "Skills index", text: workspace ? skillsHost.skillsIndex(bot, threadId, instance) : "" },
@@ -12112,7 +12126,25 @@ let restartRequested = false;
 const cloudMoveRoutes = createCloudMoveRoutes();
 
 // `workspaceAccess` is assigned at boot, after this line: read it per request.
-ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createVirtualTablesRoutes()); ROUTES.push(createSprint4Routes()); ROUTES.push(createSprint5Routes()); ROUTES.push(createEnterpriseStateRoutes()); getPulseScheduler({ onPulseTriggered: (snap) => console.info("[Pulse17Pm]", snap.workspaceId, snap.formattedWidget.headline) }).start(); new RunReaper().startPeriodic(); ROUTES.push(createStopLineRoutes()); ROUTES.push(createAgenticOsRoutes({
+ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createVirtualTablesRoutes()); ROUTES.push(createSprint4Routes()); ROUTES.push(createSprint5Routes()); ROUTES.push(createEnterpriseStateRoutes({
+  getBotInteractions: (botId) => {
+    const b = store.bot(botId);
+    if (!b) return { botName: botId, interactions: [] };
+    const msgs = store.messagesFor(b.threadId);
+    const interactions: Array<{ userPrompt: string; botResponse: string }> = [];
+    for (let i = 0; i < msgs.length; i++) {
+      const m = msgs[i];
+      if (m?.role === "bot" && m.kind === "text" && typeof m.text === "string" && m.text.trim()) {
+        const prevUser = msgs.slice(0, i).findLast((u) => u.role === "user" && u.kind === "text" && typeof u.text === "string");
+        interactions.push({
+          userPrompt: prevUser?.text ?? "",
+          botResponse: m.text,
+        });
+      }
+    }
+    return { botName: b.name, interactions: interactions.slice(-10) };
+  },
+})); getPulseScheduler({ onPulseTriggered: (snap) => console.info("[Pulse17Pm]", snap.workspaceId, snap.formattedWidget.headline) }).start(); new RunReaper().startPeriodic(); ROUTES.push(createStopLineRoutes()); ROUTES.push(createAgenticOsRoutes({
   stopTurn: async (turnId: string) => {
     const targetBot = store.botByThread(turnId) ?? store.bots.find((b: any) => b.id === turnId || b.threadId === turnId);
     if (targetBot) {
