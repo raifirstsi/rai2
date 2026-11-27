@@ -49,6 +49,14 @@ export interface EnterpriseWorkspaceState {
 const clampPct = (val: unknown): number | undefined =>
   typeof val === "number" && Number.isFinite(val) ? Math.min(95, Math.max(0, Math.round(val * 10) / 10)) : undefined;
 
+export function sanitizeWorkspaceId(raw: string | undefined): string {
+  const cleaned = (raw ?? "").trim();
+  if (!cleaned || cleaned === "__proto__" || cleaned === "constructor" || cleaned === "prototype") {
+    return "default";
+  }
+  return cleaned.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 64) || "default";
+}
+
 export type EnterpriseStatePatch = Omit<Partial<EnterpriseWorkspaceState>, "workspaceId" | "updatedAt">;
 
 export class EnterpriseStateStore {
@@ -66,8 +74,9 @@ export class EnterpriseStateStore {
       const raw = JSON.parse(readFileSync(this.filePath, "utf8")) as Record<string, EnterpriseWorkspaceState>;
       if (raw && typeof raw === "object") {
         for (const [wsId, wsState] of Object.entries(raw)) {
-          if (wsState && typeof wsState === "object") {
-            this.workspaces.set(wsId, wsState);
+          const safeId = sanitizeWorkspaceId(wsId);
+          if (wsState && typeof wsState === "object" && Object.prototype.hasOwnProperty.call(raw, wsId)) {
+            this.workspaces.set(safeId, wsState);
           }
         }
       }
@@ -81,7 +90,7 @@ export class EnterpriseStateStore {
     try {
       const dir = dirname(this.filePath);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-      const obj: Record<string, EnterpriseWorkspaceState> = {};
+      const obj = Object.create(null) as Record<string, EnterpriseWorkspaceState>;
       for (const [k, v] of this.workspaces.entries()) obj[k] = v;
       const tmp = `${this.filePath}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       writeFileSync(tmp, JSON.stringify(obj, null, 2), "utf8");
@@ -92,7 +101,7 @@ export class EnterpriseStateStore {
   }
 
   public getState(workspaceId = "default"): EnterpriseWorkspaceState {
-    const ws = workspaceId.trim() || "default";
+    const ws = sanitizeWorkspaceId(workspaceId);
     return (
       this.workspaces.get(ws) ?? {
         workspaceId: ws,
@@ -102,7 +111,7 @@ export class EnterpriseStateStore {
   }
 
   public updateState(workspaceId: string, patch: EnterpriseStatePatch): EnterpriseWorkspaceState {
-    const ws = workspaceId.trim() || "default";
+    const ws = sanitizeWorkspaceId(workspaceId);
     const current = this.getState(ws);
     const next: EnterpriseWorkspaceState = {
       ...current,
