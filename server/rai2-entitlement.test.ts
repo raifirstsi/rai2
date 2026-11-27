@@ -35,7 +35,7 @@ describe("rai2-entitlement - VIP & Trial Gating", () => {
     let planFromSaas: Record<string, unknown> = {
       ok: true,
       planId: "starter",
-      planName: "RAI² Starter (Cá Nhân)",
+      planName: "RAI² Personal (Cá Nhân)",
       entitlement: "paid",
       enterpriseAccess: false,
       paidThrough: Date.now() + 86_400_000,

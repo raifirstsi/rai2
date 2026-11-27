@@ -713,7 +713,7 @@ export function TeamLibraryPanel({
                           <Sparkles size={20} />
                         </div>
                         <div>
-                          <h3 className="text-[14px] font-bold text-ink">Chế Độ Tạo Bot Tự Do (Creator Mode)</h3>
+                          <h3 className="text-[14px] font-bold text-ink">Chế Độ Cá Nhân (Personal)</h3>
                           <p className="text-[12px] text-ink-secondary">
                             Thoải mái tạo và tùy biến nhân sự số không bị ràng buộc bởi rào chắn 7 Vùng.
                           </p>

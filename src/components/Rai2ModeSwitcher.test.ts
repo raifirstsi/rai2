@@ -33,8 +33,8 @@ describe("Rai2ModeSwitcher - Component Rendering", () => {
     const html = renderToString(React.createElement(Rai2ModeSwitcher, {}));
 
     expect(html).toContain("data-rai2-mode-switcher");
-    expect(html).toContain("Tạo Bot Tự Do");
-    expect(html).toContain("Enterprise OS");
+    expect(html).toContain("Personal");
+    expect(html).toContain("Enterprise");
   });
 
   it("renders compact mode for icon rail", () => {
@@ -42,7 +42,7 @@ describe("Rai2ModeSwitcher - Component Rendering", () => {
     const html = renderToString(React.createElement(Rai2ModeSwitcher, { compact: true }));
 
     expect(html).toContain("data-rai2-mode-switcher");
-    expect(html).toContain("Chế độ Tạo Bot Tự Do");
-    expect(html).toContain("Chế độ Doanh Nghiệp");
+    expect(html).toContain("Personal Mode");
+    expect(html).toContain("Business Mode (Enterprise)");
   });
 });

@@ -16,7 +16,7 @@ const copy = {
     step2: "Xác thực mã đăng nhập",
     authDisclaimer: "Đăng nhập không tự động bắt đầu gói thuê bao, không tự động chuyển dữ liệu riêng tư.",
     authSecurityNote: "Không cần mật khẩu · Xác thực an toàn",
-    workspace: "Workspace", openWorkspace: "Mở workspace", planName: "RAI² Starter",
+    workspace: "Workspace", openWorkspace: "Mở workspace", planName: "RAI² Personal",
     billingEyebrow: "THANH TOÁN", billingTitle: "Gói & thanh toán", transactionsTitle: "Lịch sử giao dịch",
     refreshTransactions: "Làm mới", transactionsEmpty: "Chưa có giao dịch.", starterPaid: "Đã thanh toán",
     starterTrial: "Đang dùng thử", starterInactive: "Chưa kích hoạt", orderPending: "Chờ thanh toán", orderPaid: "Đã thanh toán",
@@ -36,7 +36,7 @@ const copy = {
     unpaid: "Chưa thanh toán", trialActive: "Đang dùng thử", trialExpired: "Dùng thử đã hết hạn",
     setupFailed: "Chưa thiết lập được workspace. Liên hệ contact@raifirst.si để được hỗ trợ.",
     setupPending: "Workspace của bạn đang được thiết lập.",
-    paidThrough: (date, days, planName = "Starter") => `Gói ${planName} · Hạn dùng đến ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
+    paidThrough: (date, days, planName = "Personal") => `Gói ${planName} · Hạn dùng đến ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
     trialThrough: (date, days) => `Gói dùng thử 14 ngày · Hết hạn ngày ${date}${typeof days === "number" && days > 0 ? ` (còn ${days} ngày)` : ""}`,
     requestFailed: "Không thể kết nối. Vui lòng thử lại.", loadAccountFailed: "Không tải được tài khoản. Vui lòng thử lại.",
     codeSent: "Đã gửi mã xác nhận đến email của bạn.",
@@ -67,7 +67,7 @@ const copy = {
     step2: "Verify your code",
     authDisclaimer: "Signing in doesn't start a subscription, connect an AI account or move your local chats.",
     authSecurityNote: "No password needed.",
-    workspace: "Workspace", openWorkspace: "Open workspace", planName: "RAI² Starter",
+    workspace: "Workspace", openWorkspace: "Open workspace", planName: "RAI² Personal",
     billingEyebrow: "BILLING", billingTitle: "Plan & billing", transactionsTitle: "Transaction history",
     refreshTransactions: "Refresh", transactionsEmpty: "No transactions yet.", starterPaid: "Paid",
     starterTrial: "Free trial", starterInactive: "Not activated", orderPending: "Payment pending", orderPaid: "Paid",
@@ -87,7 +87,7 @@ const copy = {
     unpaid: "Unpaid", trialActive: "Free trial", trialExpired: "Trial expired",
     setupFailed: "We could not set up your workspace. Contact contact@raifirst.si for help.",
     setupPending: "Your workspace is being set up.",
-    paidThrough: (date, days, planName = "Starter") => `${planName} Plan · Valid until ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
+    paidThrough: (date, days, planName = "Personal") => `${planName} Plan · Valid until ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
     trialThrough: (date, days) => `14-day Free Trial · Expires ${date}${typeof days === "number" && days > 0 ? ` (${days} days left)` : ""}`,
     requestFailed: "Could not connect. Please try again.", loadAccountFailed: "Could not load your account. Please try again.",
     codeSent: "A verification code was sent to your email.",
@@ -238,7 +238,7 @@ const renderAccount = () => {
     updateHandleSave();
   }
 
-  const currentPlan = billing?.plan || { id: "starter", name: "RAI² Starter (Cá Nhân)", amount: 299000 };
+  const currentPlan = billing?.plan || { id: "starter", name: "RAI² Personal (Cá Nhân)", amount: 299000 };
   const currentPlanShort = currentPlan.name.replace(/^RAI²\s*/, "");
   setText("plan-name", currentPlan.name);
   const formattedPrice = new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US").format(currentPlan.amount);

@@ -139,7 +139,7 @@ export function HireAgentDialog({ open, onClose, onSelectAgent, onHired, initial
       const draft = new BotCreationDraft(EMPTY_BOT_DEFAULTS, () => {});
       const enterpriseSoul = [
         `Bạn là ${customName.trim() || activeAgent.name} — ${activeAgent.title}.`,
-        `Thuộc ${activeAgent.departmentName} (Vùng ${activeAgent.zone} · RAI² Enterprise OS).`,
+        `Thuộc ${activeAgent.departmentName} (Vùng ${activeAgent.zone} · RAI² Enterprise).`,
         `KPI Cam Kết: ${activeAgent.kpiCommitment}`,
         "DNA Vận Hành Cốt Lõi:",
         ...activeAgent.prebakedDna.map((d) => `- ${d}`),
@@ -239,7 +239,7 @@ export function HireAgentDialog({ open, onClose, onSelectAgent, onHired, initial
               <Crown size={16} className="text-amber-500 shrink-0" />
               <h2 id={dialogTitleId} className="truncate text-[17px] font-semibold text-ink">
                 {step === "browse"
-                  ? "Bàn Tuyển Dụng Nhân Sự Số (Enterprise OS)"
+                  ? "Bàn Tuyển Dụng Nhân Sự Số (Enterprise)"
                   : `Onboarding Phòng Ban · ${activeAgent?.departmentName}`}
               </h2>
             </div>

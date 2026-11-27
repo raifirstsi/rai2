@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { activeLocale } from "@/lib/i18n";
 import { useRai2Mode, syncRai2PlanSnapshot, type Rai2OperatingMode } from "@/lib/rai2-mode";
 import { api } from "@/state/store";
 import type { Rai2PlanStatus } from "@/state/config-status";
@@ -22,6 +23,9 @@ export function Rai2ModeSwitcher({
   className = "",
 }: Rai2ModeSwitcherProps) {
   const { mode, setMode, enterpriseAllowed, plan, trialDaysLeft } = useRai2Mode();
+  const isEn = activeLocale().toLowerCase().startsWith("en");
+  const personalLabel = isEn ? "Personal" : "Cá nhân";
+  const enterpriseLabel = "Enterprise";
   const [vipModalOpen, setVipModalOpen] = useState(false);
   const [checkingPlan, setCheckingPlan] = useState(false);
   const [checkNote, setCheckNote] = useState<string | null>(null);
@@ -91,10 +95,10 @@ export function Rai2ModeSwitcher({
                   </div>
                   <div>
                     <h3 className="text-[16px] font-semibold text-ink">
-                      Mở khóa Chế độ Enterprise OS (Gói VIP)
+                      Mở khóa Chế độ Enterprise (Doanh nghiệp · Gói VIP)
                     </h3>
                     <p className="text-[12px] text-ink-secondary">
-                      Chế độ Tạo Bot Tự Do là gói Cá Nhân (299k/tháng). Hệ điều hành Enterprise OS 7 Vùng dành riêng cho gói VIP.
+                      Chế độ Cá nhân thuộc gói Personal (299k/tháng). Chế độ Enterprise (Doanh nghiệp 7 Vùng) dành riêng cho gói VIP.
                     </p>
                   </div>
                 </div>
@@ -165,7 +169,7 @@ export function Rai2ModeSwitcher({
           <button
             type="button"
             onClick={() => handleSelect("creator")}
-            title="Chế độ Tạo Bot Tự Do (Cá Nhân)"
+            title={isEn ? "Personal Mode" : "Chế độ Cá nhân"}
             className={cn(
               "flex size-9 items-center justify-center rounded-lg transition-all",
               mode === "creator"
@@ -178,7 +182,7 @@ export function Rai2ModeSwitcher({
           <button
             type="button"
             onClick={() => handleSelect("enterprise")}
-            title={enterpriseAllowed ? "Chế độ Doanh Nghiệp (RAI² Enterprise OS)" : "Enterprise OS (Chỉ dành cho gói VIP)"}
+            title={enterpriseAllowed ? (isEn ? "Business Mode (Enterprise)" : "Chế độ Doanh nghiệp (Enterprise)") : (isEn ? "Enterprise (VIP required)" : "Enterprise (Chỉ dành cho gói VIP)")}
             className={cn(
               "relative flex size-9 items-center justify-center rounded-lg transition-all",
               mode === "enterprise"
@@ -219,7 +223,7 @@ export function Rai2ModeSwitcher({
           )}
         >
           <Sparkles size={13} className={mode === "creator" ? "text-accent" : "text-ink-secondary"} />
-          <span className="truncate">Tạo Bot Tự Do</span>
+          <span className="truncate">{personalLabel}</span>
         </button>
 
         <button
@@ -239,7 +243,7 @@ export function Rai2ModeSwitcher({
           ) : (
             <Lock size={12} className="text-amber-500 shrink-0" />
           )}
-          <span className="truncate">Enterprise OS</span>
+          <span className="truncate">{enterpriseLabel}</span>
           {!enterpriseAllowed ? (
             <span className="rounded bg-amber-500/15 px-1 py-0.5 text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400">
               VIP
