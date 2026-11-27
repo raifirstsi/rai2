@@ -80,7 +80,7 @@ describe("Enterprise Runtime Hooks (Deep Upgrades)", () => {
         },
         hardGateLocked: true,
       },
-      tocDiagnosis: { bottleneckZone: "Vùng 3: Chốt đơn", symptom: "Tỷ lệ chốt thấp" },
+      tocDiagnosis: { zoneNumber: 3, departmentName: "Phòng Kinh Doanh & Chốt Hợp Đồng", title: "Nghẽn báo giá chậm", symptomExplanation: "Báo giá mất hơn 48h", recommendedAgentKey: "bao_gia_toc_do" },
       marginGuard: { minThresholdPct: 22, maxDiscountPct: 12 },
     });
 
@@ -91,7 +91,8 @@ describe("Enterprise Runtime Hooks (Deep Upgrades)", () => {
     expect(prompt).toContain("Gói Enterprise 1.990.000đ/tháng");
     expect(prompt).toContain("Dẫn đầu SaaS B2B");
     expect(prompt).toContain("Không bán phá giá");
-    expect(prompt).toContain("Vùng 3: Chốt đơn");
+    expect(prompt).toContain("Vùng 3: Phòng Kinh Doanh & Chốt Hợp Đồng");
+    expect(prompt).toContain("Báo giá mất hơn 48h");
     expect(prompt).toContain("22%");
     expect(prompt).toContain("12%");
   });
