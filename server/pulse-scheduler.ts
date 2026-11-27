@@ -1,3 +1,4 @@
+import { isEnterpriseVipAllowed } from "./rai2-entitlement.ts";
 /**
  * Phân hệ 39 & 40: Autonomous 17:00 Business Pulse Scheduler & Zalo Proactive Dispatcher
  * Tự động chốt sổ Nhịp thở kinh doanh lúc 17:00 (UTC+7 Việt Nam) và đẩy báo cáo tới Web UI + Zalo Gateway.
@@ -294,6 +295,7 @@ export class AutonomousPulseScheduler {
 
   public async tick(now: Date = new Date()): Promise<PulseDispatchResult[] | null> {
     if (!this.config.enabled || this.runningTick) return null;
+    if (process.env.OMB_RAI2_TENANT === "1" && !isEnterpriseVipAllowed()) return null;
     const clock = getVietnamClock(now);
 
     // Check 08:30 Morning Briefing window (08:30 - 11:59 VN, strictly before afternoon/evening)

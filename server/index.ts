@@ -323,7 +323,7 @@ import * as tts from "./tts/index.ts";
 import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
-import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -11829,7 +11829,7 @@ function configStatus() {
     // partitionId is read-only routing metadata: config PATCH rejects callers that try to choose it.
     browserProfiles: cfg.browserProfiles ?? [],
     signIn: { admins: cfg.signIn?.admins ?? [], members: cfg.signIn?.members ?? [] },
-    membership: workspaceMembership(), workspaceBanner: workspaceBannerSummary(),
+    rai2Plan: getRai2EntitlementSnapshot(process.env), membership: workspaceMembership(), workspaceBanner: workspaceBannerSummary(),
   };
 }
 
@@ -12128,7 +12128,8 @@ ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: (
     }
   }
 }));
-ROUTES.push(createRai2BillingRoute());
+configureRai2Entitlement({ dataDir: DATA_DIR, env: process.env, onChanged: () => broadcast({ kind: "config", ...configStatus() }) }); void refreshRai2Entitlement(true).catch(() => {});
+ROUTES.push(createRai2BillingRoute({ env: process.env, onEntitlementChanged: () => broadcast({ kind: "config", ...configStatus() }) }));
 const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) })); ROUTES.push(createStarterAwakeRoutes({ awake: starterAwake }));
 ROUTES.push(createSharedComputerRoutes({ enabled: (auth) => lendingEnabled() || (ownerLends() && ownHome.owner(auth)), computers: sharedComputers, sessionLive: (id) => sessions.isLive(id), environmentId: ENVIRONMENT_ID,

@@ -21,6 +21,7 @@ import type { TeamPeople } from "../team-people.ts";
 import { writeMemoryFile, writeMemoryTopic } from "../workspace.ts";
 import { refusalBody, userError } from "../user-errors.ts";
 import type { ServerErrorBody } from "../../shared/server-text.ts";
+import { isEnterpriseBotRequest, requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export type ModelSelectionCheck = { ok: true; selection: ModelSelection } | ({ ok: false; status: number } & ServerErrorBody);
@@ -173,6 +174,18 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
         if (typeof settings.zone === "number" && settings.zone >= 1 && settings.zone <= 7) {
           zone = Math.round(settings.zone);
         }
+      }
+      if (
+        !kept.id &&
+        isEnterpriseBotRequest({
+          id: kept.id,
+          role: typeof body.role === "string" ? body.role : undefined,
+          zone,
+          section,
+        }) &&
+        requireEnterpriseVip(res, json)
+      ) {
+        return;
       }
       const creator = auth.kind === "session" && auth.session.membershipAuthority === "team" ? auth.session.email : undefined;
       let reportsTo: string | undefined;

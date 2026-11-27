@@ -36,6 +36,7 @@ import { vpsSshAliasForBot } from "../vps-hosts.ts";
 import { refusalBody, userError } from "../user-errors.ts";
 import { pinnedClientThreadGuard } from "./pinned-client-thread.ts";
 import type { ModelSelectionCheck } from "./bots-create.ts";
+import { isEnterpriseBotRequest, requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export interface BotPatchRouteDeps {
@@ -242,6 +243,15 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
         if (body.mainThreadChoice === null) patch.mainThreadChoice = undefined;
         else if (chosen && !chosen.routineRunId && chosen.archivedAt === undefined) patch.mainThreadChoice = chosen.threadId;
         else return json(res, 400, { error: "mainThreadChoice must be one of this bot's conversations" });
+      }
+      if (
+        isEnterpriseBotRequest({
+          zone: typeof patch.zone === "number" ? patch.zone : undefined,
+          section: typeof section === "string" ? section : undefined,
+        }) &&
+        requireEnterpriseVip(res, json)
+      ) {
+        return;
       }
       if (section !== undefined) patch.section = section ?? undefined;
       if (body.chiefOfStaff === false) patch.chiefOfStaff = false;

@@ -40,4 +40,16 @@ describe("HireAgentDialog - Data & Department Mapping", () => {
     expect(html).toContain("Z4 Vận Hành");
     expect(html).toContain("Vận Hành");
   });
+
+  it("renders Onboarding CTA button for Enterprise 2-step hiring flow", () => {
+    const html = renderToString(
+      React.createElement(HireAgentDialog, {
+        open: true,
+        onClose: () => {},
+        initialZone: 3,
+      }),
+    );
+    expect(html).toContain("Tiếp tục: Thiết lập KPI");
+    expect(html).toContain("Bàn Tuyển Dụng Nhân Sự Số (Enterprise OS)");
+  });
 });

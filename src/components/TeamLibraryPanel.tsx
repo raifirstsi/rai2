@@ -25,7 +25,7 @@ import { StrategyMapModal } from "./StrategyMapModal";
 import { FridayPulseModal } from "./FridayPulseModal";
 import { FiveLeversModal } from "./FiveLeversModal";
 import { useRai2Mode } from "@/lib/rai2-mode";
-import { Rai2ModeSwitcher } from "./Rai2ModeSwitcher";
+import { Rai2ModeSwitcher, openRai2VipUpgradeModal } from "./Rai2ModeSwitcher";
 import { NewBotDialog } from "./lazy-screens";
 import { ShareTeamDialog } from "./ShareTeamDialog";
 import { OrgLibraryTab } from "./TeamLibraryPanelOrg";
@@ -149,7 +149,7 @@ export function TeamLibraryPanel({
   const [fridayPulseModalOpen, setFridayPulseModalOpen] = useState(false);
   const [fiveLeversModalOpen, setFiveLeversModalOpen] = useState(false);
   const [marginGuardModalOpen, setMarginGuardModalOpen] = useState(false);
-  const { isEnterprise, setMode: setRai2Mode } = useRai2Mode();
+  const { isEnterprise, enterpriseAllowed, setMode: setRai2Mode } = useRai2Mode();
   const [addingReadyBotId, setAddingReadyBotId] = useState<string | null>(null);
   const tabChosen = useRef(false);
   // Monotonic scout token: a late response from an older scout must never overwrite a newer one's state.
@@ -691,7 +691,7 @@ export function TeamLibraryPanel({
               )}
                {tab === "explore" && (
                 <div>
-                  {isEnterprise ? (
+                  {isEnterprise && enterpriseAllowed ? (
                     <AbsenceReadinessGauge
                       className="mb-5 sm:mb-6"
                       activeBotIds={(state.bots || []).flatMap((b) => [b.id, b.name, b.title, (b as any).role, b.section].filter(Boolean) as string[])}
@@ -721,11 +721,11 @@ export function TeamLibraryPanel({
                       </div>
                       <button
                         type="button"
-                        onClick={() => setRai2Mode("enterprise")}
+                        onClick={() => { if (!enterpriseAllowed) openRai2VipUpgradeModal(); else setRai2Mode("enterprise"); }}
                         className="ui-button ui-button-secondary text-xs shrink-0 whitespace-nowrap"
                       >
                         <Crown size={14} className="text-amber-500 mr-1 inline" />
-                        Mở Quản Trị 7 Vùng (Enterprise)
+                        {enterpriseAllowed ? "Mở Quản Trị 7 Vùng (Enterprise)" : "Nâng cấp VIP để mở 7 Vùng"}
                       </button>
                     </div>
                   )}
@@ -1029,9 +1029,9 @@ export function TeamLibraryPanel({
           open={hireDialogOpen}
           onClose={() => setHireDialogOpen(false)}
           initialZone={hireDialogZone}
-          onSelectAgent={(agent) => {
+          onHired={() => {
             setHireDialogOpen(false);
-            setAddingReadyBotId(agent.key);
+            onClose();
           }}
         />
       )}

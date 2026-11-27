@@ -1,10 +1,12 @@
 import { useSyncExternalStore } from "react";
+import type { Rai2PlanStatus } from "@/state/config-status";
 
 export type Rai2OperatingMode = "creator" | "enterprise";
 
 export const RAI2_OPERATING_MODE_KEY = "rai2-operating-mode";
 
 let sessionChoice: Rai2OperatingMode | undefined;
+let planSnapshot: Rai2PlanStatus | null = null;
 const listeners = new Set<() => void>();
 
 function storage(): Storage | undefined {
@@ -15,7 +17,37 @@ function storage(): Storage | undefined {
   }
 }
 
+export function getRai2PlanSnapshot(): Rai2PlanStatus | null {
+  return planSnapshot;
+}
+
+export function isEnterpriseVipEntitled(plan: Rai2PlanStatus | null = planSnapshot): boolean {
+  if (!plan) return true; // Keep standalone/uninitialized tests non-breaking until managed plan lands
+  if (!plan.managed) return true;
+  return plan.enterpriseAccess === true;
+}
+
+export function syncRai2PlanSnapshot(next: Rai2PlanStatus | null | undefined): void {
+  const normalized = next ?? null;
+  const same =
+    planSnapshot?.planId === normalized?.planId &&
+    planSnapshot?.entitlement === normalized?.entitlement &&
+    planSnapshot?.enterpriseAccess === normalized?.enterpriseAccess &&
+    planSnapshot?.managed === normalized?.managed &&
+    planSnapshot?.trialThrough === normalized?.trialThrough &&
+    planSnapshot?.paidThrough === normalized?.paidThrough;
+  if (same) return;
+  planSnapshot = normalized;
+  if (normalized && normalized.managed && !normalized.enterpriseAccess) {
+    sessionChoice = "creator";
+  }
+  notify();
+}
+
 export function readRai2Mode(): Rai2OperatingMode {
+  if (planSnapshot?.managed && !planSnapshot.enterpriseAccess) {
+    return "creator";
+  }
   if (sessionChoice !== undefined) return sessionChoice;
   try {
     const store = storage();
@@ -28,6 +60,11 @@ export function readRai2Mode(): Rai2OperatingMode {
 }
 
 export function setRai2Mode(mode: Rai2OperatingMode): void {
+  if (mode === "enterprise" && planSnapshot?.managed && !planSnapshot.enterpriseAccess) {
+    sessionChoice = "creator";
+    notify();
+    return;
+  }
   sessionChoice = mode;
   try {
     storage()?.setItem(RAI2_OPERATING_MODE_KEY, mode);
@@ -67,17 +104,42 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
+function getServerModeSnapshot(): string {
+  return "enterprise|1|none";
+}
+
+function getClientSnapshot(): string {
+  const mode = readRai2Mode();
+  const allowed = isEnterpriseVipEntitled(planSnapshot) ? "1" : "0";
+  const planKey = planSnapshot ? `${planSnapshot.planId}:${planSnapshot.trialThrough}` : "none";
+  return `${mode}|${allowed}|${planKey}`;
+}
+
 export function useRai2Mode(): {
   mode: Rai2OperatingMode;
   setMode: (mode: Rai2OperatingMode) => void;
   isEnterprise: boolean;
   isCreator: boolean;
+  enterpriseAllowed: boolean;
+  plan: Rai2PlanStatus | null;
+  trialDaysLeft: number | null;
 } {
-  const mode = useSyncExternalStore(subscribe, readRai2Mode, (): Rai2OperatingMode => "enterprise");
+  useSyncExternalStore(subscribe, getClientSnapshot, getServerModeSnapshot);
+  const enterpriseAllowed = isEnterpriseVipEntitled(planSnapshot);
+  const mode: Rai2OperatingMode = enterpriseAllowed ? readRai2Mode() : "creator";
+  const trialDaysLeft =
+    planSnapshot?.planId === "trial" && planSnapshot.trialThrough > Date.now()
+      ? Math.max(1, Math.ceil((planSnapshot.trialThrough - Date.now()) / 86_400_000))
+      : null;
+
   return {
     mode,
     setMode: setRai2Mode,
-    isEnterprise: mode === "enterprise",
-    isCreator: mode === "creator",
+    isEnterprise: enterpriseAllowed && mode === "enterprise",
+    isCreator: !enterpriseAllowed || mode === "creator",
+    enterpriseAllowed,
+    plan: planSnapshot,
+    trialDaysLeft,
   };
 }
+

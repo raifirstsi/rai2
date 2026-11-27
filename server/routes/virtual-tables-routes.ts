@@ -1,10 +1,14 @@
 import { getDuckDbPool } from "../duckdb-pool.ts";
 import { getVirtualTableManager } from "../virtual-tables/index.ts";
 import { getBudgetGuard } from "../budget-guard.ts";
+import { requireEnterpriseVip } from "../rai2-entitlement.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export function createVirtualTablesRoutes(): RouteHandler {
   return async ({ req, res, path, method, auth, json, readBody }) => {
+    const isVtPath = path.startsWith("/api/tables/") || path.startsWith("/api/budget/");
+    if (!isVtPath) return PASS;
+    if (requireEnterpriseVip(res, json)) return;
     // 1. POST /api/tables/query - Sub-20ms DuckDB SQL query (admin only in multi-user workspaces)
     if (method === "POST" && path === "/api/tables/query") {
       if (!auth?.scopes.includes("admin")) {
