@@ -176,7 +176,6 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
         }
       }
       if (
-        !kept.id &&
         isEnterpriseBotRequest({
           id: kept.id,
           role: typeof body.role === "string" ? body.role : undefined,
@@ -210,7 +209,7 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
         return json(res, 409, { error: `this workspace is limited to ${MAX_WORKSPACE_BOTS} bots` });
       }
       const entSnap = getRai2EntitlementSnapshot();
-      if (!kept.id && typeof entSnap.maxBots === "number" && entSnap.maxBots > 0 && store.bots.length >= entSnap.maxBots) {
+      if (typeof entSnap.maxBots === "number" && entSnap.maxBots > 0 && store.bots.length >= entSnap.maxBots) {
         return json(res, 403, {
           error: `License Custom giới hạn tối đa ${entSnap.maxBots} bot. Liên hệ RAI² để mở rộng giới hạn.`,
           code: "CUSTOM_LICENSE_BOT_LIMIT",
