@@ -1,3 +1,4 @@
+import { fetchEnterpriseState, patchEnterpriseState, sendFridayPulseOnServer } from "@/lib/enterprise-state-client";
 import { useState, useMemo, useEffect } from "react";
 import {
   X,
@@ -17,7 +18,7 @@ import {
   formatFridayPulseMarkdown,
   getFridayPulseWebhookUrl,
   saveFridayPulseWebhookUrl,
-  sendFridayPulseWebhook,
+
   getLastSentFridayPulse,
   markFridayPulseReviewed,
 } from "@/lib/friday-pulse";
@@ -88,9 +89,18 @@ export function FridayPulseModal({
   }, [activeBotIds, tocDiagnosis, backlogCount, targetMargin]);
 
   useEffect(() => {
-    if (isOpen) {
-      markFridayPulseReviewed(report.weekDisplay);
-    }
+    if (!isOpen) return;
+    markFridayPulseReviewed(report.weekDisplay);
+    let alive = true;
+    void fetchEnterpriseState().then(({ state: ent }) => {
+      if (!alive || !ent) return;
+      if (ent.fridayPulse?.webhookUrl) setWebhookUrl(ent.fridayPulse.webhookUrl);
+      if (ent.fridayPulse?.lastSentAt && ent.fridayPulse?.lastSentWeek) {
+        setLastSent({ at: ent.fridayPulse.lastSentAt, week: ent.fridayPulse.lastSentWeek });
+      }
+    });
+    void patchEnterpriseState({ fridayPulse: { reviewedWeek: report.weekDisplay } });
+    return () => { alive = false; };
   }, [isOpen, report.weekDisplay]);
 
   const handleSendWebhook = async () => {
@@ -102,7 +112,13 @@ export function FridayPulseModal({
     saveFridayPulseWebhookUrl(webhookUrl);
     setWebhookStatus("sending");
     setWebhookFeedback(null);
-    const result = await sendFridayPulseWebhook(webhookUrl, report);
+    const result = await sendFridayPulseOnServer({
+      workspaceId: "default",
+      webhookUrl,
+      markdown: formatFridayPulseMarkdown(report),
+      weekDisplay: report.weekDisplay,
+      dispatchZalo: true,
+    });
     if (result.ok) {
       setWebhookStatus("success");
       setWebhookFeedback("Đã gửi báo cáo thành công tới Webhook!");

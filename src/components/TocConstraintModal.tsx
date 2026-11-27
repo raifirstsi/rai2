@@ -14,6 +14,7 @@ import {
   type TocDiagnosisResult,
 } from "@/lib/toc-detector";
 import { RAI2_DEPARTMENTS } from "@/lib/rai2-departments";
+import { fetchEnterpriseState, patchEnterpriseState } from "@/lib/enterprise-state-client";
 import { cn } from "@/lib/cn";
 
 export interface TocConstraintModalProps {
@@ -57,11 +58,26 @@ export function TocConstraintModal({
 
   const diagnosis: TocDiagnosisResult = diagnoseBusinessConstraint(input);
 
+  const [tocHydrated, setTocHydrated] = useState(false);
+
   useEffect(() => {
-    if (isOpen) {
-      saveTocDiagnosis(diagnosis);
+    if (!isOpen) {
+      setTocHydrated(false);
+      return;
     }
-  }, [isOpen, diagnosis]);
+    let alive = true;
+    void fetchEnterpriseState().finally(() => {
+      if (alive) setTocHydrated(true);
+    });
+    return () => { alive = false; };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && tocHydrated) {
+      saveTocDiagnosis(diagnosis);
+      void patchEnterpriseState({ tocDiagnosis: diagnosis });
+    }
+  }, [isOpen, tocHydrated, diagnosis]);
 
   if (!isOpen) return null;
 

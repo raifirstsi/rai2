@@ -1,4 +1,4 @@
-import { useState, useMemo, useId } from "react";
+import { useEffect, useState, useMemo, useId } from "react";
 import {
   X,
   TrendingUp,
@@ -9,6 +9,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { fetchEnterpriseState, patchEnterpriseState } from "@/lib/enterprise-state-client";
+import { api } from "@/state/store";
 import {
   computeFiveLeversCompounding,
   formatVndCurrency,
@@ -53,6 +55,16 @@ export function FiveLeversModal({
     return computeFiveLeversCompounding(input, improvements);
   }, [input, improvements]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    void fetchEnterpriseState().then(({ state: ent }) => {
+      if (!alive || !ent?.fiveLevers?.input) return;
+      setInput((prev) => ({ ...prev, ...(ent.fiveLevers!.input as Partial<FiveLeversInput>) }));
+    });
+    return () => { alive = false; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSyncTargetMarginToVault = () => {
@@ -94,8 +106,28 @@ export function FiveLeversModal({
         );
       }
       saveContextVaultToStorage(vault);
+      void patchEnterpriseState({
+        contextVault: { pillars: vault },
+        marginGuard: { minThresholdPct: targetGrossMargin },
+        fiveLevers: {
+          input: input as unknown as Record<string, unknown>,
+          targetGrossMargin,
+        },
+      });
+      void api("/api/roi/calculate", {
+        method: "POST",
+        body: JSON.stringify({
+          totalInvestmentVnd: 50_000_000,
+          monthlyAIOpexVnd: 2_000_000,
+          hoursSavedPerDay: 4,
+          hourlyLaborCostVnd: 65_000,
+          incrementalMonthlyRevenueVnd: Math.max(10_000_000, targetGrossMargin * 1_000_000),
+          averageGrossMarginPercent: targetGrossMargin,
+          leakagePreventionMonthlyVnd: 6_000_000,
+        }),
+      }).catch(() => {});
 
-      setSyncTargetStatus(`✓ Đã đồng bộ biên LN sàn ${targetGrossMargin}% vào Két Sắt & Dấu Vân Tay!`);
+      setSyncTargetStatus(`✓ Đã đồng bộ biên LN sàn ${targetGrossMargin}% lên Server, Két Sắt & Margin Guard!`);
       setTimeout(() => setSyncTargetStatus(null), 3500);
     } catch (err) {
       console.error("Sync target margin error:", err);

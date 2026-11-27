@@ -1,3 +1,6 @@
+import { loadSavedContextVault } from "@/lib/context-vault";
+import { patchEnterpriseState } from "@/lib/enterprise-state-client";
+import { api } from "@/state/store";
 import { useState, useEffect } from "react";
 import {
   X,
@@ -145,8 +148,18 @@ export function VoiceToSopModal({
         definitionOfDone: editDod.trim() || extractedSop.definitionOfDone,
       };
 
-      // 1. Save into Context Vault localStorage & trigger storage event
+      // 1. Save into Context Vault (both local cache & server Enterprise state)
       saveSopToVault(finalizedSop);
+      const savedVault = loadSavedContextVault();
+      if (savedVault) {
+        await patchEnterpriseState({ contextVault: { pillars: savedVault } });
+      }
+      if (/\d+/.test(rawText)) {
+        void api("/api/voice/handoff", {
+          method: "POST",
+          body: JSON.stringify({ workspaceId: "default", transcript: rawText, sessionId: `sop_${Date.now()}` }),
+        }).catch(() => {});
+      }
 
       // 2. Optionally sync into relevant enterprise bots' memory/sops.md (skip free bots)
       const targetBots = (state.bots || []).filter(isEnterpriseBot);
