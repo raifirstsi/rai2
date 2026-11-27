@@ -98,7 +98,7 @@ export function AutonomyGraduationModal({
     ? Math.min(100, Math.round((currentProfile.consecutiveCleanStreak / currentProfile.graduationTargetStreak) * 100))
     : 0;
 
-  const handleSimulateOutcome = (outcome: "APPROVED" | "EDITED" | "REJECTED") => {
+  const handleSimulateOutcome = async (outcome: "APPROVED" | "EDITED" | "REJECTED") => {
     if (!currentProfile) return;
     const result = recordTaskOutcome(
       currentProfile,
@@ -113,11 +113,21 @@ export function AutonomyGraduationModal({
     };
     setProfiles(updatedMap);
     saveAutonomyProfiles(updatedMap);
-    void recordAutonomyOnServer(currentProfile.botId, result.updatedProfile);
-    setActionNotice(result.message);
+    const srv = await recordAutonomyOnServer(currentProfile.botId, result.updatedProfile);
+    if (srv.evalResult && srv.evalResult.passed === false) {
+      setActionNotice(
+        `⚠️ EvalsRunner chấm thực tế: ${srv.evalResult.totalScore ?? 0}/${srv.evalResult.maxScore ?? 21} điểm (${srv.evalResult.summary ?? "Chưa đủ tương tác thực tế"}). Promotion Gate chưa cấp quyền Tự trị.`,
+      );
+    } else if (srv.evalResult?.passed) {
+      setActionNotice(
+        `✅ EvalsRunner đạt ${srv.evalResult.totalScore ?? 0}/${srv.evalResult.maxScore ?? 21} điểm — Promotion Gate đã cấp quyền Tự trị (${srv.promotionResult?.status ?? "promoted"}).`,
+      );
+    } else {
+      setActionNotice(result.message);
+    }
   };
 
-  const handleManualSetTier = (tier: AutonomyTier) => {
+  const handleManualSetTier = async (tier: AutonomyTier) => {
     if (!currentProfile) return;
     const updated: BotAutonomyProfile = {
       ...currentProfile,
@@ -131,8 +141,14 @@ export function AutonomyGraduationModal({
     };
     setProfiles(updatedMap);
     saveAutonomyProfiles(updatedMap);
-    void recordAutonomyOnServer(updated.botId, updated);
-    setActionNotice(`Đã đồng bộ Server & chuyển bot ${updated.botName} sang ${AUTONOMY_TIERS[tier].name}.`);
+    const srv = await recordAutonomyOnServer(updated.botId, updated);
+    if (tier === "TIER_3_AUTONOMOUS" && srv.evalResult && srv.evalResult.passed === false) {
+      setActionNotice(
+        `⚠️ Đã lưu cấu hình, nhưng EvalsRunner chấm thực tế ${srv.evalResult.totalScore ?? 0}/${srv.evalResult.maxScore ?? 21} (${srv.evalResult.summary ?? "Cần hội thoại thực tế"}). Promotion Gate đang giữ ở ${srv.promotionResult?.status ?? "evaluating"}.`,
+      );
+    } else {
+      setActionNotice(`Đã đồng bộ Server & chuyển bot ${updated.botName} sang ${AUTONOMY_TIERS[tier].name}.`);
+    }
   };
 
   return (
