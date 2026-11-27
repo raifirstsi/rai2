@@ -15,6 +15,7 @@ export interface Rai2PlanEntitlement {
   paidThrough: number;
   trialThrough: number;
   checkedAt: number;
+  maxBots?: number;
   upgradeUrl?: string;
 }
 
@@ -223,6 +224,7 @@ export function getRai2EntitlementSnapshot(env: NodeJS.ProcessEnv = runtime.env)
         enterpriseAccess: true,
         paidThrough: verified.payload.expiresAt,
         trialThrough: 0,
+        ...(typeof verified.payload.maxBots === "number" ? { maxBots: verified.payload.maxBots } : {}),
         checkedAt: now,
       };
     }
