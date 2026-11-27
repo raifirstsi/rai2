@@ -2346,3 +2346,63 @@ h2 {
           margin: 0 auto !important;
         }
       }
+
+/* AgenticOS Showcase Section */
+.agenticos-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  background: rgba(0, 153, 255, 0.12);
+  color: var(--blue);
+  border: 1px solid rgba(0, 153, 255, 0.25);
+}
+.agenticos-cta-bar {
+  margin-top: 28px;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.agenticos-cta-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.agenticos-cta-copy strong {
+  color: var(--ink);
+  font-size: 16px;
+}
+.agenticos-cta-copy span {
+  color: var(--muted, #64748b);
+  font-size: 14px;
+}
+.agenticos-cta-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+@media (max-width: 768px) {
+  .agenticos-cta-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px 16px;
+  }
+  .agenticos-cta-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .agenticos-cta-actions .button {
+    width: 100%;
+    text-align: center;
+  }
+}
