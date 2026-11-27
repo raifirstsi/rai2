@@ -571,4 +571,30 @@ describe("RAI2 SaaS control plane", () => {
     expect((await f.call(`/api/orders/${order.id}`, "GET", undefined, cookie)).body.status).toBe("paid");
     expect((await f.call("/api/me", "GET", undefined, cookie)).body.paidThrough).toBe(nextMonthlyDate(f.now()));
   });
+
+  it("does not oscillate an idle trial workspace between activate and suspend across reconcile cycles", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-saas-idle-"));
+    const store = new SaasStore(join(dir, "saas.db"));
+    try {
+      const start = 1_700_000_000_000;
+      const idleMs = 86_400_000;
+      store.createSession("idle@example.test", "hash-idle", start, { maxWorkspaces: 10 });
+      const acc = store.accountForSession("hash-idle", start)!;
+      store.setWorkspaceState(acc.id, "active");
+
+      // After idleMs elapses while trial is still valid -> suspends once
+      const later = start + idleMs + 1000;
+      const firstActions = store.pendingWorkspaceActions(later, idleMs);
+      expect(firstActions).toHaveLength(1);
+      expect(firstActions[0].action).toBe("suspend");
+      store.setWorkspaceState(acc.id, "suspended");
+
+      // Subsequent reconcile ticks must remain no-op (must NOT re-activate)
+      expect(store.pendingWorkspaceActions(later + 30_000, idleMs)).toHaveLength(0);
+      expect(store.pendingWorkspaceActions(later + 60_000, idleMs)).toHaveLength(0);
+    } finally {
+      store.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
