@@ -85,6 +85,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
   const [tab, setTab] = useState<ActiveTab>("pulse");
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Quick Record Tx state
   const [txOrder, setTxOrder] = useState("ORD-NEW-01");
@@ -231,16 +232,21 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
   const handleSaveScheduler = async () => {
     setBusy(true);
+    setErrorMsg(null);
     try {
       const resp = await fetch("/api/pulse/scheduler/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: schedEnabled, zaloToId }),
       });
-      const data = (await resp.json()) as { success?: boolean };
-      if (data.success) {
-        setStatusMsg("Đã lưu cấu hình Lịch tự hành 17:00 & Cảnh báo Zalo.");
+      const data = (await resp.json()) as { success?: boolean; error?: string };
+      if (!resp.ok || !data.success) {
+        setErrorMsg(data.error || "Không thể lưu cấu hình lịch 17:00 (cần quyền Admin).");
+        return;
       }
+      setStatusMsg("Đã lưu cấu hình Lịch tự hành 17:00 & Cảnh báo Zalo.");
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Lỗi kết nối máy chủ.");
     } finally {
       setBusy(false);
     }
@@ -319,8 +325,12 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
       const promoData = (await promoResp.json()) as {
         success?: boolean;
         promoted?: boolean;
+        error?: string;
         record?: { status: string };
       };
+      if (!promoResp.ok) {
+        setErrorMsg(promoData.error || "Không thể cấp quyền bot (cần quyền Admin).");
+      }
       if (evalData.evalResult) {
         setEvalSummary(
           `Điểm sát hạch: ${evalData.evalResult.totalScore}/21 | Trạng thái Promotion Gate: ${promoData.record?.status || (promoData.promoted ? "promoted" : "quarantined")}`
@@ -385,7 +395,11 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
           status: "signed",
         }),
       });
-      const signData = (await signResp.json()) as { record?: { consentHash: string } };
+      const signData = (await signResp.json()) as { record?: { consentHash: string }; error?: string };
+      if (!signResp.ok) {
+        setErrorMsg(signData.error || "Chỉ Quản trị viên / Giám đốc mới có quyền ký duyệt Merkle.");
+        return;
+      }
       const chainResp = await fetch("/api/artifacts/consent/chain");
       const chainData = (await chainResp.json()) as { valid?: boolean; length?: number };
       setConsentInfo(
@@ -494,6 +508,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                   onClick={() => {
                     setTab(id);
                     setStatusMsg(null);
+                    setErrorMsg(null);
                   }}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
                     tab === id ? "bg-accent text-white" : "text-ink-secondary hover:bg-raised hover:text-ink"
@@ -506,6 +521,12 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
             </div>
 
             <div className="flex-1 space-y-4 overflow-y-auto p-5 text-sm">
+              {errorMsg && (
+                <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+                  <AlertTriangle size={14} />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
               {statusMsg && (
                 <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
                   <CheckCircle2 size={14} />
