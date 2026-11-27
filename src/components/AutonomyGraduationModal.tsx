@@ -21,6 +21,7 @@ import {
 } from "@/lib/autonomy-graduation";
 import { isEnterpriseBot } from "@/lib/rai2-departments";
 import { cn } from "@/lib/cn";
+import { fetchEnterpriseState, recordAutonomyOnServer } from "@/lib/enterprise-state-client";
 
 export interface AutonomyGraduationModalProps {
   isOpen: boolean;
@@ -79,6 +80,16 @@ export function AutonomyGraduationModal({
     return profiles[selectedBotId] || (enterpriseBots.length > 0 ? profiles[enterpriseBots[0].id] : undefined);
   }, [profiles, selectedBotId, enterpriseBots]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    void fetchEnterpriseState().then(({ state: ent }) => {
+      if (!alive || !ent?.autonomyProfiles) return;
+      setProfiles((prev) => ({ ...prev, ...ent.autonomyProfiles }));
+    });
+    return () => { alive = false; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const currentTierMeta = currentProfile ? AUTONOMY_TIERS[currentProfile.currentTier] : AUTONOMY_TIERS.TIER_1_APPRENTICE;
@@ -102,6 +113,7 @@ export function AutonomyGraduationModal({
     };
     setProfiles(updatedMap);
     saveAutonomyProfiles(updatedMap);
+    void recordAutonomyOnServer(currentProfile.botId, result.updatedProfile);
     setActionNotice(result.message);
   };
 
@@ -119,7 +131,8 @@ export function AutonomyGraduationModal({
     };
     setProfiles(updatedMap);
     saveAutonomyProfiles(updatedMap);
-    setActionNotice(`Đã chuyển bot ${updated.botName} sang ${AUTONOMY_TIERS[tier].name}.`);
+    void recordAutonomyOnServer(updated.botId, updated);
+    setActionNotice(`Đã đồng bộ Server & chuyển bot ${updated.botName} sang ${AUTONOMY_TIERS[tier].name}.`);
   };
 
   return (

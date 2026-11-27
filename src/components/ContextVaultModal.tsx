@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
 import { loadSavedTocDiagnosis } from "@/lib/toc-detector";
+import { fetchEnterpriseState, patchEnterpriseState } from "@/lib/enterprise-state-client";
 import { buildBotMemoryBundle, mergeMemoryWithCustomNotes } from "@/lib/role-context-router";
 import { saveMemoryDoc, fetchMemoryDoc } from "@/lib/memory";
 import { evaluateDataReadiness } from "@/lib/data-readiness";
@@ -106,6 +107,21 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
   }, [contents]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    void fetchEnterpriseState().then(({ state: ent }) => {
+      if (!alive || !ent) return;
+      if (ent.contextVault?.pillars && Object.keys(ent.contextVault.pillars).length > 0) {
+        setContents((prev) => ({ ...prev, ...ent.contextVault!.pillars }));
+      }
+      if (typeof ent.contextVault?.hardGateLocked === "boolean") {
+        setIsHardGateLocked(ent.contextVault.hardGateLocked);
+      }
+    });
+    return () => { alive = false; };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen && canEdit) {
       saveContextVaultToStorage(contents);
     }
@@ -129,6 +145,7 @@ export const ContextVaultModal: React.FC<ContextVaultModalProps> = ({
     setSyncStatus(null);
     try {
       saveContextVaultToStorage(contents);
+      await patchEnterpriseState({ contextVault: { pillars: contents, hardGateLocked: isHardGateLocked } });
       const toc = loadSavedTocDiagnosis();
       let count = 0;
       const enterpriseBots = (state.bots || []).filter(isEnterpriseBot);

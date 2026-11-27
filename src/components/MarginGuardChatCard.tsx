@@ -1,3 +1,4 @@
+import { approveMarginExceptionOnServer } from "@/lib/enterprise-state-client";
 import { useEffect, useState, useMemo } from "react";
 import { ShieldAlert, Check, TrendingUp, CheckCircle2 } from "lucide-react";
 import {
@@ -36,7 +37,7 @@ export function MarginGuardChatCard({
   const metrics = useMemo(() => extractQuoteMetricsFromText(text), [text]);
 
   const handleApprove = () => {
-    saveMarginApproval(messageId);
+    void approveMarginExceptionOnServer({ messageId, note: "Approved from chat card" }); saveMarginApproval(messageId);
     setApproval({ approvedAt: new Date().toISOString() });
     if (onApproveException) {
       onApproveException(messageId);

@@ -162,6 +162,7 @@ interface ChatRows {
   dispatch: Dispatch<Action>;
   onBranch: (messageId: string) => boolean;
   onExtractSop?: (text: string) => void;
+  enterpriseActive?: boolean;
   onOpenMarginGuard?: (metrics: { price?: number; costs?: number }) => void;
   onApproveMarginException?: (messageId: string) => void;
   conversational: boolean; simple?: boolean; canReact: boolean;
@@ -374,7 +375,7 @@ const Bubble = memo(function Bubble({
   replyTarget?: Message;
   onReply: (message: Message) => void;
 }) {
-  const { botId, threadId, botName, voiceId, tts, localVoice, bots, mentionPeers, mentionPerson, focus, dispatch, onBranch, bubbleStyle, conversational, simple, canReact, openedAt, speakerViewer, onExtractSop, onOpenMarginGuard, onApproveMarginException } = useChatRows(), busy = onRegenerate || versions ? use(ChatBusyContext) : false;
+  const { botId, threadId, botName, voiceId, tts, localVoice, bots, mentionPeers, mentionPerson, focus, dispatch, onBranch, bubbleStyle, conversational, simple, canReact, openedAt, speakerViewer, onExtractSop, onOpenMarginGuard, onApproveMarginException, enterpriseActive } = useChatRows(), busy = onRegenerate || versions ? use(ChatBusyContext) : false;
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const peer = peerLine(message) ?? peerRequest(message, botId);
   const user = message.role === "user" && !peer;
@@ -608,7 +609,7 @@ const Bubble = memo(function Bubble({
               {group && <AttachmentGallery images={group.images} files={group.files} originals={group.originals} message={{ threadId, messageId: message.id }} eager={eagerAttachments} beneath />}
             </MessageBoundary>
           )}
-          {!user && isMarginGuardAlert(text) && (
+          {enterpriseActive && !user && isMarginGuardAlert(text) && (
             <MarginGuardChatCard
               messageId={message.id}
               text={text}
@@ -1010,7 +1011,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       canReact: canWrite !== false,
       openedAt,
       speakerViewer,
-      onExtractSop: (sourceText: string) => setSopSourceText(sourceText),
+      enterpriseActive: rai2EnterpriseActive,
+      onExtractSop: rai2EnterpriseActive ? (sourceText: string) => setSopSourceText(sourceText) : undefined,
       onOpenMarginGuard: (metrics: { price?: number; costs?: number }) =>
         setMarginGuardModalData({ isOpen: true, price: metrics.price, costs: metrics.costs }),
       onApproveMarginException: () => {

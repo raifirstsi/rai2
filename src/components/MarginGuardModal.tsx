@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/cn";
+import { useEffect } from "react";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
+import { approveMarginExceptionOnServer, fetchEnterpriseState, patchEnterpriseState } from "@/lib/enterprise-state-client";
 import {
   X,
   ShieldCheck,
@@ -35,6 +37,16 @@ export function MarginGuardModal({
   const [proposedPrice, setProposedPrice] = useState<number>(initialPrice);
   const [directCosts, setDirectCosts] = useState<number>(initialCosts);
   const [minThreshold, setMinThreshold] = useState<number>(DEFAULT_MIN_MARGIN_THRESHOLD_PCT);
+  useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    void fetchEnterpriseState().then(({ state: ent }) => {
+      if (alive && typeof ent?.marginGuard?.minThresholdPct === "number") {
+        setMinThreshold(ent.marginGuard.minThresholdPct);
+      }
+    });
+    return () => { alive = false; };
+  }, [isOpen]);
   const [copied, setCopied] = useState(false);
 
   const evaluation = useMemo(() => {
@@ -153,7 +165,7 @@ export function MarginGuardModal({
               step="5"
               value={minThreshold}
               disabled={!canEditThreshold}
-              onChange={(e) => canEditThreshold && setMinThreshold(Number(e.target.value))}
+              onChange={(e) => { if (canEditThreshold) { const v = Number(e.target.value); setMinThreshold(v); void patchEnterpriseState({ marginGuard: { minThresholdPct: v } }); } }}
               className={cn("w-full accent-accent", canEditThreshold ? "cursor-pointer" : "cursor-not-allowed opacity-60")}
             />
             <div className="flex justify-between text-[10px] text-ink-tertiary">
@@ -243,7 +255,7 @@ export function MarginGuardModal({
               <button
                 type="button"
                 onClick={() => {
-                  onApplyPrice(evaluation.recommendedMinPrice);
+                  void approveMarginExceptionOnServer({ messageId: `modal_${Date.now()}`, proposedPrice, directCosts, marginPct: evaluation.grossMarginPct, note: `Apply min price ${evaluation.recommendedMinPrice}` }); onApplyPrice(evaluation.recommendedMinPrice);
                   setProposedPrice(evaluation.recommendedMinPrice);
                 }}
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-medium text-white hover:bg-accent/90 transition-colors shadow-sm w-full sm:w-auto"

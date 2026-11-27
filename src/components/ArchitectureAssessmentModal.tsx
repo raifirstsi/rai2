@@ -26,6 +26,8 @@ import {
   MaturityResult,
 } from "@/lib/ai-maturity";
 import { cn } from "@/lib/cn";
+import { fetchEnterpriseState, patchEnterpriseState } from "@/lib/enterprise-state-client";
+import { api } from "@/state/store";
 
 export interface ArchitectureAssessmentModalProps {
   isOpen: boolean;
@@ -104,9 +106,42 @@ export function ArchitectureAssessmentModal({
     saveMaturityAnswers(nextAnswers);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    void fetchEnterpriseState().then(({ state: ent }) => {
+      if (!alive || !ent?.architectureAssessment) return;
+      if (Array.isArray(ent.architectureAssessment.tasks)) {
+        setTasks(ent.architectureAssessment.tasks as ArchitectureTask[]);
+      }
+      if (ent.architectureAssessment.answers) {
+        setAnswers(ent.architectureAssessment.answers);
+      }
+    });
+    return () => { alive = false; };
+  }, [isOpen]);
+
   const handleSaveAll = () => {
     saveTargetArchitecture(tasks);
     saveMaturityAnswers(answers);
+    const totalScore = Object.values(answers).reduce((acc, v) => acc + (Number(v) || 0), 0);
+    void patchEnterpriseState({
+      architectureAssessment: { tasks, answers, totalScore, maxScore: 21 },
+    });
+    void api("/api/bots/evals/run", {
+      method: "POST",
+      body: JSON.stringify({
+        botId: "enterprise-architecture",
+        botName: "Kiến trúc Doanh nghiệp RAI²",
+        interactions: [
+          {
+            userPrompt: "Sát hạch kiến trúc 7 Vùng",
+            botResponse: `Điểm trưởng thành hiện tại: ${totalScore}/21`,
+            toolsCalled: ["architecture_audit"],
+          },
+        ],
+      }),
+    }).catch(() => {});
     setSaveSuccess(true);
     setTimeout(() => {
       setSaveSuccess(false);
