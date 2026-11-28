@@ -696,6 +696,18 @@ export class EnterpriseTeamOrchestrator {
       }
 
       // Execute / checkpoint step
+      if (step.kind === "agent_task" && step.assigneeBotId) {
+        const taskRec = this.createTask(
+          {
+            title: `[DAG] ${wf.name}: ${step.title}`,
+            zone: step.zone || wf.scopeZone,
+            assignedBotId: step.assigneeBotId,
+            assignedBotName: step.assigneeBotId,
+          },
+          actor,
+        );
+        this.updateTaskProgress(taskRec.id, { status: "completed", progressPct: 100, deliverable: notes || `Hoàn tất bước DAG ${step.title}` }, actor);
+      }
       run.hopCount += 1;
       run.spentUsd = Number((run.spentUsd + 0.02).toFixed(4));
       run.stepCheckpoints[step.id] = {

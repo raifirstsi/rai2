@@ -12263,6 +12263,26 @@ ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: (
       return null;
     }
   },
+  runOmnichannelBotTurn: async ({ botId, platform, channelGroupId, senderEmail, senderName, text, effectiveTier }) => {
+    try {
+      const targetBot = store.bot(botId) ?? store.bots.find((b) => isEnterpriseRuntimeBot(b)) ?? store.bots[0];
+      if (!targetBot) return null;
+      const threadId = targetBot.threadId;
+      const taggedPrompt = `[${platform.toUpperCase()} Group ${channelGroupId} · Scope=${effectiveTier.toUpperCase()}] ${senderName}: ${text}`;
+      const beforeCount = store.messagesFor(threadId).length;
+      const sender = senderEmail ? ({ name: senderName, email: senderEmail } as unknown as { name: string }) : { name: senderName };
+      const outcome = startTurn(targetBot.id, taggedPrompt, { threadId, sender });
+      await Promise.race([
+        outcome,
+        new Promise((resolve) => setTimeout(resolve, 25_000)),
+      ]);
+      const after = store.messagesFor(threadId).slice(beforeCount);
+      const reply = after.findLast((m) => m.role === "bot" && m.kind === "text" && typeof m.text === "string");
+      return reply?.text ?? null;
+    } catch {
+      return null;
+    }
+  },
   offboardPersonalBot: (botId) => {
     try {
       store.patchBot(botId, { visibility: "admins" });

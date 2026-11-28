@@ -55,6 +55,15 @@ export interface EnterpriseStateRouteDeps {
   provisionPersonalBot?: (input: { email: string; name: string; zone?: string; botName: string; namespace: string }) => { id: string; name: string } | null;
   offboardPersonalBot?: (botId: string) => void;
   reactivatePersonalBot?: (botId: string, email: string) => void;
+  runOmnichannelBotTurn?: (opts: {
+    botId: string;
+    platform: string;
+    channelGroupId: string;
+    senderEmail?: string;
+    senderName: string;
+    text: string;
+    effectiveTier: string;
+  }) => Promise<string | null>;
   fetchImpl?: typeof fetch;
 }
 
@@ -140,8 +149,36 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         messageText: text,
         replyToExternalId: msgId,
       });
-      if (secCheck.telegramBotToken && resMsg.outboundReply) {
-        void gw.dispatchTelegramReply(secCheck.telegramBotToken, chatId, resMsg.outboundReply, msgId);
+      let finalReply = resMsg.outboundReply;
+      if (resMsg.allowed && resMsg.reason !== "identity_bound" && deps?.runOmnichannelBotTurn) {
+        try {
+          const chCfg = Object.values(gw.getStateMasked().channels).find((c) => c.platform === "telegram" && c.groupId === chatId);
+          const aiReply = await deps.runOmnichannelBotTurn({
+            botId: chCfg?.botId || "enterprise-group-bot",
+            platform: "telegram",
+            channelGroupId: chatId,
+            senderEmail: resMsg.senderEmail,
+            senderName: body.message?.from?.first_name || body.message?.from?.username || fromId,
+            text: resMsg.sanitizedInboundText,
+            effectiveTier: resMsg.effectiveTier,
+          });
+          if (aiReply && aiReply.trim()) {
+            const gov = getEnterpriseGovernanceStore().getState();
+            const outDlp = scanAndRedactText(aiReply.trim(), {
+              dlpEnabled: gov.constitution.dlpEnabled,
+              censorshipEnabled: gov.constitution.censorshipEnabled,
+              forbiddenTopics: gov.constitution.forbiddenTopics,
+              blockOnForbiddenTopic: false,
+              auditActor: chCfg?.botName || "telegram-bot",
+              auditAction: "enterprise.omnichannel_outbound_dlp",
+            });
+            finalReply = outDlp.sanitizedText;
+            resMsg.outboundReply = finalReply;
+          }
+        } catch {}
+      }
+      if (secCheck.telegramBotToken && finalReply) {
+        void gw.dispatchTelegramReply(secCheck.telegramBotToken, chatId, finalReply, msgId);
       }
       return json(res, 200, { ok: true, result: resMsg });
     }
