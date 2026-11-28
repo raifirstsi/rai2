@@ -150,7 +150,7 @@ export function EnterpriseTeamPanel() {
 
   const handleTaskAction = async (
     taskId: string,
-    payload: { action?: "progress" | "approved" | "rejected"; status?: WorkStatus; progressPct?: number; deliverable?: string; notes?: string },
+    payload: { action?: "progress" | "approved" | "rejected"; status?: WorkStatus; progressPct?: number; deliverable?: string; blockerReason?: string; notes?: string },
   ) => {
     setBusy(true);
     setMsg(null);
@@ -359,12 +359,17 @@ export function EnterpriseTeamPanel() {
                     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", badge.cls)}>{badge.label} ({t.progressPct}%)</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-tertiary">
-                    <span>Zone: <strong>{t.zone}</strong> Â· Thá»±c hiá»‡n: {t.assignedBotName}{t.leadBotId ? ` Â· Duyá»‡t: ${t.leadBotId}` : ""}</span>
+                    <span>Zone: <strong>{t.zone}</strong> Â· Thá»±c hiá»‡n: {t.assignedBotName}{t.leadBotId ? ` Â· Duyá»‡t: ${t.leadBotId}` : ""}{t.reviewedBy ? ` Â· ÄÃ£ duyá»‡t: ${t.reviewedBy}` : ""}{t.blockerReason ? ` Â· Káº¹t: ${t.blockerReason}` : ""}</span>
                     <div className="flex gap-1.5">
                       {t.status === "in_progress" && (
-                        <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "review_needed", progressPct: 95, deliverable: "HoÃ n táº¥t theo SOP" })} className="rounded-md bg-amber-500/15 px-2 py-0.5 font-medium text-amber-600">
-                          Ná»™p duyá»‡t
-                        </button>
+                        <>
+                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "review_needed", progressPct: 95, deliverable: "HoÃ n táº¥t theo SOP" })} className="rounded-md bg-amber-500/15 px-2 py-0.5 font-medium text-amber-600">
+                            Ná»™p duyá»‡t
+                          </button>
+                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "blocked", blockerReason: "Cáº§n TrÆ°á»Ÿng phÃ²ng há»— trá»£ thÃ¡o gá»¡" })} className="rounded-md bg-danger/15 px-2 py-0.5 font-medium text-danger">
+                            BÃ¡o káº¹t
+                          </button>
+                        </>
                       )}
                       {t.status === "review_needed" && (
                         <>

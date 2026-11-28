@@ -9,7 +9,7 @@ import { getPromotionGate } from "../promotion-gate.ts";
 import { getPulseScheduler } from "../pulse-scheduler.ts";
 import { getEnterpriseGovernanceStore, ROLE_DEFAULT_MAX_TIER, type DataClassificationTier, type EmployeeRole } from "../enterprise-governance.ts";
 import { scanAndRedactText } from "../enterprise-dlp.ts";
-import { getEnterpriseBrainStore, type KnowledgeKind, type PromotionStatus } from "../enterprise-brain.ts";
+import { getEnterpriseBrainStore, matchesZone, type KnowledgeKind, type PromotionStatus } from "../enterprise-brain.ts";
 import { getEnterpriseTeamOrchestrator, type DagWorkflowStep, type WorkItemStatus, type WorkPriority } from "../enterprise-team.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
@@ -758,25 +758,39 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     }
 
     // â”€â”€ Phase 3: Hierarchical Team Orchestration, DAG Workflows & Proactive Escalations â”€â”€
+    const getTeamActor = () => {
+      const isAdmin = Boolean(auth?.scopes.includes("admin"));
+      const actorEmail = (auth?.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const canApprove = isAdmin || emp?.role === "manager" || emp?.role === "owner";
+      const actor = actorEmail || (isAdmin ? "admin" : "employee");
+      return { isAdmin, actorEmail, emp, canApprove, actor };
+    };
+    const scopedTeam = (ctx: ReturnType<typeof getTeamActor>) =>
+      getEnterpriseTeamOrchestrator().getScopedState({
+        isAdmin: ctx.isAdmin,
+        employeeZone: ctx.emp?.zone,
+        employeeEmail: ctx.actorEmail,
+      });
+    const hasZoneAccess = (ctx: ReturnType<typeof getTeamActor>, targetZone?: string): boolean => {
+      if (ctx.isAdmin) return true;
+      if (!targetZone || targetZone.trim().toLowerCase() === "all") return true;
+      return matchesZone(targetZone, ctx.emp?.zone);
+    };
+
     if (method === "GET" && path === "/api/enterprise/team") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
       if (rejectOffboardedSession()) return;
-      const isAdmin = auth.scopes.includes("admin");
-      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
-      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
-      const team = getEnterpriseTeamOrchestrator().getScopedState({
-        isAdmin,
-        employeeZone: emp?.zone,
-        employeeEmail: actorEmail,
-      });
-      return json(res, 200, { team });
+      const ctx = getTeamActor();
+      return json(res, 200, { team: scopedTeam(ctx) });
     }
 
     if (method === "POST" && path === "/api/enterprise/team/tasks") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
       if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
       const body = (await readBody(req)) as {
         title?: string;
         description?: string;
@@ -789,15 +803,18 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         dueAt?: number;
         subtasks?: Array<{ title: string; description?: string; assignedBotId: string; assignedBotName?: string }>;
       };
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "manager";
       const orch = getEnterpriseTeamOrchestrator();
       if (body.parentTaskId && Array.isArray(body.subtasks) && body.subtasks.length > 0) {
-        const created = orch.delegateSubtasks(body.parentTaskId, body.subtasks, actor);
-        return json(res, 200, { success: true, subtasks: created, team: orch.getState() });
+        const parent = orch.getState().workItems[body.parentTaskId];
+        if (!parent) return json(res, 404, { error: "parent task not found" });
+        if (!hasZoneAccess(ctx, parent.zone)) return json(res, 403, { error: "cross_zone_denied" });
+        const created = orch.delegateSubtasks(body.parentTaskId, body.subtasks, ctx.actor);
+        return json(res, 200, { success: true, subtasks: created, team: scopedTeam(ctx) });
       }
       if (!body.title?.trim() || !body.assignedBotId?.trim()) {
         return json(res, 400, { error: "title and assignedBotId are required" });
       }
+      if (!hasZoneAccess(ctx, body.zone)) return json(res, 403, { error: "cross_zone_denied" });
       const task = orch.createTask(
         {
           title: body.title,
@@ -810,15 +827,16 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
           parentTaskId: body.parentTaskId,
           dueAt: body.dueAt,
         },
-        actor,
+        ctx.actor,
       );
-      return json(res, 200, { success: true, task, team: orch.getState() });
+      return json(res, 200, { success: true, task, team: scopedTeam(ctx) });
     }
 
     if (method === "POST" && path === "/api/enterprise/team/tasks/review") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
       if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
       const body = (await readBody(req)) as {
         taskId?: string;
         action?: "progress" | "approved" | "rejected";
@@ -829,25 +847,27 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         notes?: string;
       };
       if (!body.taskId) return json(res, 400, { error: "taskId is required" });
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "manager";
       const orch = getEnterpriseTeamOrchestrator();
+      const target = orch.getState().workItems[body.taskId];
+      if (!target) return json(res, 404, { error: "task not found" });
+      if (!hasZoneAccess(ctx, target.zone)) return json(res, 403, { error: "cross_zone_denied" });
       if (body.action === "approved" || body.action === "rejected") {
-        const updated = orch.reviewTeamTask(body.taskId, body.action, body.notes ?? "", actor);
-        if (!updated) return json(res, 404, { error: "task not found" });
-        return json(res, 200, { success: true, task: updated, team: orch.getState() });
+        if (!ctx.canApprove) return json(res, 403, { error: "manager_or_admin_required_to_review" });
+        const updated = orch.reviewTeamTask(body.taskId, body.action, body.notes ?? "", ctx.actor);
+        return json(res, 200, { success: true, task: updated, team: scopedTeam(ctx) });
       }
       const updated = orch.updateTaskProgress(
         body.taskId,
         { status: body.status, progressPct: body.progressPct, blockerReason: body.blockerReason, deliverable: body.deliverable },
-        actor,
+        ctx.actor,
       );
-      if (!updated) return json(res, 404, { error: "task not found" });
-      return json(res, 200, { success: true, task: updated, team: orch.getState() });
+      return json(res, 200, { success: true, task: updated, team: scopedTeam(ctx) });
     }
 
     if (method === "POST" && path === "/api/enterprise/team/workflows") {
       if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       if (requireEnterpriseVip(res, json)) return;
+      const ctx = getTeamActor();
       const body = (await readBody(req)) as {
         name?: string;
         description?: string;
@@ -861,7 +881,6 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       if (!body.name?.trim() || !Array.isArray(body.steps) || body.steps.length === 0) {
         return json(res, 400, { error: "name and steps[] are required" });
       }
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
       const orch = getEnterpriseTeamOrchestrator();
       const workflow = orch.createDagWorkflow(
         {
@@ -874,50 +893,63 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
           steps: body.steps,
           publish: body.publish ?? true,
         },
-        actor,
+        ctx.actor,
       );
-      return json(res, 200, { success: true, workflow, team: orch.getState() });
+      return json(res, 200, { success: true, workflow, team: scopedTeam(ctx) });
     }
 
     if (method === "POST" && path === "/api/enterprise/team/workflows/run") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
       if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
       const body = (await readBody(req)) as {
         workflowId?: string;
         runId?: string;
         action?: "continue" | "approve" | "reject";
         notes?: string;
       };
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "user";
       const orch = getEnterpriseTeamOrchestrator();
       if (body.runId) {
-        const run = orch.advanceDagRun(body.runId, body.action ?? "continue", actor, body.notes);
-        return json(res, 200, { success: true, run, team: orch.getState() });
+        const existingRun = orch.getState().dagRuns[body.runId];
+        if (!existingRun) return json(res, 404, { error: "dag run not found" });
+        if (!hasZoneAccess(ctx, existingRun.scopeZone)) return json(res, 403, { error: "cross_zone_denied" });
+        if ((body.action === "approve" || body.action === "reject") && !ctx.canApprove) {
+          return json(res, 403, { error: "manager_or_admin_required_to_approve" });
+        }
+        const run = orch.advanceDagRun(body.runId, body.action ?? "continue", ctx.actor, body.notes);
+        return json(res, 200, { success: true, run, team: scopedTeam(ctx) });
       }
       if (!body.workflowId) return json(res, 400, { error: "workflowId or runId is required" });
-      const run = orch.startDagRun(body.workflowId, actor);
-      return json(res, 200, { success: true, run, team: orch.getState() });
+      const wf = orch.getState().workflows[body.workflowId];
+      if (!wf) return json(res, 404, { error: "workflow not found" });
+      if (!hasZoneAccess(ctx, wf.scopeZone)) return json(res, 403, { error: "cross_zone_denied" });
+      const run = orch.startDagRun(body.workflowId, ctx.actor);
+      return json(res, 200, { success: true, run, team: scopedTeam(ctx) });
     }
 
     if (method === "POST" && path === "/api/enterprise/team/escalations/resolve") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
       if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
       const body = (await readBody(req)) as { id?: string; decision?: "approved" | "reassigned" | "dismissed"; note?: string };
       if (!body.id || !body.decision || !["approved", "reassigned", "dismissed"].includes(body.decision)) {
         return json(res, 400, { error: "valid id and decision are required" });
       }
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "manager";
       const orch = getEnterpriseTeamOrchestrator();
-      const card = orch.resolveEscalation(body.id, body.decision, actor, body.note);
-      if (!card) return json(res, 404, { error: "escalation not found" });
-      return json(res, 200, { success: true, escalation: card, team: orch.getState() });
+      const targetEsc = orch.getState().escalations[body.id];
+      if (!targetEsc) return json(res, 404, { error: "escalation not found" });
+      if (!hasZoneAccess(ctx, targetEsc.zone)) return json(res, 403, { error: "cross_zone_denied" });
+      if (!ctx.canApprove) return json(res, 403, { error: "manager_or_admin_required_to_resolve" });
+      const card = orch.resolveEscalation(body.id, body.decision, ctx.actor, body.note);
+      return json(res, 200, { success: true, escalation: card, team: scopedTeam(ctx) });
     }
 
     if (method === "POST" && path === "/api/enterprise/team/reminders") {
       if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       if (requireEnterpriseVip(res, json)) return;
+      const ctx = getTeamActor();
       const body = (await readBody(req)) as {
         title?: string;
         schedule?: "hourly" | "daily_0900" | "daily_1700" | "weekly_mon";
@@ -925,23 +957,22 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         targetChannel?: "dashboard" | "group_chat";
       };
       if (!body.title?.trim()) return json(res, 400, { error: "title is required" });
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
       const orch = getEnterpriseTeamOrchestrator();
       const reminder = orch.createReminder(
         { title: body.title, schedule: body.schedule, targetZone: body.targetZone, targetChannel: body.targetChannel },
-        actor,
+        ctx.actor,
       );
-      return json(res, 200, { success: true, reminder, team: orch.getState() });
+      return json(res, 200, { success: true, reminder, team: scopedTeam(ctx) });
     }
 
     if (method === "POST" && path === "/api/enterprise/team/sweep") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
       if (rejectOffboardedSession()) return;
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "scheduler";
+      const ctx = getTeamActor();
       const orch = getEnterpriseTeamOrchestrator();
-      const sweep = orch.runProactiveSweep(actor);
-      return json(res, 200, { success: true, sweep, team: orch.getState() });
+      const sweep = orch.runProactiveSweep(ctx.actor);
+      return json(res, 200, { success: true, sweep, team: scopedTeam(ctx) });
     }
 
     return PASS;

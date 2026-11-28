@@ -93,4 +93,26 @@ describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalati
     expect(sweep.openEscalations).toBe(1);
     expect(sweep.digestMarkdown).toContain("BÁO CÁO TIẾN ĐỘ ĐỘI NGŨ AI");
   });
+  it("breaks DAG cycle infinite loops via hopCount loop guard and creates escalation", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-cycle-"));
+    dirs.push(dir);
+    const team = new EnterpriseTeamOrchestrator(dir);
+    const wf = team.createDagWorkflow(
+      {
+        name: "DAG Cycle Test",
+        scopeZone: "Zone 2",
+        maxHops: 4,
+        steps: [
+          { id: "s1", title: "Step 1", kind: "agent_task", nextOnPass: "s2" },
+          { id: "s2", title: "Step 2", kind: "agent_task", nextOnPass: "s1" },
+        ],
+      },
+      "admin@co.vn",
+    );
+    const run = team.startDagRun(wf.id, "user@co.vn");
+    expect(run.status).toBe("failed");
+    expect(run.hopCount).toBe(4);
+    const esc = Object.values(team.getState().escalations).find((e) => e.kind === "loop_guard");
+    expect(esc?.status).toBe("open");
+  });
 });

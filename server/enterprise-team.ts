@@ -481,7 +481,15 @@ export class EnterpriseTeamOrchestrator {
       trigger: input.trigger ?? "manual",
       maxHops: Math.max(1, Math.min(30, input.maxHops ?? DEFAULT_DAG_MAX_HOPS)),
       budgetCapUsd: Math.max(0.1, Math.min(1000, input.budgetCapUsd ?? 10)),
-      steps: input.steps.slice(0, 20),
+      steps: input.steps.slice(0, 20).map((s, idx) => ({
+        id: (s.id || `step-${idx + 1}`).trim(),
+        title: scrubTeamText(s.title || `BÆ°á»›c ${idx + 1}`, actor).slice(0, 140),
+        kind: (["agent_task", "condition", "human_approval", "notify"].includes(s.kind) ? s.kind : "agent_task") as DagStepKind,
+        ...(s.assigneeBotId ? { assigneeBotId: s.assigneeBotId.trim() } : {}),
+        ...(s.zone ? { zone: s.zone.trim() } : {}),
+        ...(s.nextOnPass ? { nextOnPass: s.nextOnPass.trim() } : {}),
+        ...(s.nextOnFail ? { nextOnFail: s.nextOnFail.trim() } : {}),
+      })),
       status: input.publish ? "published" : "draft",
       createdBy: actor,
       createdAt: now,
@@ -574,9 +582,10 @@ export class EnterpriseTeamOrchestrator {
         break;
       }
 
-      // Idempotent checkpoint: skip already completed step
+      // Idempotent checkpoint: skip already completed step (still counts a hop to prevent cycle DoS)
       const existingCp = run.stepCheckpoints[step.id];
       if (existingCp?.status === "completed") {
+        run.hopCount += 1;
         run.currentStepId = step.nextOnPass ?? this.findNextSequentialStepId(wf.steps, step.id);
         continue;
       }
