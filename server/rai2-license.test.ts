@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { signRai2CustomLicense, verifyRai2CustomLicense } from "./rai2-license.ts";
 import { configureRai2Entitlement, getRai2EntitlementSnapshot } from "./rai2-entitlement.ts";
 import { createBotCreateRoutes } from "./routes/bots-create.ts";
+import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts";
 
 describe("RAI2 Custom On-Premise Ed25519 License", () => {
   const { publicKey, privateKey } = generateKeyPairSync("ed25519", {
@@ -119,6 +120,42 @@ describe("RAI2 Custom On-Premise Ed25519 License", () => {
     });
     expect(status).toBe(403);
     expect((body as { code: string }).code).toBe("ENTERPRISE_VIP_REQUIRED");
+  });
+
+  it("serves /api/custom/license-status to admins only and blocks non-admin members", async () => {
+    const route = createEnterpriseStateRoutes();
+    let status = 0;
+    let body: unknown = null;
+    await route({
+      req: {} as never,
+      res: {} as never,
+      path: "/api/custom/license-status",
+      method: "GET",
+      url: new URL("http://localhost/api/custom/license-status"),
+      auth: { kind: "session", session: { email: "member@abc.vn" }, scopes: ["read"] } as never,
+      readBody: async () => ({}),
+      json(_r: unknown, s: number, b: unknown) {
+        status = s;
+        body = b;
+      },
+    });
+    expect(status).toBe(403);
+
+    await route({
+      req: {} as never,
+      res: {} as never,
+      path: "/api/custom/license-status",
+      method: "GET",
+      url: new URL("http://localhost/api/custom/license-status"),
+      auth: { kind: "session", session: { email: "ceo@abc.vn" }, scopes: ["admin"] } as never,
+      readBody: async () => ({}),
+      json(_r: unknown, s: number, b: unknown) {
+        status = s;
+        body = b;
+      },
+    });
+    expect(status).toBe(200);
+    expect((body as { valid: boolean }).valid).toBeDefined();
   });
 
   it("unlocks Enterprise when RAI2_LICENSE_FILE holds a valid key signed by the embedded keypair", () => {

@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { getEnterpriseStateStore, type EnterpriseStatePatch } from "../enterprise-state.ts";
-import { requireEnterpriseVip } from "../rai2-entitlement.ts";
+import { getRai2EntitlementSnapshot, requireEnterpriseVip } from "../rai2-entitlement.ts";
+import { resolveCustomLicenseTokenFromEnv, verifyRai2CustomLicense } from "../rai2-license.ts";
 import { getBusinessPulseEngine } from "../business-pulse.ts";
 import { getWorkspaceAuditLedger } from "../agent/merkle-audit.ts";
 import { getEvalsRunner, type BotSampleInteraction } from "../evals-runner.ts";
@@ -50,6 +51,41 @@ export interface EnterpriseStateRouteDeps {
 
 export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): RouteHandler {
   return async ({ req, res, path, method, url, auth, json, readBody }) => {
+    // 0. GET /api/custom/license-status - Inspect active Custom On-Premise Ed25519 license metadata
+    if (method === "GET" && path === "/api/custom/license-status") {
+      if (!auth?.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required" });
+      }
+      const token = resolveCustomLicenseTokenFromEnv(process.env);
+      const snap = getRai2EntitlementSnapshot();
+      if (!token) {
+        return json(res, 200, {
+          customOnPrem: process.env.RAI2_CUSTOM_ONPREM === "1",
+          valid: snap.enterpriseAccess,
+          planId: snap.planId,
+          planName: snap.planName,
+          enterpriseAccess: snap.enterpriseAccess,
+        });
+      }
+      const verified = verifyRai2CustomLicense(token);
+      const daysRemaining = verified.payload?.expiresAt
+        ? Math.max(0, Math.ceil((verified.payload.expiresAt - Date.now()) / 86_400_000))
+        : 0;
+      return json(res, 200, {
+        customOnPrem: true,
+        valid: verified.valid,
+        reason: verified.reason,
+        licenseId: verified.payload?.licenseId,
+        customerName: verified.payload?.customerName,
+        expiresAt: verified.payload?.expiresAt,
+        daysRemaining,
+        renewWarning: verified.valid && daysRemaining <= 14,
+        maxBots: verified.payload?.maxBots,
+        allowedDomain: verified.payload?.allowedDomain,
+        enterpriseAccess: snap.enterpriseAccess,
+      });
+    }
+
     if (!path.startsWith("/api/enterprise/")) return PASS;
     if (requireEnterpriseVip(res, json)) return;
 
