@@ -72,5 +72,9 @@ describe("Enterprise Phase 5: Envelope Encryption, Key Rotation, Open Export & C
     // Tampered ciphertext must fail AES-GCM authTag verification
     const tampered = { ...exp.encryptedBackupPackage, ciphertext: exp.encryptedBackupPackage.ciphertext.slice(0, -4) + "ffff" };
     expect(mgr.verifyEncryptedBackupPackage(tampered).valid).toBe(false);
+    // Rotate DEK from v1 -> v2: v1 backup must STILL verify cleanly after rotation!
+    mgr.rotateTenantDek("default", "ceo@co.vn");
+    expect(mgr.verifyEncryptedBackupPackage(exp.encryptedBackupPackage).valid).toBe(true);
+    expect(() => mgr.sealTenantSecret("default", "__proto__", "bad", "ceo@co.vn")).toThrow();
   });
 });

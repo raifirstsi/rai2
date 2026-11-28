@@ -18,6 +18,7 @@ export interface TenantKeyRecord {
   tenantId: string;
   keyVersion: number;
   wrappedDek: string; // enc:kek:iv:tag:hex
+  previousWrappedDeks?: Record<number, string>;
   createdAt: number;
   rotatedAt: number;
   rotatedBy: string;
@@ -73,6 +74,7 @@ export interface CeoConsoleSnapshot {
     sealedSecretNames: string[];
     omnichannelCount: number;
     activeChannelBindings: number;
+    merkleIntegrityValid: boolean;
   };
   aiSpend: {
     totalCostUsd: number;
@@ -184,6 +186,13 @@ export class EnterpriseSovereigntyManager {
     return rec;
   }
 
+  private unwrapDekForVersion(rec: TenantKeyRecord, version: number): Buffer {
+    const wrapped = version === rec.keyVersion ? rec.wrappedDek : rec.previousWrappedDeks?.[version];
+    if (!wrapped) throw new Error(`Key version v${version} not found`);
+    const hex = decryptWithKey(wrapped, this.masterKek, "enc:kek");
+    return Buffer.from(hex, "hex");
+  }
+
   private unwrapDek(rec: TenantKeyRecord): Buffer {
     const hex = decryptWithKey(rec.wrappedDek, this.masterKek, "enc:kek");
     return Buffer.from(hex, "hex");
@@ -209,7 +218,9 @@ export class EnterpriseSovereigntyManager {
   public sealTenantSecret(tenantId: string, secretName: string, plaintext: string, actor = "admin"): void {
     tenantId = this.sanitizeTenantId(tenantId);
     const name = secretName.trim().slice(0, 100);
-    if (!name || !plaintext) throw new Error("secretName and plaintext are required");
+    if (!name || !plaintext || name === "__proto__" || name === "constructor" || name === "prototype") {
+      throw new Error("valid secretName and plaintext are required");
+    }
     const rec = this.ensureTenantKey(tenantId, actor);
     const dek = this.unwrapDek(rec);
     const now = Date.now();
@@ -225,6 +236,18 @@ export class EnterpriseSovereigntyManager {
       secretName: name,
       keyVersion: rec.keyVersion,
     });
+  }
+
+  public deleteTenantSecret(tenantId: string, secretName: string, actor = "admin"): boolean {
+    const tid = this.sanitizeTenantId(tenantId);
+    const name = secretName.trim();
+    const rec = this.state.tenants[tid];
+    if (!rec || !name || !(name in rec.encryptedSecrets)) return false;
+    delete rec.encryptedSecrets[name];
+    this.state.updatedAt = Date.now();
+    this.saveToDisk();
+    getWorkspaceAuditLedger().append(tid, actor, "enterprise.secret_deleted", { secretName: name });
+    return true;
   }
 
   public unsealTenantSecret(tenantId: string, secretName: string): string | null {
@@ -256,6 +279,14 @@ export class EnterpriseSovereigntyManager {
       count += 1;
     }
 
+    const prevMap = { ...rec.previousWrappedDeks, [rec.keyVersion]: rec.wrappedDek };
+    const keepVersions = Object.keys(prevMap)
+      .map(Number)
+      .sort((a, b) => b - a)
+      .slice(0, 10);
+    const trimmedPrev: Record<number, string> = {};
+    for (const v of keepVersions) trimmedPrev[v] = prevMap[v]!;
+    rec.previousWrappedDeks = trimmedPrev;
     rec.keyVersion = nextVersion;
     rec.wrappedDek = encryptWithKey(newDek.toString("hex"), this.masterKek, "enc:kek");
     rec.rotatedAt = now;
@@ -314,7 +345,8 @@ export class EnterpriseSovereigntyManager {
     });
 
     // Security & AI Spend telemetry from Merkle Audit
-    const auditRecs = getEnterpriseGovernanceStore().queryAuditTrail({ limit: 200 }).records;
+    const auditTrailRes = getEnterpriseGovernanceStore().queryAuditTrail({ limit: 2000 });
+    const auditRecs = auditTrailRes.records;
     let dlpEventsCount = 0;
     let confidentialReroutesCount = 0;
     let offboardBlocksCount = 0;
@@ -379,6 +411,7 @@ export class EnterpriseSovereigntyManager {
         sealedSecretNames: keyStatus.secretNames,
         omnichannelCount: Object.keys(omni.channels).length,
         activeChannelBindings: Object.values(omni.bindings).filter((b) => b.status === "active").length,
+        merkleIntegrityValid: auditTrailRes.integrity.valid,
       },
       aiSpend: {
         totalCostUsd: Number(totalCostUsd.toFixed(6)),
@@ -476,7 +509,7 @@ export class EnterpriseSovereigntyManager {
     try {
       const rec = this.state.tenants[this.sanitizeTenantId(pkg.tenantId)];
       if (!rec) return { valid: false };
-      const dek = this.unwrapDek(rec);
+      const dek = this.unwrapDekForVersion(rec, pkg.keyVersion);
       const plain = decryptWithKey(pkg.ciphertext, dek, `enc:dek:v${pkg.keyVersion}`);
       const parsed = JSON.parse(plain) as { schema?: string };
       return { valid: parsed.schema === "rai2-enterprise-open-export-v1", schema: parsed.schema };

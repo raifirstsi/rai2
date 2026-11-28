@@ -45,6 +45,7 @@ interface CeoConsoleSnap {
     sealedSecretNames: string[];
     omnichannelCount: number;
     activeChannelBindings: number;
+    merkleIntegrityValid: boolean;
   };
   aiSpend: {
     totalCostUsd: number;
@@ -139,6 +140,55 @@ export function EnterpriseCeoConsolePanel() {
     }
   };
 
+  const handleDeleteSecret = async (name: string) => {
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const resp = await fetch("/api/enterprise/sovereignty/secrets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secretName: name }),
+      });
+      const data = (await resp.json()) as { success?: boolean; error?: string };
+      if (!resp.ok || !data.success) {
+        setErr(data.error || "Không thể xóa secret.");
+        return;
+      }
+      setMsg(`Đã thu hồi secret "${name}".`);
+      void loadConsole();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleVerifyBackupFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const parsed = JSON.parse(await file.text()) as { tenantId?: string; keyVersion?: number; ciphertext?: string };
+      const resp = await fetch("/api/enterprise/sovereignty/verify-backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      const data = (await resp.json()) as { valid?: boolean; schema?: string };
+      if (!resp.ok || !data.valid) {
+        setErr("File backup không hợp lệ hoặc đã bị chỉnh sửa (AES-GCM AuthTag mismatch)!");
+        return;
+      }
+      setMsg(`Xác thực Backup thành công! Schema: ${data.schema} (AES-256-GCM nguyên vẹn).`);
+    } catch {
+      setErr("Tệp JSON không đúng định dạng .rai2enc.json.");
+    } finally {
+      e.target.value = "";
+      setBusy(false);
+    }
+  };
+
   const handleExport = async (format: "json" | "markdown" | "encrypted") => {
     setBusy(true);
     setMsg(null);
@@ -199,7 +249,7 @@ export function EnterpriseCeoConsolePanel() {
             <div className="rounded-xl border border-hairline/40 bg-card p-3">
               <div className="text-[11px] text-ink-tertiary">Bảo mật & Chi phí LLM</div>
               <div className="mt-1 text-lg font-bold text-ink">${snap.aiSpend.totalCostUsd.toFixed(4)}</div>
-              <div className="text-[10px] text-ink-tertiary">DLP: {snap.security.dlpEventsCount} · Local Reroute: {snap.security.confidentialReroutesCount}</div>
+              <div className="text-[10px] text-ink-tertiary">DLP: {snap.security.dlpEventsCount} · Merkle: {snap.security.merkleIntegrityValid ? "Nguyên vẹn" : "Lỗi Hash"}</div>
             </div>
           </div>
 
@@ -252,7 +302,19 @@ export function EnterpriseCeoConsolePanel() {
               </button>
             </form>
             <div className="text-[11px] text-ink-tertiary">
-              Đã mã hóa {snap.security.sealedSecretsCount} secrets: {snap.security.sealedSecretNames.join(", ") || "Chưa có"} · Kênh chat: {snap.security.omnichannelCount} ({snap.security.activeChannelBindings} nhân sự đã định danh).
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span>Đã mã hóa {snap.security.sealedSecretsCount} secrets:</span>
+                {snap.security.sealedSecretNames.length === 0 ? (
+                  <span>Chưa có</span>
+                ) : (
+                  snap.security.sealedSecretNames.map((n) => (
+                    <span key={n} className="inline-flex items-center gap-1 rounded bg-inset px-1.5 py-0.5 text-ink">
+                      <code>{n}</code>
+                      <button type="button" onClick={() => void handleDeleteSecret(n)} className="text-danger hover:underline">×</button>
+                    </span>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
@@ -270,6 +332,10 @@ export function EnterpriseCeoConsolePanel() {
               <button type="button" disabled={busy} onClick={() => void handleExport("encrypted")} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-1.5 font-medium text-emerald-600 hover:bg-emerald-500/25">
                 <Lock size={13} /> Sao lưu Mã hóa DEK (.rai2enc.json)
               </button>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-hairline/40 bg-inset px-3 py-1.5 font-medium text-ink hover:bg-control">
+                <ShieldCheck size={13} /> Kiểm chứng Backup (.rai2enc.json)
+                <input type="file" accept=".json" onChange={(e) => void handleVerifyBackupFile(e)} className="hidden" />
+              </label>
             </div>
           </div>
         </>

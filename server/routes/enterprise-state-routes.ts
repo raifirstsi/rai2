@@ -1243,6 +1243,32 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       });
     }
 
+    if (method === "DELETE" && path === "/api/enterprise/sovereignty/secrets") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string; secretName?: string };
+      if (!body.secretName?.trim()) return json(res, 400, { error: "secretName is required" });
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const mgr = getEnterpriseSovereigntyManager();
+      const deleted = mgr.deleteTenantSecret(body.tenantId || "default", body.secretName, actor);
+      return json(res, 200, { success: deleted, keyStatus: mgr.getKeyStatusMasked(body.tenantId || "default") });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/sovereignty/verify-backup") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string; keyVersion?: number; ciphertext?: string };
+      if (!body.ciphertext || typeof body.keyVersion !== "number") {
+        return json(res, 400, { error: "keyVersion and ciphertext are required" });
+      }
+      const resVerify = getEnterpriseSovereigntyManager().verifyEncryptedBackupPackage({
+        tenantId: body.tenantId || "default",
+        keyVersion: body.keyVersion,
+        ciphertext: body.ciphertext,
+      });
+      return json(res, 200, resVerify);
+    }
+
     if (method === "GET" && path === "/api/enterprise/sovereignty/export") {
       if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       if (requireEnterpriseVip(res, json)) return;
