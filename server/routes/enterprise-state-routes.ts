@@ -12,6 +12,7 @@ import { scanAndRedactText } from "../enterprise-dlp.ts";
 import { getEnterpriseBrainStore, matchesZone, type KnowledgeKind, type PromotionStatus } from "../enterprise-brain.ts";
 import { getEnterpriseTeamOrchestrator, type DagWorkflowStep, type WorkItemStatus, type WorkPriority } from "../enterprise-team.ts";
 import { getEnterpriseOmnichannelGateway, type ChannelPlatform } from "../enterprise-omnichannel.ts";
+import { getEnterpriseSovereigntyManager } from "../enterprise-sovereignty.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 function isSafeWebhookUrl(raw: string): URL | null {
@@ -1201,6 +1202,61 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
           employeeEmail: actorEmail,
         }),
       });
+    }
+
+    // ── Phase 5: Per-Tenant Envelope Encryption, Key Rotation, Open Export & CEO Console ──
+    if (method === "GET" && path === "/api/enterprise/ceo-console") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const tenantId = url.searchParams.get("tenantId") || "default";
+      const consoleSnap = getEnterpriseSovereigntyManager().buildCeoConsoleSnapshot(tenantId);
+      return json(res, 200, { console: consoleSnap });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/sovereignty/secrets") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string; secretName?: string; plaintext?: string };
+      if (!body.secretName?.trim() || !body.plaintext) {
+        return json(res, 400, { error: "secretName and plaintext are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const mgr = getEnterpriseSovereigntyManager();
+      mgr.sealTenantSecret(body.tenantId || "default", body.secretName, body.plaintext, actor);
+      return json(res, 200, {
+        success: true,
+        keyStatus: mgr.getKeyStatusMasked(body.tenantId || "default"),
+      });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/sovereignty/rotate-key") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string };
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const mgr = getEnterpriseSovereigntyManager();
+      const rotated = mgr.rotateTenantDek(body.tenantId || "default", actor);
+      return json(res, 200, {
+        success: true,
+        rotated,
+        keyStatus: mgr.getKeyStatusMasked(body.tenantId || "default"),
+      });
+    }
+
+    if (method === "GET" && path === "/api/enterprise/sovereignty/export") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const tenantId = url.searchParams.get("tenantId") || "default";
+      const format = url.searchParams.get("format") || "json";
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const bundle = getEnterpriseSovereigntyManager().buildOpenExportBundle(tenantId, actor);
+      if (format === "markdown") {
+        return json(res, 200, { format: "markdown", content: bundle.markdownBundle });
+      }
+      if (format === "encrypted") {
+        return json(res, 200, { format: "encrypted", package: bundle.encryptedBackupPackage });
+      }
+      return json(res, 200, { format: "json", bundle: bundle.jsonBundle });
     }
 
     return PASS;
