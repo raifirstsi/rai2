@@ -11,6 +11,7 @@ import { getEnterpriseGovernanceStore, ROLE_DEFAULT_MAX_TIER, type DataClassific
 import { scanAndRedactText } from "../enterprise-dlp.ts";
 import { getEnterpriseBrainStore, matchesZone, type KnowledgeKind, type PromotionStatus } from "../enterprise-brain.ts";
 import { getEnterpriseTeamOrchestrator, type DagWorkflowStep, type WorkItemStatus, type WorkPriority } from "../enterprise-team.ts";
+import { getEnterpriseOmnichannelGateway, type ChannelPlatform } from "../enterprise-omnichannel.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 function isSafeWebhookUrl(raw: string): URL | null {
@@ -99,6 +100,40 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         allowedDomain: verified.payload?.allowedDomain,
         enterpriseAccess: snap.enterpriseAccess,
       });
+    }
+
+    if (method === "POST" && path === "/api/webhooks/telegram-enterprise") {
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        message?: {
+          message_id?: number;
+          text?: string;
+          chat?: { id?: number | string };
+          from?: { id?: number | string; username?: string; first_name?: string };
+          reply_to_message?: { message_id?: number };
+        };
+      };
+      const chatId = body.message?.chat?.id !== undefined ? String(body.message.chat.id) : "";
+      const fromId = body.message?.from?.id !== undefined ? String(body.message.from.id) : "";
+      const text = body.message?.text ?? "";
+      if (!chatId || !fromId || !text.trim()) {
+        return json(res, 200, { ok: true, ignored: true });
+      }
+      const gw = getEnterpriseOmnichannelGateway();
+      const ch = Object.values(gw.getStateMasked().channels).find((c) => c.platform === "telegram" && c.groupId === chatId);
+      const headerSecret = String(req.headers["x-telegram-bot-api-secret-token"] ?? "");
+      if (ch?.webhookSecret && !headerSecret) {
+        return json(res, 403, { error: "missing_telegram_webhook_secret" });
+      }
+      const resMsg = gw.processInboundMessage({
+        platform: "telegram",
+        channelGroupId: chatId,
+        externalUserId: fromId,
+        externalDisplayName: body.message?.from?.first_name || body.message?.from?.username || fromId,
+        messageText: text,
+        replyToExternalId: body.message?.reply_to_message?.message_id ? String(body.message.reply_to_message.message_id) : undefined,
+      });
+      return json(res, 200, { ok: true, result: resMsg });
     }
 
     if (!path.startsWith("/api/enterprise/")) return PASS;
@@ -599,6 +634,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         },
         actor,
       );
+      getEnterpriseOmnichannelGateway().revokeBindingsForEmployee(offboarded.email, actor);
       const teamOrch = getEnterpriseTeamOrchestrator();
       for (const t of Object.values(teamOrch.getState().workItems)) {
         if (
@@ -772,6 +808,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         governance: getEnterpriseGovernanceStore().getState(),
         brain: getEnterpriseBrainStore().getState(),
         team: getEnterpriseTeamOrchestrator().getState(),
+        omnichannel: getEnterpriseOmnichannelGateway().getStateMasked(),
       };
       getWorkspaceAuditLedger().append("default", actor, "enterprise.data_exported", {
         employees: Object.keys(payload.governance.employees).length,
@@ -1001,6 +1038,132 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       const orch = getEnterpriseTeamOrchestrator();
       const sweep = orch.runProactiveSweep(ctx.actor);
       return json(res, 200, { success: true, sweep, team: scopedTeam(ctx) });
+    }
+
+    // ── Phase 4: Omnichannel Group Chat (Zalo, Telegram, WhatsApp, Discord) ──
+    if (method === "GET" && path === "/api/enterprise/omnichannel") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const omnichannel = getEnterpriseOmnichannelGateway().getScopedStateMasked({
+        isAdmin,
+        employeeZone: emp?.zone,
+        employeeEmail: actorEmail,
+      });
+      return json(res, 200, { omnichannel });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/channels") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        id?: string;
+        platform?: ChannelPlatform;
+        name?: string;
+        groupId?: string;
+        botId?: string;
+        botName?: string;
+        scopeZone?: string;
+        maxChannelTier?: DataClassificationTier;
+        allowExternalGuests?: boolean;
+        telegramBotToken?: string;
+        discordWebhookUrl?: string;
+        webhookSecret?: string;
+        enabled?: boolean;
+      };
+      if (!body.platform || !body.name?.trim() || !body.groupId?.trim()) {
+        return json(res, 400, { error: "platform, name, and groupId are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const channel = getEnterpriseOmnichannelGateway().upsertChannel(
+        {
+          id: body.id,
+          platform: body.platform,
+          name: body.name,
+          groupId: body.groupId,
+          botId: body.botId,
+          botName: body.botName,
+          scopeZone: body.scopeZone,
+          maxChannelTier: body.maxChannelTier,
+          allowExternalGuests: body.allowExternalGuests,
+          telegramBotToken: body.telegramBotToken,
+          discordWebhookUrl: body.discordWebhookUrl,
+          webhookSecret: body.webhookSecret,
+          enabled: body.enabled,
+        },
+        actor,
+      );
+      return json(res, 200, { success: true, channel, omnichannel: getEnterpriseOmnichannelGateway().getStateMasked() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/bind/request") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { employeeEmail?: string; platform?: ChannelPlatform };
+      const isAdmin = auth.scopes.includes("admin");
+      const sessionEmail = auth.kind === "session" ? auth.session.email : undefined;
+      const targetEmail = isAdmin && body.employeeEmail ? body.employeeEmail : sessionEmail;
+      if (!targetEmail || !targetEmail.includes("@") || !body.platform) {
+        return json(res, 400, { error: "valid employeeEmail and platform are required" });
+      }
+      const challenge = getEnterpriseOmnichannelGateway().issueBindingOtp(targetEmail, body.platform, sessionEmail || "admin");
+      return json(res, 200, { success: true, challenge, omnichannel: getEnterpriseOmnichannelGateway().getStateMasked() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/bind/verify") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { code?: string; externalUserId?: string; externalDisplayName?: string };
+      if (!body.code || !body.externalUserId) {
+        return json(res, 400, { error: "code and externalUserId are required" });
+      }
+      const binding = getEnterpriseOmnichannelGateway().verifyBindingOtp(body.code, body.externalUserId, body.externalDisplayName);
+      if (!binding) return json(res, 400, { error: "invalid_or_expired_otp" });
+      return json(res, 200, { success: true, binding, omnichannel: getEnterpriseOmnichannelGateway().getStateMasked() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/ingest") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as {
+        platform?: ChannelPlatform;
+        channelGroupId?: string;
+        externalUserId?: string;
+        externalDisplayName?: string;
+        messageText?: string;
+        botMaxTier?: DataClassificationTier;
+        replyToExternalId?: string;
+      };
+      if (!body.platform || !body.channelGroupId || !body.externalUserId || !body.messageText?.trim()) {
+        return json(res, 400, { error: "platform, channelGroupId, externalUserId, and messageText are required" });
+      }
+      const result = getEnterpriseOmnichannelGateway().processInboundMessage({
+        platform: body.platform,
+        channelGroupId: body.channelGroupId,
+        externalUserId: body.externalUserId,
+        externalDisplayName: body.externalDisplayName,
+        messageText: body.messageText,
+        botMaxTier: body.botMaxTier,
+        replyToExternalId: body.replyToExternalId,
+      });
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      return json(res, 200, {
+        success: result.allowed,
+        result,
+        omnichannel: getEnterpriseOmnichannelGateway().getScopedStateMasked({
+          isAdmin,
+          employeeZone: emp?.zone,
+          employeeEmail: actorEmail,
+        }),
+      });
     }
 
     return PASS;
