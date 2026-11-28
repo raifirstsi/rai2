@@ -4,6 +4,7 @@ import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 import { getBusinessPulseEngine } from "./business-pulse.ts";
 import { getEnterpriseGovernanceStore, resolveSensitivityModelRoute, type DataClassificationTier } from "./enterprise-governance.ts";
 import { getEnterpriseBrainStore } from "./enterprise-brain.ts";
+import { getEnterpriseTeamOrchestrator, type WorkItemStatus } from "./enterprise-team.ts";
 import { scanAndRedactText, type DlpScanResult } from "./enterprise-dlp.ts";
 
 export interface EnterpriseBotLike {
@@ -173,6 +174,24 @@ export function buildEnterprisePromptSection(
           brain.knowledge
             .map((k) => `- [${k.kind}] ${sanitizePromptField(k.title, 120)}: ${sanitizePromptField(k.content, 400)}`)
             .join("\n"),
+      );
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  try {
+    const activeTasks = getEnterpriseTeamOrchestrator().getAwarenessSummaryForBot(bot?.section);
+    if (activeTasks.length > 0) {
+      parts.push(
+        "### Báº¢NG PHá»I Há»¢P CÃ”NG VIá»†C LIÃŠN BOT (CROSS-BOT AWARENESS)\n" +
+          activeTasks
+            .map(
+              (t) =>
+                `- [${t.id}] (${t.zone} Â· ${t.status} Â· ${t.progressPct}%) ${sanitizePromptField(t.title, 100)} â€” Phá»¥ trÃ¡ch: ${sanitizePromptField(t.assignedBotName, 60)}${t.blockerReason ? ` | Káº¹t: ${sanitizePromptField(t.blockerReason, 120)}` : ""}`,
+            )
+            .join("\n") +
+          '\n- CÃ³ thá»ƒ cáº­p nháº­t tiáº¿n Ä‘á»™ báº±ng `[WORK_UPDATE: taskId="..." status="in_progress|review_needed|blocked" progress=80 note="..."]` hoáº·c bÃ¡o kháº©n báº±ng `[ESCALATE: title="..." summary="..." zone="..."]`.',
       );
     }
   } catch {
@@ -515,11 +534,62 @@ export function autoProposeDecisionFromBotReply(
  * Removes internal machine-readable tags ([PULSE_RECORD:...], [DECISION_PROPOSE:...], [KNOWLEDGE_PROPOSE:...])
  * from visible bot replies after server-side extraction completes.
  */
+const WORK_UPDATE_TAG_RE = /\[WORK_UPDATE:\s*taskId="([^"]{3,80})"\s+status="(in_progress|review_needed|blocked|completed)"(?:\s+progress=(\d{1,3}))?(?:\s+note="([^"]{1,500})")?\s*\]/i;
+const ESCALATE_TAG_RE = /\[ESCALATE:\s*title="([^"]{3,180})"\s+summary="([^"]{3,500})"(?:\s+zone="([^"]{1,80})")?\s*\]/i;
+
+export function autoHandleTeamTagsFromBotReply(
+  replyText: string,
+  botSection?: string,
+  actor = "enterprise-bot",
+): { updatedTaskId?: string; escalationId?: string } {
+  const out: { updatedTaskId?: string; escalationId?: string } = {};
+  const wm = replyText.match(WORK_UPDATE_TAG_RE);
+  if (wm) {
+    const taskId = wm[1]?.trim();
+    const status = wm[2]?.trim() as WorkItemStatus;
+    const progressPct = wm[3] ? Number.parseInt(wm[3], 10) : undefined;
+    const note = wm[4]?.trim();
+    if (taskId) {
+      try {
+        const updated = getEnterpriseTeamOrchestrator().updateTaskProgress(
+          taskId,
+          {
+            status,
+            progressPct,
+            ...(status === "blocked" && note ? { blockerReason: note } : {}),
+            ...(status !== "blocked" && note ? { deliverable: note } : {}),
+          },
+          actor,
+        );
+        if (updated) out.updatedTaskId = updated.id;
+      } catch {}
+    }
+  }
+  const em = replyText.match(ESCALATE_TAG_RE);
+  if (em) {
+    const title = em[1]?.trim();
+    const summary = em[2]?.trim();
+    const zone = em[3]?.trim() || botSection || "all";
+    if (title && summary) {
+      try {
+        const card = getEnterpriseTeamOrchestrator().createEscalation(
+          { kind: "blocker", title, summaryLines: [summary], zone },
+          actor,
+        );
+        out.escalationId = card.id;
+      } catch {}
+    }
+  }
+  return out;
+}
+
 export function stripEnterpriseControlTags(replyText: string): string {
   return replyText
     .replace(new RegExp(PULSE_DEAL_TAG_RE.source, "gi"), "")
     .replace(new RegExp(DECISION_TAG_RE.source, "gi"), "")
     .replace(new RegExp(KNOWLEDGE_TAG_RE.source, "gi"), "")
+    .replace(new RegExp(WORK_UPDATE_TAG_RE.source, "gi"), "")
+    .replace(new RegExp(ESCALATE_TAG_RE.source, "gi"), "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

@@ -1,4 +1,5 @@
 import { EnterpriseBrainPanel } from "./EnterpriseBrainPanel";
+import { EnterpriseTeamPanel } from "./EnterpriseTeamPanel";
 import { EnterpriseGovernancePanel } from "./EnterpriseGovernancePanel";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -67,7 +68,7 @@ interface BudgetStatus {
   arbitrageEnabled: boolean;
 }
 
-type ActiveTab = "pulse" | "roi" | "evals" | "tables" | "governance" | "brain";
+type ActiveTab = "pulse" | "roi" | "evals" | "tables" | "governance" | "brain" | "team";
 
 function triggerDownload(filename: string, content: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
@@ -824,6 +825,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
               {tab === "governance" && <EnterpriseGovernancePanel />}
               {tab === "brain" && <EnterpriseBrainPanel />}
+              {tab === "team" && <EnterpriseTeamPanel />}
 
               {tab === "tables" && (
                 <div className="space-y-4">

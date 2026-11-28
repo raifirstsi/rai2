@@ -10,6 +10,7 @@ import { getPulseScheduler } from "../pulse-scheduler.ts";
 import { getEnterpriseGovernanceStore, ROLE_DEFAULT_MAX_TIER, type DataClassificationTier, type EmployeeRole } from "../enterprise-governance.ts";
 import { scanAndRedactText } from "../enterprise-dlp.ts";
 import { getEnterpriseBrainStore, type KnowledgeKind, type PromotionStatus } from "../enterprise-brain.ts";
+import { getEnterpriseTeamOrchestrator, type DagWorkflowStep, type WorkItemStatus, type WorkPriority } from "../enterprise-team.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 function isSafeWebhookUrl(raw: string): URL | null {
@@ -745,6 +746,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         exportedBy: actor,
         governance: getEnterpriseGovernanceStore().getState(),
         brain: getEnterpriseBrainStore().getState(),
+        team: getEnterpriseTeamOrchestrator().getState(),
       };
       getWorkspaceAuditLedger().append("default", actor, "enterprise.data_exported", {
         employees: Object.keys(payload.governance.employees).length,
@@ -753,6 +755,193 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         handovers: Object.keys(payload.brain.handovers).length,
       });
       return json(res, 200, payload);
+    }
+
+    // â”€â”€ Phase 3: Hierarchical Team Orchestration, DAG Workflows & Proactive Escalations â”€â”€
+    if (method === "GET" && path === "/api/enterprise/team") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const team = getEnterpriseTeamOrchestrator().getScopedState({
+        isAdmin,
+        employeeZone: emp?.zone,
+        employeeEmail: actorEmail,
+      });
+      return json(res, 200, { team });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/tasks") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as {
+        title?: string;
+        description?: string;
+        zone?: string;
+        priority?: WorkPriority;
+        assignedBotId?: string;
+        assignedBotName?: string;
+        leadBotId?: string;
+        parentTaskId?: string;
+        dueAt?: number;
+        subtasks?: Array<{ title: string; description?: string; assignedBotId: string; assignedBotName?: string }>;
+      };
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "manager";
+      const orch = getEnterpriseTeamOrchestrator();
+      if (body.parentTaskId && Array.isArray(body.subtasks) && body.subtasks.length > 0) {
+        const created = orch.delegateSubtasks(body.parentTaskId, body.subtasks, actor);
+        return json(res, 200, { success: true, subtasks: created, team: orch.getState() });
+      }
+      if (!body.title?.trim() || !body.assignedBotId?.trim()) {
+        return json(res, 400, { error: "title and assignedBotId are required" });
+      }
+      const task = orch.createTask(
+        {
+          title: body.title,
+          description: body.description,
+          zone: body.zone,
+          priority: body.priority,
+          assignedBotId: body.assignedBotId,
+          assignedBotName: body.assignedBotName,
+          leadBotId: body.leadBotId,
+          parentTaskId: body.parentTaskId,
+          dueAt: body.dueAt,
+        },
+        actor,
+      );
+      return json(res, 200, { success: true, task, team: orch.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/tasks/review") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as {
+        taskId?: string;
+        action?: "progress" | "approved" | "rejected";
+        status?: WorkItemStatus;
+        progressPct?: number;
+        blockerReason?: string;
+        deliverable?: string;
+        notes?: string;
+      };
+      if (!body.taskId) return json(res, 400, { error: "taskId is required" });
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "manager";
+      const orch = getEnterpriseTeamOrchestrator();
+      if (body.action === "approved" || body.action === "rejected") {
+        const updated = orch.reviewTeamTask(body.taskId, body.action, body.notes ?? "", actor);
+        if (!updated) return json(res, 404, { error: "task not found" });
+        return json(res, 200, { success: true, task: updated, team: orch.getState() });
+      }
+      const updated = orch.updateTaskProgress(
+        body.taskId,
+        { status: body.status, progressPct: body.progressPct, blockerReason: body.blockerReason, deliverable: body.deliverable },
+        actor,
+      );
+      if (!updated) return json(res, 404, { error: "task not found" });
+      return json(res, 200, { success: true, task: updated, team: orch.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/workflows") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        name?: string;
+        description?: string;
+        scopeZone?: string;
+        trigger?: "manual" | "schedule" | "event";
+        maxHops?: number;
+        budgetCapUsd?: number;
+        steps?: DagWorkflowStep[];
+        publish?: boolean;
+      };
+      if (!body.name?.trim() || !Array.isArray(body.steps) || body.steps.length === 0) {
+        return json(res, 400, { error: "name and steps[] are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const orch = getEnterpriseTeamOrchestrator();
+      const workflow = orch.createDagWorkflow(
+        {
+          name: body.name,
+          description: body.description,
+          scopeZone: body.scopeZone,
+          trigger: body.trigger,
+          maxHops: body.maxHops,
+          budgetCapUsd: body.budgetCapUsd,
+          steps: body.steps,
+          publish: body.publish ?? true,
+        },
+        actor,
+      );
+      return json(res, 200, { success: true, workflow, team: orch.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/workflows/run") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as {
+        workflowId?: string;
+        runId?: string;
+        action?: "continue" | "approve" | "reject";
+        notes?: string;
+      };
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "user";
+      const orch = getEnterpriseTeamOrchestrator();
+      if (body.runId) {
+        const run = orch.advanceDagRun(body.runId, body.action ?? "continue", actor, body.notes);
+        return json(res, 200, { success: true, run, team: orch.getState() });
+      }
+      if (!body.workflowId) return json(res, 400, { error: "workflowId or runId is required" });
+      const run = orch.startDagRun(body.workflowId, actor);
+      return json(res, 200, { success: true, run, team: orch.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/escalations/resolve") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { id?: string; decision?: "approved" | "reassigned" | "dismissed"; note?: string };
+      if (!body.id || !body.decision || !["approved", "reassigned", "dismissed"].includes(body.decision)) {
+        return json(res, 400, { error: "valid id and decision are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "manager";
+      const orch = getEnterpriseTeamOrchestrator();
+      const card = orch.resolveEscalation(body.id, body.decision, actor, body.note);
+      if (!card) return json(res, 404, { error: "escalation not found" });
+      return json(res, 200, { success: true, escalation: card, team: orch.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/reminders") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        title?: string;
+        schedule?: "hourly" | "daily_0900" | "daily_1700" | "weekly_mon";
+        targetZone?: string;
+        targetChannel?: "dashboard" | "group_chat";
+      };
+      if (!body.title?.trim()) return json(res, 400, { error: "title is required" });
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const orch = getEnterpriseTeamOrchestrator();
+      const reminder = orch.createReminder(
+        { title: body.title, schedule: body.schedule, targetZone: body.targetZone, targetChannel: body.targetChannel },
+        actor,
+      );
+      return json(res, 200, { success: true, reminder, team: orch.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/sweep") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "scheduler";
+      const orch = getEnterpriseTeamOrchestrator();
+      const sweep = orch.runProactiveSweep(actor);
+      return json(res, 200, { success: true, sweep, team: orch.getState() });
     }
 
     return PASS;
