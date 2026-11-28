@@ -15,6 +15,8 @@ export interface OrgDecisionRecord {
   effectiveFrom: string; // ISO date
   proposedBy: string;
   approvedBy?: string;
+  deprecatedBy?: string;
+  deprecatedAt?: number;
   sourceRef?: string;
   createdAt: number;
   updatedAt: number;
@@ -31,6 +33,8 @@ export interface OrgKnowledgeEntry {
   authorEmail: string;
   status: PromotionStatus;
   approvedBy?: string;
+  deprecatedBy?: string;
+  deprecatedAt?: number;
   sourceRef?: string;
   usageCount: number;
   createdAt: number;
@@ -154,6 +158,9 @@ export class EnterpriseBrainStore {
     const scopeZone = (input.scopeZone ?? "all").trim() || "all";
     const cleanTitle = scrubBrainText(input.title, actor).slice(0, 180);
     const cleanSummary = scrubBrainText(input.summary, actor).slice(0, 1500);
+    if (!cleanTitle || !cleanSummary) {
+      throw new Error("Decision title and summary must not be empty");
+    }
     const sourceRef = input.sourceRef?.trim().slice(0, 200);
     const dup = Object.values(this.state.decisions).find(
       (d) =>
@@ -200,6 +207,7 @@ export class EnterpriseBrainStore {
       ...existing,
       status,
       ...(status === "approved" ? { approvedBy: actor } : {}),
+      ...(status === "deprecated" ? { deprecatedBy: actor, deprecatedAt: now } : {}),
       updatedAt: now,
     };
     this.state.decisions[id] = updated;
@@ -226,6 +234,9 @@ export class EnterpriseBrainStore {
     const scopeZone = (input.scopeZone ?? "all").trim() || "all";
     const cleanTitle = scrubBrainText(input.title, actor).slice(0, 180);
     const cleanContent = scrubBrainText(input.content, actor).slice(0, 4000);
+    if (!cleanTitle || !cleanContent) {
+      throw new Error("Knowledge title and content must not be empty");
+    }
     const sourceRef = input.sourceRef?.trim().slice(0, 200);
     const dup = Object.values(this.state.knowledge).find(
       (k) =>
@@ -273,6 +284,7 @@ export class EnterpriseBrainStore {
       ...existing,
       status,
       ...(status === "approved" ? { approvedBy: actor } : {}),
+      ...(status === "deprecated" ? { deprecatedBy: actor, deprecatedAt: now } : {}),
       updatedAt: now,
     };
     this.state.knowledge[id] = updated;

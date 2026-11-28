@@ -23,6 +23,8 @@ describe("Enterprise Phase 2 Brain: Decision Ledger, Knowledge Flywheel, Handove
     );
     expect(dec.status).toBe("proposed");
     expect(brain.getRelevantContextForBot("Zone 3").decisions).toHaveLength(0);
+    const rolledBack = brain.reviewDecision(dec.id, "deprecated", "founder@company.vn");
+    expect(rolledBack?.deprecatedBy).toBe("founder@company.vn");
 
     brain.reviewDecision(dec.id, "approved", "ceo@company.vn");
     expect(brain.getRelevantContextForBot("Zone 3 - Kinh doanh").decisions).toHaveLength(1);

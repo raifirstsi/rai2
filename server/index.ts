@@ -10911,6 +10911,14 @@ function startGroupTurn(
         return before.filter((m) => m.kind === "text" && m.text && !narration.has(m.id)).slice(-GROUP_CONTEXT_MESSAGES);
       })()
     : [];
+  const scrubQueuedGroupText = (rawText: string, itemSender?: typeof options.sender): string => {
+    if (!getRai2EntitlementSnapshot().enterpriseAccess || !members.some((m) => isEnterpriseRuntimeBot(m))) {
+      return rawText;
+    }
+    const sObj = itemSender as { name?: string; email?: string } | undefined;
+    const res = applyEnterpriseInboundDlp(rawText, sObj?.email || sObj?.name || "group-user");
+    return res.redactions.length > 0 ? res.sanitizedText : rawText;
+  };
   const queuedGroup = options.queuedGroup;
   const message = queuedGroup && queuedGroup.length > 0
     ? (() => {
@@ -10918,7 +10926,7 @@ function startGroupTurn(
           store.appendMessage(threadId, {
             role: "user",
             kind: "text",
-            text: item.text,
+            text: scrubQueuedGroupText(item.text, item.sender),
             replyToId: item.replyToId,
             reaction: item.reaction,
             sendId: item.sendId,
@@ -10932,7 +10940,7 @@ function startGroupTurn(
         return store.appendMessage(threadId, {
           role: "user",
           kind: "text",
-          text: last.text,
+          text: scrubQueuedGroupText(last.text, last.sender),
           replyToId: replyTo?.id,
           reaction: last.reaction,
           sendId: last.sendId,
@@ -10955,7 +10963,7 @@ function startGroupTurn(
         sender: options.sender,
       });
   if (options.trigger) turnTriggers.set(threadId, options.trigger);
-  const titled = group.dm ? null : store.titleGroupTaskFromFirstMessage(group.id, text, threadId);
+  const titled = group.dm ? null : store.titleGroupTaskFromFirstMessage(group.id, safeGroupText, threadId);
   const snippet = titled?.title;
 
   const archived = members.filter((member) => member.hidden);
