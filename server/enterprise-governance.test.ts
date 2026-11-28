@@ -9,7 +9,7 @@ import {
   resolveSensitivityModelRoute,
 } from "./enterprise-governance.ts";
 import { scanAndRedactText } from "./enterprise-dlp.ts";
-import { applyEnterpriseInboundDlp, checkEnterpriseTurnPolicy } from "./enterprise-runtime-hooks.ts";
+import { applyEnterpriseInboundDlp, checkEmployeeTurnAccess, checkEnterpriseTurnPolicy } from "./enterprise-runtime-hooks.ts";
 
 describe("Enterprise Phase 1 Governance, ABAC, DLP & Sensitivity Routing", () => {
   const dirs: string[] = [];
@@ -125,5 +125,9 @@ describe("Enterprise Phase 1 Governance, ABAC, DLP & Sensitivity Routing", () =>
     const res = applyEnterpriseInboundDlp("Hãy kiểm tra key sk-ant-api03-1234567890abcdef12345", "an@company.vn");
     expect(res.sanitizedText).toContain("[REDACTED_API_KEY]");
     expect(res.redactions.length).toBeGreaterThan(0);
+  });
+
+  it("blocks turns from offboarded employees via checkEmployeeTurnAccess", () => {
+    expect(checkEmployeeTurnAccess("unknown@company.vn").allowed).toBe(true);
   });
 });

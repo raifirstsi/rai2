@@ -324,7 +324,7 @@ import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
 import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts";
-import { applyEnterpriseInboundDlp, applyEnterpriseOutboundDlp, autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkEnterpriseTurnPolicy, checkServerMarginGuard, isEnterpriseRuntimeBot } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { applyEnterpriseInboundDlp, applyEnterpriseOutboundDlp, autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkEmployeeTurnAccess, checkEnterpriseTurnPolicy, checkServerMarginGuard, isEnterpriseRuntimeBot } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -7694,19 +7694,28 @@ async function beginTurn(
       .instances()
       .filter((inst) => registry.lastSnapshot(inst.instanceId)?.state === "available")
       .map((inst) => inst.instanceId);
+    const actorLabel = opts?.sender?.name || bot.name || botId;
+    const empAccess = checkEmployeeTurnAccess(opts?.sender?.name);
+    if (!empAccess.allowed) {
+      throw Object.assign(
+        new Error("Tài khoản nhân viên đã nghỉ việc (offboarded) — quyền truy cập Enterprise AI đã bị thu hồi."),
+        { status: 403 },
+      );
+    }
     const policyRes = checkEnterpriseTurnPolicy({
       botSection: bot.section,
       currentEngineId: instanceId,
       availableLocalEngineIds: availableIds,
-      actor: opts?.sender?.name || bot.name || botId,
+      actor: actorLabel,
     });
-    if (!policyRes.allowed) {
+    if (!policyRes.allowed || (policyRes.route === "local_enforced" && policyRes.targetEngineId && policyRes.targetEngineId !== instanceId)) {
+      const hint = policyRes.targetEngineId ? ` Vui lòng chuyển model của bot sang ${policyRes.targetEngineId}.` : "";
       throw Object.assign(
-        new Error(`Chính sách bảo mật Enterprise: Dữ liệu Mật (${bot.section || "Confidential"}) bắt buộc chạy qua Local LLM nội bộ (${policyRes.reason}).`),
+        new Error(`Chính sách bảo mật Enterprise: Dữ liệu Mật (${bot.section || "Confidential"}) bắt buộc chạy qua Local LLM nội bộ (${policyRes.reason}).${hint}`),
         { status: 403 },
       );
     }
-    const inDlp = applyEnterpriseInboundDlp(resolvedImages.text, opts?.sender?.name || bot.name || botId);
+    const inDlp = applyEnterpriseInboundDlp(resolvedImages.text, actorLabel);
     if (inDlp.redactions.length > 0) {
       resolvedImages.text = inDlp.sanitizedText;
     }

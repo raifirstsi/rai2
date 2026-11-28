@@ -409,3 +409,20 @@ export function applyEnterpriseInboundDlp(promptText: string, actor = "user"): D
     auditAction: "enterprise.inbound_dlp",
   });
 }
+
+/**
+ * Blocks turns initiated by an offboarded employee in Enterprise mode.
+ */
+export function checkEmployeeTurnAccess(actorIdentifier?: string): { allowed: boolean; reason?: string } {
+  if (!actorIdentifier) return { allowed: true };
+  const gov = getEnterpriseGovernanceStore().getState();
+  const key = actorIdentifier.trim().toLowerCase();
+  const emp = gov.employees[key] ?? Object.values(gov.employees).find((e) => e.name.toLowerCase() === key);
+  if (emp && emp.status === "offboarded") {
+    getWorkspaceAuditLedger().append("default", emp.email, "enterprise.offboarded_turn_blocked", {
+      actorIdentifier,
+    });
+    return { allowed: false, reason: "employee_offboarded" };
+  }
+  return { allowed: true };
+}
