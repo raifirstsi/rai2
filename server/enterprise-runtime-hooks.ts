@@ -517,9 +517,9 @@ export function autoProposeDecisionFromBotReply(
  */
 export function stripEnterpriseControlTags(replyText: string): string {
   return replyText
-    .replace(PULSE_DEAL_TAG_RE, "")
-    .replace(DECISION_TAG_RE, "")
-    .replace(KNOWLEDGE_TAG_RE, "")
+    .replace(new RegExp(PULSE_DEAL_TAG_RE.source, "gi"), "")
+    .replace(new RegExp(DECISION_TAG_RE.source, "gi"), "")
+    .replace(new RegExp(KNOWLEDGE_TAG_RE.source, "gi"), "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

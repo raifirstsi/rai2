@@ -450,11 +450,37 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       return json(res, 200, { success: true, state: next, evalResult, promotionResult });
     }
 
+    const rejectOffboardedSession = (): boolean => {
+      if (auth?.kind !== "session" || !auth.session.email) return false;
+      const email = auth.session.email.trim().toLowerCase();
+      const emp = getEnterpriseGovernanceStore().getState().employees[email];
+      if (emp && emp.status === "offboarded") {
+        try {
+          getWorkspaceAuditLedger().append("default", email, "enterprise.offboarded_api_blocked", { path });
+        } catch {}
+        json(res, 403, { error: "employee_offboarded" });
+        return true;
+      }
+      return false;
+    };
+
     // ── Phase 1: Enterprise Governance, ABAC, Provisioning, DLP & Audit Trail ──
     if (method === "GET" && path === "/api/enterprise/governance") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
-      return json(res, 200, { governance: getEnterpriseGovernanceStore().getState() });
+      if (rejectOffboardedSession()) return;
+      const full = getEnterpriseGovernanceStore().getState();
+      if (auth.scopes.includes("admin")) {
+        return json(res, 200, { governance: full });
+      }
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const selfEmp = actorEmail ? full.employees[actorEmail] : undefined;
+      return json(res, 200, {
+        governance: {
+          ...full,
+          employees: selfEmp && actorEmail ? { [actorEmail]: selfEmp } : {},
+        },
+      });
     }
 
     if (method === "PUT" && path === "/api/enterprise/governance") {
@@ -501,6 +527,9 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         return json(res, 400, { error: "email or employees[] is required" });
       }
       const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      if (body.email?.trim().toLowerCase() === actor.trim().toLowerCase()) {
+        return json(res, 400, { error: "self_offboard_forbidden" });
+      }
       const storeGov = getEnterpriseGovernanceStore();
       const provisioned = items
         .filter((item) => typeof item.email === "string" && item.email.includes("@"))
@@ -575,6 +604,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     if (method === "POST" && path === "/api/enterprise/dlp/test") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
       const body = (await readBody(req)) as { text?: string; blockOnForbiddenTopic?: boolean };
       const gov = getEnterpriseGovernanceStore().getState();
       const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
@@ -604,6 +634,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     if (method === "GET" && path === "/api/enterprise/brain") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
       const isAdmin = auth.scopes.includes("admin");
       const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
       const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
@@ -622,13 +653,22 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       if (!body.title?.trim() || !body.summary?.trim()) {
         return json(res, 400, { error: "title and summary are required" });
       }
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
-      const canAuto = Boolean(body.autoApprove && auth.scopes.includes("admin"));
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || (isAdmin ? "admin" : "employee");
+      const emp = auth.kind === "session" && auth.session.email ? getEnterpriseGovernanceStore().getState().employees[auth.session.email.toLowerCase()] : undefined;
+      if (!isAdmin && body.scopeZone && body.scopeZone.trim().toLowerCase() !== "all") {
+        if (emp?.zone && emp.zone.trim().toLowerCase() !== body.scopeZone.trim().toLowerCase()) {
+          return json(res, 403, { error: "cross_zone_propose_denied" });
+        }
+      }
+      const canAuto = Boolean(body.autoApprove && isAdmin);
       const rec = getEnterpriseBrainStore().proposeDecision(
         { title: body.title, summary: body.summary, scopeZone: body.scopeZone, effectiveFrom: body.effectiveFrom, autoApprove: canAuto },
         actor,
       );
-      return json(res, 200, { success: true, decision: rec, brain: getEnterpriseBrainStore().getState() });
+      const brain = getEnterpriseBrainStore().getScopedState({ isAdmin, employeeZone: emp?.zone, employeeEmail: actor.toLowerCase() });
+      return json(res, 200, { success: true, decision: rec, brain });
     }
 
     if (method === "POST" && path === "/api/enterprise/decisions/review") {
@@ -651,13 +691,22 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       if (!body.title?.trim() || !body.content?.trim()) {
         return json(res, 400, { error: "title and content are required" });
       }
-      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "employee";
-      const canAuto = Boolean(body.autoApprove && auth.scopes.includes("admin"));
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || (isAdmin ? "admin" : "employee");
+      const emp = auth.kind === "session" && auth.session.email ? getEnterpriseGovernanceStore().getState().employees[auth.session.email.toLowerCase()] : undefined;
+      if (!isAdmin && body.scopeZone && body.scopeZone.trim().toLowerCase() !== "all") {
+        if (emp?.zone && emp.zone.trim().toLowerCase() !== body.scopeZone.trim().toLowerCase()) {
+          return json(res, 403, { error: "cross_zone_propose_denied" });
+        }
+      }
+      const canAuto = Boolean(body.autoApprove && isAdmin);
       const entry = getEnterpriseBrainStore().proposeKnowledge(
         { kind: body.kind, title: body.title, content: body.content, scopeZone: body.scopeZone, autoApprove: canAuto },
         actor,
       );
-      return json(res, 200, { success: true, entry, brain: getEnterpriseBrainStore().getState() });
+      const brain = getEnterpriseBrainStore().getScopedState({ isAdmin, employeeZone: emp?.zone, employeeEmail: actor.toLowerCase() });
+      return json(res, 200, { success: true, entry, brain });
     }
 
     if (method === "POST" && path === "/api/enterprise/knowledge/review") {
@@ -676,6 +725,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     if (method === "GET" && path === "/api/enterprise/onboarding-brief") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
       const isAdmin = auth.scopes.includes("admin");
       const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
       const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;

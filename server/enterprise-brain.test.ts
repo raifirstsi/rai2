@@ -121,5 +121,7 @@ describe("Enterprise Phase 2 Brain: Decision Ledger, Knowledge Flywheel, Handove
     expect(autoK.proposed).toBe(true);
     expect(autoK.title).toBe("Quy trình CSKH 5 bước");
     expect(stripEnterpriseControlTags('OK [KNOWLEDGE_PROPOSE: title="ABC" kind="sop" content="XYZ"]')).toBe("OK");
+    // multi-tag strip check
+    expect(stripEnterpriseControlTags('Chốt xong [PULSE_RECORD: orderId=D1 revenue=1000 cost=500] và [KNOWLEDGE_PROPOSE: title="Quy trình 1" content="Nội dung 1"] [KNOWLEDGE_PROPOSE: title="Quy trình 2" content="Nội dung 2"]')).toBe("Chốt xong  và");
   });
 });
