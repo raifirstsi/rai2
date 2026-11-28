@@ -13,6 +13,7 @@ interface WorkItem {
   assignedBotId: string;
   assignedBotName: string;
   leadBotId?: string;
+  parentTaskId?: string;
   status: WorkStatus;
   progressPct: number;
   blockerReason?: string;
@@ -72,13 +73,13 @@ interface TeamState {
 }
 
 const STATUS_STYLE: Record<WorkStatus, { label: string; cls: string }> = {
-  pending: { label: "Chá» nháº­n", cls: "bg-raised text-ink-secondary" },
-  in_progress: { label: "Äang cháº¡y", cls: "bg-sky-500/15 text-sky-600" },
+  pending: { label: "Chờ nhận", cls: "bg-raised text-ink-secondary" },
+  in_progress: { label: "Đang chạy", cls: "bg-sky-500/15 text-sky-600" },
   review_needed: { label: "Chá» duyá»‡t", cls: "bg-amber-500/15 text-amber-600" },
   approved: { label: "ÄÃ£ duyá»‡t", cls: "bg-emerald-500/15 text-emerald-600" },
-  rejected: { label: "LÃ m láº¡i", cls: "bg-danger/15 text-danger" },
-  blocked: { label: "Bá»‹ káº¹t", cls: "bg-danger/15 text-danger" },
-  completed: { label: "HoÃ n táº¥t", cls: "bg-emerald-500/15 text-emerald-600" },
+  rejected: { label: "Làm lại", cls: "bg-danger/15 text-danger" },
+  blocked: { label: "Bị kẹt", cls: "bg-danger/15 text-danger" },
+  completed: { label: "Hoàn tất", cls: "bg-emerald-500/15 text-emerald-600" },
 };
 
 export function EnterpriseTeamPanel() {
@@ -90,8 +91,10 @@ export function EnterpriseTeamPanel() {
 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskZone, setTaskZone] = useState("Zone 3");
-  const [taskAssignee, setTaskAssignee] = useState("Trá»£ lÃ½ Sales");
-  const [taskLead, setTaskLead] = useState("TrÆ°á»Ÿng nhÃ³m Kinh doanh");
+  const [taskAssignee, setTaskAssignee] = useState("Trợ lý Sales");
+  const [taskLead, setTaskLead] = useState("Trưởng nhóm Kinh doanh");
+  const [taskPriority, setTaskPriority] = useState<"normal" | "high" | "urgent">("normal");
+  const [taskDueHours, setTaskDueHours] = useState("24");
 
   const [dagName, setDagName] = useState("");
   const [dagZone, setDagZone] = useState("Zone 3");
@@ -110,7 +113,7 @@ export function EnterpriseTeamPanel() {
       }
       setTeam(data.team);
     } catch {
-      setErr("Lá»—i káº¿t ná»‘i mÃ¡y chá»§.");
+      setErr("Lỗi kết nối máy chủ.");
     }
   }, []);
 
@@ -134,11 +137,13 @@ export function EnterpriseTeamPanel() {
           assignedBotId: taskAssignee.toLowerCase().replace(/\s+/g, "-"),
           assignedBotName: taskAssignee,
           leadBotId: taskLead,
+          priority: taskPriority,
+          dueAt: Number(taskDueHours) > 0 ? Date.now() + Number(taskDueHours) * 3_600_000 : undefined,
         }),
       });
       const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ giao viá»‡c.");
+        setErr(data.error || "Không thể giao việc.");
         return;
       }
       if (data.team) setTeam(data.team);
@@ -159,12 +164,12 @@ export function EnterpriseTeamPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           parentTaskId: parentId,
-          subtasks: [{ title: `BÆ°á»›c triá»ƒn khai con (${zone})`, assignedBotId: assignedBotName.toLowerCase().replace(/\s+/g, "-"), assignedBotName }],
+          subtasks: [{ title: `Bước triển khai con (${zone})`, assignedBotId: assignedBotName.toLowerCase().replace(/\s+/g, "-"), assignedBotName }],
         }),
       });
       const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ phÃ¢n rÃ£ viá»‡c con.");
+        setErr(data.error || "Không thể phân rã việc con.");
         return;
       }
       if (data.team) setTeam(data.team);
@@ -189,7 +194,7 @@ export function EnterpriseTeamPanel() {
       });
       const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ cáº­p nháº­t cÃ´ng viá»‡c.");
+        setErr(data.error || "Không thể cập nhật công việc.");
         return;
       }
       if (data.team) setTeam(data.team);
@@ -213,16 +218,16 @@ export function EnterpriseTeamPanel() {
           name: dagName,
           scopeZone: dagZone,
           steps: [
-            { id: "step-1", title: "AI ThÃ nh viÃªn thu tháº­p & xá»­ lÃ½ dá»¯ liá»‡u", kind: "agent_task" },
-            { id: "step-2", title: "Cá»•ng phÃª duyá»‡t cá»§a TrÆ°á»Ÿng phÃ²ng / CEO", kind: "human_approval" },
-            { id: "step-3", title: "PhÃ¡t hÃ nh káº¿t quáº£ & cáº­p nháº­t Kho Tri thá»©c", kind: "notify" },
+            { id: "step-1", title: "AI Thành viên thu thập & xử lý dữ liệu", kind: "agent_task" },
+            { id: "step-2", title: "Cổng phê duyệt của Trưởng phòng / CEO", kind: "human_approval" },
+            { id: "step-3", title: "Phát hành kết quả & cập nhật Kho Tri thức", kind: "notify" },
           ],
           publish: true,
         }),
       });
       const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ táº¡o gÃ³i DAG.");
+        setErr(data.error || "Không thể tạo gói DAG.");
         return;
       }
       if (data.team) setTeam(data.team);
@@ -245,11 +250,11 @@ export function EnterpriseTeamPanel() {
       });
       const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ cháº¡y DAG.");
+        setErr(data.error || "Không thể chạy DAG.");
         return;
       }
       if (data.team) setTeam(data.team);
-      setMsg("ÄÃ£ cáº­p nháº­t tiáº¿n trÃ¬nh cháº¡y DAG Workflow.");
+      setMsg("Đã cập nhật tiến trình chạy DAG Workflow.");
     } finally {
       setBusy(false);
     }
@@ -267,11 +272,11 @@ export function EnterpriseTeamPanel() {
       });
       const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ xá»­ lÃ½ cáº£nh bÃ¡o.");
+        setErr(data.error || "Không thể xử lý cảnh báo.");
         return;
       }
       if (data.team) setTeam(data.team);
-      setMsg(`ÄÃ£ xá»­ lÃ½ tháº» cáº£nh bÃ¡o (${decision}).`);
+      setMsg(`Đã xử lý thẻ cảnh báo (${decision}).`);
     } finally {
       setBusy(false);
     }
@@ -291,7 +296,7 @@ export function EnterpriseTeamPanel() {
       });
       const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ táº¡o nháº¯c viá»‡c.");
+        setErr(data.error || "Không thể tạo nhắc việc.");
         return;
       }
       if (data.team) setTeam(data.team);
@@ -310,7 +315,7 @@ export function EnterpriseTeamPanel() {
       const resp = await fetch("/api/enterprise/team/sweep", { method: "POST" });
       const data = (await resp.json()) as { success?: boolean; sweep?: { digestMarkdown: string }; team?: TeamState; error?: string };
       if (!resp.ok || !data.success) {
-        setErr(data.error || "KhÃ´ng thá»ƒ quÃ©t nháº¯c viá»‡c.");
+        setErr(data.error || "Không thể quét nhắc việc.");
         return;
       }
       if (data.team) setTeam(data.team);
@@ -333,9 +338,9 @@ export function EnterpriseTeamPanel() {
       <div className="flex flex-wrap gap-2">
         {[
           { id: "tasks", label: `Äá»™i ngÅ© & Báº£ng viá»‡c (${tasks.length})`, icon: Users },
-          { id: "dag", label: `Quy trÃ¬nh DAG (${workflows.length})`, icon: GitBranch },
-          { id: "escalations", label: `Cáº£nh bÃ¡o cáº§n xá»­ lÃ½${openEscCount > 0 ? ` (${openEscCount})` : ""}`, icon: AlertTriangle },
-          { id: "reminders", label: `Nháº¯c viá»‡c & BÃ¡o cÃ¡o (${reminders.length})`, icon: BellRing },
+          { id: "dag", label: `Quy trình DAG (${workflows.length})`, icon: GitBranch },
+          { id: "escalations", label: `Cảnh báo cần xử lý${openEscCount > 0 ? ` (${openEscCount})` : ""}`, icon: AlertTriangle },
+          { id: "reminders", label: `Nhắc việc & Báo cáo (${reminders.length})`, icon: BellRing },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -353,6 +358,9 @@ export function EnterpriseTeamPanel() {
             </button>
           );
         })}
+        <button type="button" disabled={busy} onClick={() => void loadTeam()} className="ml-auto inline-flex items-center gap-1 rounded-lg bg-raised px-2.5 py-1.5 text-xs text-ink-secondary hover:text-ink">
+          <RefreshCw size={12} /> Làm mới
+        </button>
       </div>
 
       {msg && <div className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400">{msg}</div>}
@@ -363,14 +371,22 @@ export function EnterpriseTeamPanel() {
           <form onSubmit={(e) => void handleCreateTask(e)} className="space-y-2 rounded-xl border border-hairline/40 bg-card p-3 text-xs">
             <div className="font-medium text-ink">Giao viá»‡c cho Äá»™i ngÅ© AI (TrÆ°á»Ÿng nhÃ³m â†’ ThÃ nh viÃªn)</div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-              <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="TÃªn Ä‘áº§u viá»‡c..." className="sm:col-span-2 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
-              <input value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} placeholder="AI Thá»±c hiá»‡n" className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
+              <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Tên đầu việc..." className="sm:col-span-2 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
+              <input value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} placeholder="AI Thực hiện" className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
               <input value={taskZone} onChange={(e) => setTaskZone(e.target.value)} placeholder="Zone (VD: Zone 3)" className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <input value={taskLead} onChange={(e) => setTaskLead(e.target.value)} placeholder="TrÆ°á»Ÿng nhÃ³m AI duyá»‡t bÃ i" className="w-60 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1 text-ink" />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <input value={taskLead} onChange={(e) => setTaskLead(e.target.value)} placeholder="Trưởng nhóm AI duyệt bài" className="w-52 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1 text-ink" />
+                <select value={taskPriority} onChange={(e) => setTaskPriority(e.target.value as "normal" | "high" | "urgent")} className="rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-ink">
+                  <option value="normal">Ưu tiên: Thường</option>
+                  <option value="high">Ưu tiên: Cao</option>
+                  <option value="urgent">Ưu tiên: Khẩn</option>
+                </select>
+                <input type="number" min={1} max={720} value={taskDueHours} onChange={(e) => setTaskDueHours(e.target.value)} className="w-24 rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-ink" title="Hạn chót (giờ)" />
+              </div>
               <button type="submit" disabled={busy || !taskTitle.trim()} className="inline-flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 font-medium text-white hover:brightness-110 disabled:opacity-50">
-                <Plus size={13} /> Giao viá»‡c
+                <Plus size={13} /> Giao việc
               </button>
             </div>
           </form>
@@ -379,9 +395,9 @@ export function EnterpriseTeamPanel() {
             {tasks.map((t) => {
               const badge = STATUS_STYLE[t.status];
               return (
-                <div key={t.id} className="rounded-xl border border-hairline/40 bg-card p-3 text-xs">
+                <div key={t.id} className={cn("rounded-xl border border-hairline/40 bg-card p-3 text-xs", t.parentTaskId && "ml-6 border-l-2 border-l-accent/60")}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-ink">{t.title}</span>
+                    <span className="font-semibold text-ink">{t.parentTaskId ? "â†³ " : ""}{t.title}</span>
                     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", badge.cls)}>{badge.label} ({t.progressPct}%)</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-tertiary">
@@ -389,24 +405,24 @@ export function EnterpriseTeamPanel() {
                     <div className="flex gap-1.5">
                       {t.status === "in_progress" && (
                         <>
-                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "review_needed", progressPct: 95, deliverable: "HoÃ n táº¥t theo SOP" })} className="rounded-md bg-amber-500/15 px-2 py-0.5 font-medium text-amber-600">
-                            Ná»™p duyá»‡t
+                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "review_needed", progressPct: 95, deliverable: "Hoàn tất theo SOP" })} className="rounded-md bg-amber-500/15 px-2 py-0.5 font-medium text-amber-600">
+                            Nộp duyệt
                           </button>
                           <button type="button" disabled={busy} onClick={() => void handleDelegateSub(t.id, t.zone, t.assignedBotName)} className="rounded-md bg-sky-500/15 px-2 py-0.5 font-medium text-sky-600">
-                            + Viá»‡c con
+                            + Việc con
                           </button>
-                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "blocked", blockerReason: "Cáº§n TrÆ°á»Ÿng phÃ²ng há»— trá»£ thÃ¡o gá»¡" })} className="rounded-md bg-danger/15 px-2 py-0.5 font-medium text-danger">
-                            BÃ¡o káº¹t
+                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "blocked", blockerReason: "Cần Trưởng phòng hỗ trợ tháo gỡ" })} className="rounded-md bg-danger/15 px-2 py-0.5 font-medium text-danger">
+                            Báo kẹt
                           </button>
                         </>
                       )}
                       {t.status === "review_needed" && (
                         <>
-                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { action: "approved", notes: "Äáº¡t chuáº©n" })} className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600">
-                            <CheckCircle2 size={12} /> Duyá»‡t
+                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { action: "approved", notes: "Đạt chuẩn" })} className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600">
+                            <CheckCircle2 size={12} /> Duyệt
                           </button>
-                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { action: "rejected", notes: "Cáº§n bá»• sung sá»‘ liá»‡u" })} className="inline-flex items-center gap-1 rounded-md bg-danger/15 px-2 py-0.5 font-medium text-danger">
-                            <XCircle size={12} /> LÃ m láº¡i
+                          <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { action: "rejected", notes: "Cần bổ sung số liệu" })} className="inline-flex items-center gap-1 rounded-md bg-danger/15 px-2 py-0.5 font-medium text-danger">
+                            <XCircle size={12} /> Làm lại
                           </button>
                         </>
                       )}
@@ -422,10 +438,10 @@ export function EnterpriseTeamPanel() {
       {subTab === "dag" && (
         <div className="space-y-4">
           <form onSubmit={(e) => void handleCreateDag(e)} className="flex flex-wrap gap-2 rounded-xl border border-hairline/40 bg-card p-3 text-xs">
-            <input value={dagName} onChange={(e) => setDagName(e.target.value)} placeholder="TÃªn gÃ³i quy trÃ¬nh DAG (VD: Chá»‘t Ä‘Æ¡n & Duyá»‡t Margin)..." className="flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
+            <input value={dagName} onChange={(e) => setDagName(e.target.value)} placeholder="Tên gói quy trình DAG (VD: Chốt đơn & Duyệt Margin)..." className="flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
             <input value={dagZone} onChange={(e) => setDagZone(e.target.value)} placeholder="Zone" className="w-28 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
             <button type="submit" disabled={busy || !dagName.trim()} className="inline-flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 font-medium text-white disabled:opacity-50">
-              <Plus size={13} /> ÄÃ³ng gÃ³i DAG
+              <Plus size={13} /> Đóng gói DAG
             </button>
           </form>
 
@@ -434,10 +450,10 @@ export function EnterpriseTeamPanel() {
               <div key={wf.id} className="flex items-center justify-between rounded-xl border border-hairline/40 bg-card p-3 text-xs">
                 <div>
                   <div className="font-semibold text-ink">{wf.name} ({wf.scopeZone})</div>
-                  <div className="text-[11px] text-ink-tertiary">{wf.steps.length} bÆ°á»›c Â· Max Hops: {wf.maxHops} Â· Budget Cap: ${wf.budgetCapUsd}</div>
+                  <div className="text-[11px] text-ink-tertiary">{wf.steps.length} bước · Max Hops: {wf.maxHops} · Budget Cap: ${wf.budgetCapUsd}</div>
                 </div>
                 <button type="button" disabled={busy} onClick={() => void handleRunDag({ workflowId: wf.id })} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-600 hover:bg-emerald-500/25">
-                  <Play size={12} /> Cháº¡y DAG
+                  <Play size={12} /> Chạy DAG
                 </button>
               </div>
             ))}
@@ -445,14 +461,14 @@ export function EnterpriseTeamPanel() {
 
           {runs.length > 0 && (
             <div className="space-y-2">
-              <div className="text-xs font-medium text-ink">Lá»‹ch sá»­ cháº¡y DAG (Checkpoints)</div>
+              <div className="text-xs font-medium text-ink">Lịch sử chạy DAG (Checkpoints)</div>
               {runs.map((r) => (
                 <div key={r.id} className="flex items-center justify-between rounded-xl border border-hairline/40 bg-inset p-2.5 text-xs">
-                  <span><strong>{r.workflowName}</strong> Â· Tráº¡ng thÃ¡i: <code>{r.status}</code> Â· Hops: {r.hopCount} Â· Checkpoints: {Object.values(r.stepCheckpoints ?? {}).filter((c) => c.status === "completed").length}/{Object.keys(r.stepCheckpoints ?? {}).length}</span>
+                  <span><strong>{r.workflowName}</strong> · Trạng thái: <code>{r.status}</code> · Hops: {r.hopCount} · Checkpoints: {Object.values(r.stepCheckpoints ?? {}).filter((c) => c.status === "completed").length}/{Object.keys(r.stepCheckpoints ?? {}).length}</span>
                   {r.status === "waiting_approval" && (
                     <div className="flex gap-1.5">
-                      <button type="button" disabled={busy} onClick={() => void handleRunDag({ runId: r.id, action: "approve" })} className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-emerald-600">Duyá»‡t cháº¡y tiáº¿p</button>
-                      <button type="button" disabled={busy} onClick={() => void handleRunDag({ runId: r.id, action: "reject" })} className="rounded-md bg-danger/15 px-2 py-0.5 text-danger">Dá»«ng</button>
+                      <button type="button" disabled={busy} onClick={() => void handleRunDag({ runId: r.id, action: "approve" })} className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-emerald-600">Duyệt chạy tiếp</button>
+                      <button type="button" disabled={busy} onClick={() => void handleRunDag({ runId: r.id, action: "reject" })} className="rounded-md bg-danger/15 px-2 py-0.5 text-danger">Dừng</button>
                     </div>
                   )}
                 </div>
@@ -465,7 +481,7 @@ export function EnterpriseTeamPanel() {
       {subTab === "escalations" && (
         <div className="space-y-2">
           {escalations.length === 0 ? (
-            <p className="text-xs text-ink-secondary">KhÃ´ng cÃ³ cáº£nh bÃ¡o nÃ o cáº§n con ngÆ°á»i xá»­ lÃ½.</p>
+            <p className="text-xs text-ink-secondary">Không có cảnh báo nào cần con người xử lý.</p>
           ) : (
             escalations.map((e) => (
               <div key={e.id} className="rounded-xl border border-hairline/40 bg-card p-3 text-xs">
@@ -478,9 +494,9 @@ export function EnterpriseTeamPanel() {
                 </ul>
                 {e.status === "open" && (
                   <div className="mt-2 flex gap-2">
-                    <button type="button" disabled={busy} onClick={() => void handleResolveEsc(e.id, "approved")} className="rounded-md bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-600">Duyá»‡t</button>
-                    <button type="button" disabled={busy} onClick={() => void handleResolveEsc(e.id, "reassigned")} className="rounded-md bg-amber-500/15 px-2.5 py-1 font-medium text-amber-600">Giao láº¡i</button>
-                    <button type="button" disabled={busy} onClick={() => void handleResolveEsc(e.id, "dismissed")} className="rounded-md bg-raised px-2.5 py-1 text-ink-secondary">ÄÃ³ng</button>
+                    <button type="button" disabled={busy} onClick={() => void handleResolveEsc(e.id, "approved")} className="rounded-md bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-600">Duyệt</button>
+                    <button type="button" disabled={busy} onClick={() => void handleResolveEsc(e.id, "reassigned")} className="rounded-md bg-amber-500/15 px-2.5 py-1 font-medium text-amber-600">Giao lại</button>
+                    <button type="button" disabled={busy} onClick={() => void handleResolveEsc(e.id, "dismissed")} className="rounded-md bg-raised px-2.5 py-1 text-ink-secondary">Đóng</button>
                   </div>
                 )}
               </div>
@@ -492,11 +508,11 @@ export function EnterpriseTeamPanel() {
       {subTab === "reminders" && (
         <div className="space-y-4">
           <form onSubmit={(e) => void handleCreateReminder(e)} className="flex flex-wrap gap-2 rounded-xl border border-hairline/40 bg-card p-3 text-xs">
-            <input value={remTitle} onChange={(e) => setRemTitle(e.target.value)} placeholder="Ná»™i dung nháº¯c viá»‡c / bÃ¡o cÃ¡o Ä‘á»‹nh ká»³..." className="flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
+            <input value={remTitle} onChange={(e) => setRemTitle(e.target.value)} placeholder="Nội dung nhắc việc / báo cáo định kỳ..." className="flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
             <input value={remZone} onChange={(e) => setRemZone(e.target.value)} placeholder="Zone" className="w-24 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
-            <button type="submit" disabled={busy || !remTitle.trim()} className="rounded-lg bg-accent px-3 py-1.5 font-medium text-white disabled:opacity-50">Táº¡o lá»‹ch</button>
+            <button type="submit" disabled={busy || !remTitle.trim()} className="rounded-lg bg-accent px-3 py-1.5 font-medium text-white disabled:opacity-50">Tạo lịch</button>
             <button type="button" disabled={busy} onClick={() => void handleSweep()} className="inline-flex items-center gap-1 rounded-lg bg-raised px-3 py-1.5 font-medium text-ink hover:bg-control">
-              <RefreshCw size={12} /> QuÃ©t & Tá»•ng há»£p
+              <RefreshCw size={12} /> Quét & Tổng hợp
             </button>
           </form>
           {digestMd && (
@@ -505,7 +521,7 @@ export function EnterpriseTeamPanel() {
           <div className="space-y-1.5">
             {reminders.map((r) => (
               <div key={r.id} className="rounded-lg border border-hairline/40 bg-card px-3 py-2 text-xs text-ink-secondary">
-                <strong className="text-ink">{r.title}</strong> Â· Lá»‹ch: <code>{r.schedule}</code> Â· Zone: {r.targetZone}
+                <strong className="text-ink">{r.title}</strong> · Lịch: <code>{r.schedule}</code> · Zone: {r.targetZone}
               </div>
             ))}
           </div>

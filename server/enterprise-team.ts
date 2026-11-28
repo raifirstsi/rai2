@@ -323,6 +323,9 @@ export class EnterpriseTeamOrchestrator {
   ): TeamWorkItem[] {
     const parent = this.state.workItems[parentTaskId];
     if (!parent) throw new Error("Parent task not found");
+    if (parent.status === "completed" || parent.status === "approved") {
+      throw new Error("Cannot delegate subtasks under a completed parent task");
+    }
     return subtasks.slice(0, 10).map((sub) =>
       this.createTask(
         {
@@ -367,6 +370,7 @@ export class EnterpriseTeamOrchestrator {
       updatedAt: now,
     };
     this.state.workItems[taskId] = updated;
+    this.rollupParentTaskProgress(updated.parentTaskId, actor);
     this.state.updatedAt = now;
     this.saveToDisk();
 
@@ -422,6 +426,7 @@ export class EnterpriseTeamOrchestrator {
       updatedAt: now,
     };
     this.state.workItems[taskId] = updated;
+    this.rollupParentTaskProgress(updated.parentTaskId, actor);
     // Auto-resolve matching open approval escalations
     for (const esc of Object.values(this.state.escalations)) {
       if (esc.relatedTaskId === taskId && esc.status === "open") {
@@ -443,8 +448,8 @@ export class EnterpriseTeamOrchestrator {
         getEnterpriseBrainStore().proposeKnowledge(
           {
             kind: "operational_pattern",
-            title: `[Káº¿t quáº£ duyá»‡t] ${updated.title}`,
-            content: `${updated.deliverable}${updated.reviewNotes ? `\nGhi chÃº duyá»‡t: ${updated.reviewNotes}` : ""}`,
+            title: `[Kết quả duyệt] ${updated.title}`,
+            content: `${updated.deliverable}${updated.reviewNotes ? `\nGhi chú duyệt: ${updated.reviewNotes}` : ""}`,
             scopeZone: updated.zone,
             sourceRef: `team_task:${updated.id}`,
             autoApprove: false,
@@ -456,6 +461,37 @@ export class EnterpriseTeamOrchestrator {
       }
     }
     return structuredClone(updated);
+  }
+
+  private rollupParentTaskProgress(parentId: string | undefined, actor: string): void {
+    if (!parentId) return;
+    const parent = this.state.workItems[parentId];
+    if (!parent || parent.status === "completed" || parent.status === "approved") return;
+    const children = Object.values(this.state.workItems).filter((t) => t.parentTaskId === parentId);
+    if (children.length === 0) return;
+    const avgPct = Math.round(children.reduce((sum, c) => sum + c.progressPct, 0) / children.length);
+    const allDone = children.every((c) => c.status === "completed" || c.status === "approved");
+    parent.progressPct = avgPct;
+    parent.updatedAt = Date.now();
+    if (allDone && parent.status !== "review_needed") {
+      parent.status = "review_needed";
+      parent.deliverable = parent.deliverable || `ÄÃ£ hoÃ n táº¥t toÃ n bá»™ ${children.length} viá»‡c con.`;
+      this.createEscalation(
+        {
+          kind: "approval_needed",
+          title: `Chá» duyá»‡t tá»•ng há»£p: ${parent.title}`,
+          summaryLines: [
+            `Trưởng nhóm: ${parent.leadBotId || parent.assignedBotName} (${parent.zone})`,
+            `ÄÃ£ hoÃ n táº¥t ${children.length}/${children.length} Ä‘áº§u viá»‡c con.`,
+            "Bấm [Duyệt] để chốt hoàn thành công việc cha.",
+          ],
+          zone: parent.zone,
+          relatedTaskId: parent.id,
+        },
+        actor,
+      );
+    }
+    this.state.workItems[parentId] = parent;
   }
 
   public getAwarenessSummaryForBot(botSection?: string): TeamWorkItem[] {
@@ -500,7 +536,7 @@ export class EnterpriseTeamOrchestrator {
       budgetCapUsd: Math.max(0.1, Math.min(1000, input.budgetCapUsd ?? 10)),
       steps: input.steps.slice(0, 20).map((s, idx) => ({
         id: (s.id || `step-${idx + 1}`).trim(),
-        title: scrubTeamText(s.title || `BÆ°á»›c ${idx + 1}`, actor).slice(0, 140),
+        title: scrubTeamText(s.title || `Bước ${idx + 1}`, actor).slice(0, 140),
         kind: (["agent_task", "condition", "human_approval", "notify"].includes(s.kind) ? s.kind : "agent_task") as DagStepKind,
         ...(s.assigneeBotId ? { assigneeBotId: s.assigneeBotId.trim() } : {}),
         ...(s.zone ? { zone: s.zone.trim() } : {}),
@@ -605,6 +641,20 @@ export class EnterpriseTeamOrchestrator {
         run.hopCount += 1;
         run.currentStepId = step.nextOnPass ?? this.findNextSequentialStepId(wf.steps, step.id);
         continue;
+      }
+
+      // Condition step branching
+      if (step.kind === "condition" && (action === "reject" || (notes && /^fail\b/i.test(notes.trim())))) {
+        run.hopCount += 1;
+        run.stepCheckpoints[step.id] = { status: "completed", output: scrubTeamText(notes || "Condition failed", actor).slice(0, 500), actor, completedAt: now };
+        if (step.nextOnFail) {
+          run.currentStepId = step.nextOnFail;
+          action = "continue";
+          continue;
+        }
+        run.status = "failed";
+        run.currentStepId = null;
+        break;
       }
 
       // Human Approval Gate
@@ -832,12 +882,28 @@ export class EnterpriseTeamOrchestrator {
     this.state.updatedAt = now;
     this.saveToDisk();
 
+    // Retention cap: keep all active runs/open escalations + cap closed history at 200 entries
+    const closedEsc = Object.values(this.state.escalations)
+      .filter((e) => e.status !== "open")
+      .sort((a, b) => (b.resolvedAt ?? b.createdAt) - (a.resolvedAt ?? a.createdAt));
+    for (const stale of closedEsc.slice(200)) {
+      delete this.state.escalations[stale.id];
+    }
+    const finishedRuns = Object.values(this.state.dagRuns)
+      .filter((r) => r.status !== "running" && r.status !== "waiting_approval")
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    for (const staleRun of finishedRuns.slice(200)) {
+      delete this.state.dagRuns[staleRun.id];
+    }
+
     const openEsc = Object.values(this.state.escalations).filter((e) => e.status === "open");
     const activeTasks = allTasks.filter((t) => t.status !== "completed" && t.status !== "approved");
+    const reviewTasks = activeTasks.filter((t) => t.status === "review_needed");
     const digestMarkdown = [
       `# BÁO CÁO TIẾN ĐỘ ĐỘI NGŨ AI (${new Date(now).toISOString().slice(0, 10)})`,
-      `- Tổng đầu việc đang mở: **${activeTasks.length}** (Quá hạn: **${overdueCount}**, Bị kẹt: **${blockedCount}**)`,
+      `- Tổng đầu việc đang mở: **${activeTasks.length}** (Chờ duyệt: **${reviewTasks.length}**, Quá hạn: **${overdueCount}**, Bị kẹt: **${blockedCount}**)`,
       `- Cảnh báo cần con người xử lý: **${openEsc.length}**`,
+      ...(reviewTasks.slice(0, 5).map((t) => `  - [review_needed] ${t.title} (${t.zone})`)),
       ...(openEsc.slice(0, 5).map((e) => `  - [${e.kind}] ${e.title} (${e.zone})`)),
     ].join("\n");
 

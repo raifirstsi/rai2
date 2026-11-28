@@ -949,6 +949,9 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       const wf = orch.getState().workflows[body.workflowId];
       if (!wf) return json(res, 404, { error: "workflow not found" });
       if (!hasZoneAccess(ctx, wf.scopeZone)) return json(res, 403, { error: "cross_zone_denied" });
+      if (wf.status !== "published" && !ctx.isAdmin) {
+        return json(res, 403, { error: "workflow_not_published" });
+      }
       const run = orch.startDagRun(body.workflowId, ctx.actor);
       return json(res, 200, { success: true, run, team: scopedTeam(ctx) });
     }

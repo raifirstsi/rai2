@@ -156,4 +156,56 @@ describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalati
     const brainEntries = Object.values(getEnterpriseBrainStore().getState().knowledge);
     expect(brainEntries.some((k) => k.sourceRef === `team_task:${tZone6.id}` && k.status === "proposed")).toBe(true);
   });
+  it("rolls up subtask progress to parent task and branches condition step via nextOnFail", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-rollup-"));
+    dirs.push(dir);
+    const team = new EnterpriseTeamOrchestrator(dir);
+    const parent = team.createTask({ title: "Dá»± Ã¡n lá»›n", assignedBotId: "lead-1", zone: "Zone 4" }, "pm@co.vn");
+    const [c1, c2] = team.delegateSubtasks(
+      parent.id,
+      [
+        { title: "Pháº§n 1", assignedBotId: "bot-a" },
+        { title: "Pháº§n 2", assignedBotId: "bot-b" },
+      ],
+      "lead-1",
+    );
+    team.reviewTeamTask(c1!.id, "approved", "OK pháº§n 1", "lead-1");
+    expect(team.getState().workItems[parent.id]?.progressPct).toBe(50);
+
+    team.reviewTeamTask(c2!.id, "approved", "OK pháº§n 2", "lead-1");
+    const updatedParent = team.getState().workItems[parent.id];
+    expect(updatedParent?.progressPct).toBe(100);
+    expect(updatedParent?.status).toBe("review_needed");
+
+    const wf = team.createDagWorkflow(
+      {
+        name: "Condition Branch Test",
+        scopeZone: "Zone 4",
+        steps: [
+          { id: "cond", title: "Kiá»ƒm tra Ä‘iá»u kiá»‡n", kind: "condition", nextOnPass: "pass_step", nextOnFail: "fail_step" },
+          { id: "pass_step", title: "NhÃ¡nh Ä‘áº¡t", kind: "notify" },
+          { id: "fail_step", title: "NhÃ¡nh lá»—i", kind: "notify" },
+        ],
+      },
+      "admin@co.vn",
+    );
+    const run = team.startDagRun(wf.id, "user@co.vn");
+    // Direct advance with FAIL note on condition
+    const wf2 = team.createDagWorkflow(
+      {
+        name: "Condition Fail Path",
+        scopeZone: "Zone 4",
+        steps: [
+          { id: "prep", title: "Chuáº©n bá»‹", kind: "human_approval" },
+          { id: "cond", title: "Check Margin", kind: "condition", nextOnPass: "ok", nextOnFail: "fallback" },
+          { id: "ok", title: "Chá»‘t", kind: "notify" },
+          { id: "fallback", title: "BÃ¡o giáº£m giÃ¡", kind: "notify" },
+        ],
+      },
+      "admin@co.vn",
+    );
+    const run2 = team.startDagRun(wf2.id, "user@co.vn");
+    expect(run.status).toBe("completed");
+    expect(run2.status).toBe("waiting_approval");
+  });
 });
