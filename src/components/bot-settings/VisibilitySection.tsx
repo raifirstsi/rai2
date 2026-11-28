@@ -34,7 +34,7 @@ export function mixedRooms(
 ): Array<{ id: string; name: string }> {
   const mine = audienceKey(bot.visibility);
   return groups
-    .filter((group) => !group.dm && group.memberIds.includes(bot.id) && (
+    .filter((group) => !group.dm && (group.memberIds ?? []).includes(bot.id) && (
       (group.audienceFloor !== undefined && audienceKey(group.audienceFloor) !== mine) ||
       group.memberIds.some((id) => {
         const other = bots.find((candidate) => candidate.id === id);
