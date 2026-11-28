@@ -60,6 +60,9 @@ export function EnterpriseGovernancePanel() {
   const [empRole, setEmpRole] = useState<EmployeeRole>("member");
   const [empZone, setEmpZone] = useState("Zone 3 - Kinh doanh");
   const [empTier, setEmpTier] = useState<DataTier>("zone");
+  const [offboardTarget, setOffboardTarget] = useState<string | null>(null);
+  const [successorEmail, setSuccessorEmail] = useState("");
+  const [handoverSummary, setHandoverSummary] = useState("");
 
   // Constitution / DLP state
   const [industry, setIndustry] = useState("");
@@ -164,7 +167,11 @@ export function EnterpriseGovernancePanel() {
       const resp = await fetch("/api/enterprise/employees/offboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          ...(successorEmail.trim() ? { successorEmail: successorEmail.trim() } : {}),
+          ...(handoverSummary.trim() ? { workSummary: handoverSummary.trim() } : {}),
+        }),
       });
       const data = (await resp.json()) as { success?: boolean; governance?: GovernanceState; error?: string };
       if (!resp.ok || !data.success) {
@@ -172,7 +179,10 @@ export function EnterpriseGovernancePanel() {
         return;
       }
       if (data.governance) setGov(data.governance);
-      setMsg(`Đã thu hồi quyền ${email} & khóa bot riêng về chế độ Admin-only.`);
+      setMsg(`Đã thu hồi quyền ${email}, khóa bot riêng & lưu hồ sơ bàn giao tri thức.`);
+      setOffboardTarget(null);
+      setSuccessorEmail("");
+      setHandoverSummary("");
       void loadAudit(auditQuery);
     } finally {
       setBusy(false);
@@ -333,13 +343,48 @@ export function EnterpriseGovernancePanel() {
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() => void handleOffboard(emp.email)}
+                        onClick={() => setOffboardTarget(offboardTarget === emp.email ? null : emp.email)}
                         className="rounded-lg border border-danger/40 px-2 py-0.5 text-[11px] text-danger hover:bg-danger/10 disabled:opacity-50"
                       >
                         Thu hồi
                       </button>
                     )}
                   </div>
+                  {offboardTarget === emp.email && (
+                    <div className="mt-2 w-full space-y-2 border-t border-hairline/30 pt-2">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <input
+                          value={successorEmail}
+                          onChange={(e) => setSuccessorEmail(e.target.value)}
+                          placeholder="Email người kế nhiệm (tùy chọn)"
+                          className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1 text-[11px] text-ink"
+                        />
+                        <input
+                          value={handoverSummary}
+                          onChange={(e) => setHandoverSummary(e.target.value)}
+                          placeholder="Tóm tắt tri thức công việc bàn giao (tùy chọn)"
+                          className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1 text-[11px] text-ink"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void handleOffboard(emp.email)}
+                          className="rounded-lg bg-danger px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 disabled:opacity-50"
+                        >
+                          Xác nhận Thu hồi & Bàn giao
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOffboardTarget(null)}
+                          className="rounded-lg bg-raised px-3 py-1 text-[11px] text-ink-secondary"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
