@@ -1,3 +1,4 @@
+import { EnterpriseBrainPanel } from "./EnterpriseBrainPanel";
 import { EnterpriseGovernancePanel } from "./EnterpriseGovernancePanel";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -66,7 +67,7 @@ interface BudgetStatus {
   arbitrageEnabled: boolean;
 }
 
-type ActiveTab = "pulse" | "roi" | "evals" | "tables" | "governance";
+type ActiveTab = "pulse" | "roi" | "evals" | "tables" | "governance" | "brain";
 
 function triggerDownload(filename: string, content: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
@@ -512,6 +513,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                   { id: "evals", label: "Sát hạch & Chữ ký", icon: ShieldCheck },
                   { id: "tables", label: "Bảng tính & Ngân sách", icon: Table2 },
                   { id: "governance", label: "Quản trị & Bảo mật", icon: ShieldCheck },
+                  { id: "brain", label: "Bộ não & Tri thức", icon: Activity },
                 ] as const
               ).map(({ id, label, icon: Icon }) => (
                 <button
@@ -821,6 +823,7 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
               )}
 
               {tab === "governance" && <EnterpriseGovernancePanel />}
+              {tab === "brain" && <EnterpriseBrainPanel />}
 
               {tab === "tables" && (
                 <div className="space-y-4">

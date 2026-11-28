@@ -3,6 +3,7 @@ import { getRai2EntitlementSnapshot } from "./rai2-entitlement.ts";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 import { getBusinessPulseEngine } from "./business-pulse.ts";
 import { getEnterpriseGovernanceStore, resolveSensitivityModelRoute, type DataClassificationTier } from "./enterprise-governance.ts";
+import { getEnterpriseBrainStore } from "./enterprise-brain.ts";
 import { scanAndRedactText, type DlpScanResult } from "./enterprise-dlp.ts";
 
 export interface EnterpriseBotLike {
@@ -147,6 +148,28 @@ export function buildEnterprisePromptSection(
         cLines.push("- Chính sách bảo mật: Dữ liệu Mật (Confidential/P&L/HR) chỉ được xử lý trên Local LLM nội bộ.");
       }
       parts.push(cLines.join("\n"));
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  try {
+    const brain = getEnterpriseBrainStore().getRelevantContextForBot(bot?.section);
+    if (brain.decisions.length > 0) {
+      parts.push(
+        "## QUYẾT ĐỊNH CÔNG TY ĐANG CÓ HIỆU LỰC (ORG DECISION LEDGER)\n" +
+          brain.decisions
+            .map((d) => `- [${d.effectiveFrom}] ${sanitizePromptField(d.title, 120)}: ${sanitizePromptField(d.summary, 350)}`)
+            .join("\n"),
+      );
+    }
+    if (brain.knowledge.length > 0) {
+      parts.push(
+        "## TRI THỨC & QUY TRÌNH CHUẨN DOANH NGHIỆP (KNOWLEDGE FLYWHEEL)\n" +
+          brain.knowledge
+            .map((k) => `- [${k.kind}] ${sanitizePromptField(k.title, 120)}: ${sanitizePromptField(k.content, 400)}`)
+            .join("\n"),
+      );
     }
   } catch {
     // Non-fatal
@@ -425,4 +448,32 @@ export function checkEmployeeTurnAccess(actorIdentifier?: string): { allowed: bo
     return { allowed: false, reason: "employee_offboarded" };
   }
   return { allowed: true };
+}
+
+const DECISION_TAG_RE = /\[DECISION_PROPOSE:\s*title="([^"]{3,180})"\s+summary="([^"]{3,800})"(?:\s+zone="([^"]{1,80})")?\s*\]/i;
+
+/**
+ * Extracts [DECISION_PROPOSE: title="..." summary="..." zone="..."] from bot replies into 2-stage Decision Ledger.
+ */
+export function autoProposeDecisionFromBotReply(
+  replyText: string,
+  botSection?: string,
+  actor = "enterprise-bot",
+  sourceRef?: string,
+): { proposed: boolean; decisionId?: string; title?: string } {
+  const m = replyText.match(DECISION_TAG_RE);
+  if (!m) return { proposed: false };
+  const title = m[1]?.trim();
+  const summary = m[2]?.trim();
+  const scopeZone = m[3]?.trim() || botSection || "all";
+  if (!title || !summary) return { proposed: false };
+  try {
+    const rec = getEnterpriseBrainStore().proposeDecision(
+      { title, summary, scopeZone, sourceRef, autoApprove: false },
+      actor,
+    );
+    return { proposed: true, decisionId: rec.id, title: rec.title };
+  } catch {
+    return { proposed: false };
+  }
 }

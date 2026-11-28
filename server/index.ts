@@ -324,7 +324,7 @@ import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
 import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts";
-import { applyEnterpriseInboundDlp, applyEnterpriseOutboundDlp, autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkEmployeeTurnAccess, checkEnterpriseTurnPolicy, checkServerMarginGuard, isEnterpriseRuntimeBot } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { applyEnterpriseInboundDlp, applyEnterpriseOutboundDlp, autoProposeDecisionFromBotReply, autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkEmployeeTurnAccess, checkEnterpriseTurnPolicy, checkServerMarginGuard, isEnterpriseRuntimeBot } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -1387,6 +1387,10 @@ const attributeUsage = createUsageAttribution({ section: (botId) => store.bot(bo
         }
         if (autoPulse.recorded) {
           store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[📊 Sổ Nhịp thở 17:00] Tự động ghi nhận đơn ${autoPulse.orderId} · Doanh thu ${autoPulse.revenueVnd?.toLocaleString("vi-VN")}đ`, ok: true } });
+        }
+        const autoDec = autoProposeDecisionFromBotReply(lastBotMsg.text, guardBot?.section, row.botName || row.botId, lastBotMsg.id);
+        if (autoDec.proposed) {
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[🧠 Đề xuất Quyết định mới] "${autoDec.title}" (Chờ Quản lý duyệt)`, ok: true } });
         }
       }
     }

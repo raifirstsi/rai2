@@ -9,6 +9,7 @@ import { getPromotionGate } from "../promotion-gate.ts";
 import { getPulseScheduler } from "../pulse-scheduler.ts";
 import { getEnterpriseGovernanceStore, ROLE_DEFAULT_MAX_TIER, type DataClassificationTier, type EmployeeRole } from "../enterprise-governance.ts";
 import { scanAndRedactText } from "../enterprise-dlp.ts";
+import { getEnterpriseBrainStore, type KnowledgeKind, type PromotionStatus } from "../enterprise-brain.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 function isSafeWebhookUrl(raw: string): URL | null {
@@ -541,7 +542,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     if (method === "POST" && path === "/api/enterprise/employees/offboard") {
       if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       if (requireEnterpriseVip(res, json)) return;
-      const body = (await readBody(req)) as { email?: string };
+      const body = (await readBody(req)) as { email?: string; successorEmail?: string; workSummary?: string };
       if (!body.email || !body.email.includes("@")) {
         return json(res, 400, { error: "valid email is required" });
       }
@@ -552,7 +553,19 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       if (offboarded.personalBotId && deps?.offboardPersonalBot) {
         deps.offboardPersonalBot(offboarded.personalBotId);
       }
-      return json(res, 200, { success: true, employee: offboarded, governance: storeGov.getState() });
+      const handover = getEnterpriseBrainStore().recordOffboardingHandover(
+        {
+          departedEmail: offboarded.email,
+          departedName: offboarded.name,
+          zone: offboarded.zone || "all",
+          successorEmail: body.successorEmail,
+          workSummary: body.workSummary || "",
+          preservedWorkNamespace: offboarded.namespaces.workContext,
+          purgedPrivateNamespace: offboarded.namespaces.privatePersonal,
+        },
+        actor,
+      );
+      return json(res, 200, { success: true, employee: offboarded, handover, governance: storeGov.getState() });
     }
 
     if (method === "POST" && path === "/api/enterprise/dlp/test") {
@@ -581,6 +594,80 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       const limit = Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50;
       const trail = getEnterpriseGovernanceStore().queryAuditTrail({ actor, action, q, limit });
       return json(res, 200, trail);
+    }
+
+    // ── Phase 2: Org Decision Ledger, Knowledge Flywheel, Handover & Onboarding Brief ──
+    if (method === "GET" && path === "/api/enterprise/brain") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      return json(res, 200, { brain: getEnterpriseBrainStore().getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/decisions/propose") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { title?: string; summary?: string; scopeZone?: string; effectiveFrom?: string; autoApprove?: boolean };
+      if (!body.title?.trim() || !body.summary?.trim()) {
+        return json(res, 400, { error: "title and summary are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const canAuto = Boolean(body.autoApprove && auth.scopes.includes("admin"));
+      const rec = getEnterpriseBrainStore().proposeDecision(
+        { title: body.title, summary: body.summary, scopeZone: body.scopeZone, effectiveFrom: body.effectiveFrom, autoApprove: canAuto },
+        actor,
+      );
+      return json(res, 200, { success: true, decision: rec, brain: getEnterpriseBrainStore().getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/decisions/review") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { id?: string; status?: PromotionStatus };
+      if (!body.id || !body.status || !["proposed", "approved", "deprecated"].includes(body.status)) {
+        return json(res, 400, { error: "valid id and status are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const updated = getEnterpriseBrainStore().reviewDecision(body.id, body.status, actor);
+      if (!updated) return json(res, 404, { error: "decision not found" });
+      return json(res, 200, { success: true, decision: updated, brain: getEnterpriseBrainStore().getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/knowledge/propose") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { kind?: KnowledgeKind; title?: string; content?: string; scopeZone?: string; autoApprove?: boolean };
+      if (!body.title?.trim() || !body.content?.trim()) {
+        return json(res, 400, { error: "title and content are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "employee";
+      const canAuto = Boolean(body.autoApprove && auth.scopes.includes("admin"));
+      const entry = getEnterpriseBrainStore().proposeKnowledge(
+        { kind: body.kind, title: body.title, content: body.content, scopeZone: body.scopeZone, autoApprove: canAuto },
+        actor,
+      );
+      return json(res, 200, { success: true, entry, brain: getEnterpriseBrainStore().getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/knowledge/review") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { id?: string; status?: PromotionStatus };
+      if (!body.id || !body.status || !["proposed", "approved", "deprecated"].includes(body.status)) {
+        return json(res, 400, { error: "valid id and status are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const updated = getEnterpriseBrainStore().reviewKnowledge(body.id, body.status, actor);
+      if (!updated) return json(res, 404, { error: "knowledge entry not found" });
+      return json(res, 200, { success: true, entry: updated, brain: getEnterpriseBrainStore().getState() });
+    }
+
+    if (method === "GET" && path === "/api/enterprise/onboarding-brief") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      const zone = url.searchParams.get("zone") ?? undefined;
+      const employeeEmail = url.searchParams.get("email") ?? undefined;
+      const brief = getEnterpriseBrainStore().buildOnboardingBrief({ zone, employeeEmail });
+      return json(res, 200, { brief });
     }
 
     return PASS;
