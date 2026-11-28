@@ -395,3 +395,17 @@ export function checkEnterpriseTurnPolicy(input: {
   }
   return { allowed: true, ...routeRes };
 }
+
+/**
+ * Scrubs inbound user prompts before dispatching to Cloud LLMs and records DLP hits in Merkle audit.
+ */
+export function applyEnterpriseInboundDlp(promptText: string, actor = "user"): DlpScanResult {
+  const gov = getEnterpriseGovernanceStore().getState();
+  return scanAndRedactText(promptText, {
+    dlpEnabled: gov.constitution.dlpEnabled,
+    censorshipEnabled: false,
+    blockOnForbiddenTopic: false,
+    auditActor: actor,
+    auditAction: "enterprise.inbound_dlp",
+  });
+}

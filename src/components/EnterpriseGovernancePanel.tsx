@@ -28,6 +28,7 @@ interface GovernanceState {
     censorshipEnabled: boolean;
   };
   employees: Record<string, EmployeeProfile>;
+  zoneDataTiers?: Record<string, DataTier>;
 }
 
 interface AuditRecord {
@@ -68,6 +69,7 @@ export function EnterpriseGovernancePanel() {
   const [censorshipEnabled, setCensorshipEnabled] = useState(true);
   const [requireLocalConfidential, setRequireLocalConfidential] = useState(false);
   const [localHint, setLocalHint] = useState("ollama");
+  const [zoneTiers, setZoneTiers] = useState<Record<string, DataTier>>({ "Zone 6": "confidential", "Zone 7": "confidential" });
 
   // DLP test state
   const [dlpSample, setDlpSample] = useState("");
@@ -95,6 +97,7 @@ export function EnterpriseGovernancePanel() {
       setCensorshipEnabled(c.censorshipEnabled);
       setRequireLocalConfidential(c.requireLocalLlmForConfidential);
       setLocalHint(c.localLlmEngineHint || "ollama");
+      if (data.governance.zoneDataTiers) setZoneTiers(data.governance.zoneDataTiers);
     } catch {
       setErr("Lỗi kết nối máy chủ Governance.");
     }
@@ -194,6 +197,7 @@ export function EnterpriseGovernancePanel() {
             requireLocalLlmForConfidential: requireLocalConfidential,
             localLlmEngineHint: localHint,
           },
+          zoneDataTiers: zoneTiers,
         }),
       });
       const data = (await resp.json()) as { success?: boolean; governance?: GovernanceState; error?: string };
@@ -372,6 +376,25 @@ export function EnterpriseGovernancePanel() {
               <input type="checkbox" checked={requireLocalConfidential} onChange={(e) => setRequireLocalConfidential(e.target.checked)} />
               <span>Bắt buộc Local LLM ({localHint}) cho dữ liệu Mật</span>
             </label>
+          </div>
+          <div className="rounded-lg border border-hairline/30 bg-inset/50 p-3">
+            <div className="mb-2 font-medium text-ink">Phân tầng Độ mật Dữ liệu theo Vùng (ABAC Zone Tiers)</div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {["Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5", "Zone 6", "Zone 7"].map((z) => (
+                <label key={z} className="block space-y-1">
+                  <span className="text-[11px] text-ink-secondary">{z}</span>
+                  <select
+                    value={zoneTiers[z] ?? (z === "Zone 6" || z === "Zone 7" ? "confidential" : "zone")}
+                    onChange={(e) => setZoneTiers((prev) => ({ ...prev, [z]: e.target.value as DataTier }))}
+                    className="w-full rounded-md border border-hairline/40 bg-card px-2 py-1 text-[11px] text-ink"
+                  >
+                    {Object.entries(TIER_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
           </div>
           <button type="button" disabled={busy} onClick={() => void handleSavePolicy()} className="rounded-lg bg-accent px-4 py-1.5 font-medium text-white hover:brightness-110 disabled:opacity-50">
             Lưu Hiến pháp & Chính sách Bảo mật
