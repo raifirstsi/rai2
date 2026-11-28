@@ -245,4 +245,62 @@ describe("Enterprise Runtime Hooks (Deep Upgrades)", () => {
     expect(body.totalScore).toBeGreaterThan(0);
     expect(body.checks.find((c) => c.id === "bots")?.passed).toBe(true);
   });
+
+  it("enforces VIP, admin RBAC, MIME allowlist & transcribes audio via Whisper on /api/enterprise/voice-transcribe", async () => {
+    await setTestPlan(tmpDir, "starter");
+    const starterRoute = createEnterpriseStateRoutes();
+    const sRes = fakeRes();
+    await starterRoute({
+      req: {} as never,
+      res: sRes.res,
+      path: "/api/enterprise/voice-transcribe",
+      method: "POST",
+      url: new URL("http://localhost/api/enterprise/voice-transcribe"),
+      auth: { kind: "session", session: { email: "u@corp.vn" }, scopes: ["admin"] } as never,
+      readBody: async () => ({ audioBase64: "SGVsbG8=", mimeType: "audio/webm" }),
+      json: sRes.json,
+    });
+    expect(sRes.state.status).toBe(403);
+
+    await setTestPlan(tmpDir, "vip");
+    const { refreshRai2Entitlement: forceRefresh } = await import("./rai2-entitlement.ts");
+    await forceRefresh(true);
+    const vipRoute = createEnterpriseStateRoutes({
+      resolveOpenAiKey: () => ({ apiKey: "sk-test-whisper", baseUrl: "https://api.openai.com/v1" }),
+      fetchImpl: (async () =>
+        new Response(JSON.stringify({ text: "Bước 1 kiểm tra đơn hàng, bước 2 gọi khách." }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })) as unknown as typeof fetch,
+    });
+
+    // Rejects unsupported MIME type
+    const badMime = fakeRes();
+    await vipRoute({
+      req: {} as never,
+      res: badMime.res,
+      path: "/api/enterprise/voice-transcribe",
+      method: "POST",
+      url: new URL("http://localhost/api/enterprise/voice-transcribe"),
+      auth: { kind: "session", session: { email: "ceo@corp.vn" }, scopes: ["admin"] } as never,
+      readBody: async () => ({ audioBase64: "SGVsbG8=", mimeType: "application/x-sh" }),
+      json: badMime.json,
+    });
+    expect(badMime.state.status).toBe(400);
+
+    // Succeeds with valid audio & mocked Whisper
+    const ok = fakeRes();
+    await vipRoute({
+      req: {} as never,
+      res: ok.res,
+      path: "/api/enterprise/voice-transcribe",
+      method: "POST",
+      url: new URL("http://localhost/api/enterprise/voice-transcribe"),
+      auth: { kind: "session", session: { email: "ceo@corp.vn" }, scopes: ["admin"] } as never,
+      readBody: async () => ({ audioBase64: "data:audio/mp4;base64,SGVsbG8=", mimeType: "audio/mp4;codecs=mp4a.40.2" }),
+      json: ok.json,
+    });
+    expect(ok.state.status).toBe(200);
+    expect((ok.state.body as { text: string }).text).toContain("Bước 1 kiểm tra đơn hàng");
+  });
 });

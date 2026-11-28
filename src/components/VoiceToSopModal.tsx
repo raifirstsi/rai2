@@ -1,7 +1,7 @@
 import { loadSavedContextVault } from "@/lib/context-vault";
-import { patchEnterpriseState } from "@/lib/enterprise-state-client";
+import { patchEnterpriseState, transcribeVoiceAudioOnServer } from "@/lib/enterprise-state-client";
 import { api } from "@/state/store";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   X,
   Sparkles,
@@ -12,6 +12,7 @@ import {
   Mic,
   MicOff,
   BookOpen,
+  Upload,
 } from "lucide-react";
 import { useStore } from "@/state/store";
 import {
@@ -44,6 +45,11 @@ export function VoiceToSopModal({
   const [selectedCategory, setSelectedCategory] = useState<SopCategory>("general");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSupported, setRecordingSupported] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaChunksRef = useRef<BlobPart[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [extractedSop, setExtractedSop] = useState<ExtractedSop | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState("");
@@ -76,31 +82,101 @@ export function VoiceToSopModal({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const hasMedia = typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
       const hasSpeech = "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
-      setRecordingSupported(hasSpeech);
+      setRecordingSupported(hasMedia || hasSpeech);
     }
   }, []);
 
   if (!isOpen) return null;
 
-  const handleStartRecording = () => {
+  const transcribeBlob = async (blob: Blob, fileName?: string) => {
+    setAudioError(null);
+    if (blob.size > 12 * 1024 * 1024) {
+      setAudioError("File ghi âm vượt quá giới hạn 12MB.");
+      return;
+    }
+    setTranscribing(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Không đọc được dữ liệu âm thanh"));
+        reader.readAsDataURL(blob);
+      });
+      const res = await transcribeVoiceAudioOnServer({
+        audioBase64: base64,
+        mimeType: blob.type || "audio/webm",
+        fileName,
+        language: "vi",
+      });
+      if (res.ok && res.text) {
+        setRawText((prev) => (prev ? `${prev}\n${res.text}` : res.text!));
+      } else {
+        setAudioError(res.error || "Không giải mã được âm thanh.");
+      }
+    } catch (e) {
+      setAudioError(e instanceof Error ? e.message : "Lỗi xử lý file âm thanh");
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const handleStartRecording = async () => {
     if (typeof window === "undefined") return;
+    setAudioError(null);
+
+    if (isRecording && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const hasMedia = typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+    if (hasMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const preferredMime = MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : MediaRecorder.isTypeSupported("audio/mp4")
+            ? "audio/mp4"
+            : "";
+        const recorder = preferredMime ? new MediaRecorder(stream, { mimeType: preferredMime }) : new MediaRecorder(stream);
+        mediaChunksRef.current = [];
+        recorder.ondataavailable = (evt) => {
+          if (evt.data && evt.data.size > 0) mediaChunksRef.current.push(evt.data);
+        };
+        recorder.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const outBlob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          if (outBlob.size > 0) {
+            void transcribeBlob(outBlob, "mic-recording");
+          }
+        };
+        mediaRecorderRef.current = recorder;
+        recorder.start();
+        setIsRecording(true);
+        return;
+      } catch {
+        // Fall back to Web Speech API if available
+      }
+    }
+
     const SpeechRecognition =
       // @ts-expect-error browser compatibility
       window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) return;
-
+    if (!SpeechRecognition) {
+      setAudioError("Trình duyệt chưa cấp quyền micro.");
+      return;
+    }
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = "vi-VN";
-
       recognition.onstart = () => setIsRecording(true);
       recognition.onend = () => setIsRecording(false);
       recognition.onerror = () => setIsRecording(false);
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recognition.onresult = (event: any) => {
         let currentTranscript = "";
@@ -111,7 +187,6 @@ export function VoiceToSopModal({
           setRawText((prev) => (prev ? `${prev} ${currentTranscript}` : currentTranscript));
         }
       };
-
       recognition.start();
     } catch (e) {
       console.warn("Speech recognition error:", e);
@@ -244,11 +319,12 @@ export function VoiceToSopModal({
                 <label className="text-[13px] font-medium text-ink flex items-center gap-2">
                   <span>Lời nói, Độc thoại hoặc Ghi chép của Người chủ</span>
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {recordingSupported && (
                     <button
                       type="button"
-                      onClick={handleStartRecording}
+                      disabled={transcribing}
+                      onClick={() => void handleStartRecording()}
                       className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ${
                         isRecording
                           ? "bg-red-500 text-white animate-pulse"
@@ -256,9 +332,29 @@ export function VoiceToSopModal({
                       }`}
                     >
                       {isRecording ? <MicOff size={14} /> : <Mic size={14} />}
-                      {isRecording ? "Đang lắng nghe..." : "Thu âm trực tiếp"}
+                      {isRecording ? "Dừng & Giải mã" : "Thu âm trực tiếp"}
                     </button>
                   )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*,.mp3,.m4a,.wav,.webm,.ogg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) void transcribeBlob(f, f.name);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={transcribing || isRecording}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-hairline/60 bg-card px-3 py-1.5 text-[12px] font-medium text-ink hover:bg-raised disabled:opacity-50"
+                  >
+                    {transcribing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    <span>{transcribing ? "Đang giải mã Whisper..." : "Tải file ghi âm"}</span>
+                  </button>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value as SopCategory)}
@@ -273,6 +369,11 @@ export function VoiceToSopModal({
                 </div>
               </div>
 
+              {audioError && (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12px] text-ink">
+                  ⚠️ {audioError}
+                </div>
+              )}
               <textarea
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}

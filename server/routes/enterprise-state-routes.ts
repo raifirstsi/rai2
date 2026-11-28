@@ -44,6 +44,8 @@ function isSafeWebhookUrl(raw: string): URL | null {
 export interface EnterpriseStateRouteDeps {
   getBotInteractions?: (botId: string) => { botName: string; interactions: BotSampleInteraction[]; systemPrompt?: string };
   getEnterpriseStats?: () => { enterpriseBotsCount: number; totalBotsCount: number };
+  resolveOpenAiKey?: () => { apiKey?: string; baseUrl?: string } | null;
+  fetchImpl?: typeof fetch;
 }
 
 export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): RouteHandler {
@@ -53,6 +55,100 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
 
     const urlObj = new URL(req.url ?? "", "http://localhost");
     const store = getEnterpriseStateStore();
+
+    // 6. POST /api/enterprise/voice-transcribe - Cross-device Whisper audio transcription (admin only, 12MB cap)
+    if (method === "POST" && path === "/api/enterprise/voice-transcribe") {
+      if (!auth?.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required" });
+      }
+      let body: unknown;
+      try {
+        body = await readBody(req, 16 * 1024 * 1024);
+      } catch {
+        return json(res, 413, { error: "File âm thanh quá lớn (tối đa 12MB)." });
+      }
+      const p = body as { audioBase64?: unknown; mimeType?: unknown; fileName?: unknown; language?: unknown };
+      const rawB64 = typeof p?.audioBase64 === "string" ? p.audioBase64.trim() : "";
+      if (!rawB64) {
+        return json(res, 400, { error: "audioBase64 là bắt buộc." });
+      }
+      const cleanB64 = rawB64.includes(",") ? rawB64.split(",").pop() || "" : rawB64;
+      if (!/^[A-Za-z0-9+/=\s]+$/.test(cleanB64)) {
+        return json(res, 400, { error: "Chuỗi base64 âm thanh không hợp lệ." });
+      }
+      const audioBuf = Buffer.from(cleanB64, "base64");
+      if (audioBuf.length === 0 || audioBuf.length > 12 * 1024 * 1024) {
+        return json(res, 400, { error: "Dữ liệu âm thanh không hợp lệ hoặc vượt quá 12MB." });
+      }
+
+      const rawMime = typeof p?.mimeType === "string" ? p.mimeType.split(";")[0].trim().toLowerCase() : "audio/webm";
+      const ALLOWED_MIMES = new Set([
+        "audio/webm", "audio/mp4", "audio/m4a", "audio/x-m4a",
+        "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg",
+      ]);
+      if (!ALLOWED_MIMES.has(rawMime)) {
+        return json(res, 400, { error: `Định dạng âm thanh không được hỗ trợ (${rawMime}).` });
+      }
+
+      const resolved = deps?.resolveOpenAiKey?.() ?? {
+        apiKey: process.env.OPENAI_API_KEY || process.env.OMB_OPENAI_API_KEY,
+        baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+      };
+      const apiKey = resolved?.apiKey?.trim();
+      if (!apiKey) {
+        return json(res, 400, {
+          error: "Chưa cấu hình OpenAI API Key (BYOK) trong Cài đặt để giải mã file ghi âm Whisper.",
+          code: "OPENAI_KEY_REQUIRED",
+        });
+      }
+
+      const baseUrl = (resolved?.baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
+      const extMap: Record<string, string> = {
+        "audio/webm": "webm",
+        "audio/mp4": "mp4",
+        "audio/m4a": "m4a",
+        "audio/x-m4a": "m4a",
+        "audio/mpeg": "mp3",
+        "audio/mp3": "mp3",
+        "audio/wav": "wav",
+        "audio/x-wav": "wav",
+        "audio/ogg": "ogg",
+      };
+      const ext = extMap[rawMime] || "webm";
+      const form = new FormData();
+      form.append("file", new Blob([new Uint8Array(audioBuf)], { type: rawMime }), `voice-sop.${ext}`);
+      form.append("model", "whisper-1");
+      form.append("language", typeof p?.language === "string" && p.language.trim() ? p.language.trim().slice(0, 8) : "vi");
+
+      const doFetch = deps?.fetchImpl ?? fetch;
+      try {
+        const resp = await doFetch(`${baseUrl}/audio/transcriptions`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          body: form,
+          signal: AbortSignal.timeout(60_000),
+        });
+        if (!resp.ok) {
+          const errTxt = await resp.text().catch(() => "");
+          return json(res, 502, { error: `Whisper API trả lỗi HTTP ${resp.status}: ${errTxt.slice(0, 180)}` });
+        }
+        const data = (await resp.json()) as { text?: unknown };
+        const text = typeof data?.text === "string" ? data.text.trim() : "";
+        try {
+          const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+          getWorkspaceAuditLedger().append("default", actor, "enterprise.voice_transcribed", {
+            bytes: audioBuf.length,
+            mimeType: rawMime,
+            chars: text.length,
+          });
+        } catch {
+          // Non-fatal
+        }
+        return json(res, 200, { success: true, text });
+      } catch (err) {
+        return json(res, 502, { error: err instanceof Error ? err.message : "Không thể kết nối Whisper API" });
+      }
+    }
 
     // 5. GET /api/enterprise/architecture-scan - Real workspace readiness scan (/21)
     if (method === "GET" && path === "/api/enterprise/architecture-scan") {
