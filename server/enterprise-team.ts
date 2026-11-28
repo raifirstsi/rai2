@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
-import { matchesZone } from "./enterprise-brain.ts";
+import { getEnterpriseBrainStore, matchesZone } from "./enterprise-brain.ts";
 import { scanAndRedactText } from "./enterprise-dlp.ts";
 import { getEnterpriseGovernanceStore } from "./enterprise-governance.ts";
 
@@ -438,6 +438,23 @@ export class EnterpriseTeamOrchestrator {
       title: updated.title,
       notes: updated.reviewNotes ?? null,
     });
+    if (decision === "approved" && updated.deliverable && updated.deliverable.trim().length >= 15) {
+      try {
+        getEnterpriseBrainStore().proposeKnowledge(
+          {
+            kind: "operational_pattern",
+            title: `[Káº¿t quáº£ duyá»‡t] ${updated.title}`,
+            content: `${updated.deliverable}${updated.reviewNotes ? `\nGhi chÃº duyá»‡t: ${updated.reviewNotes}` : ""}`,
+            scopeZone: updated.zone,
+            sourceRef: `team_task:${updated.id}`,
+            autoApprove: false,
+          },
+          actor,
+        );
+      } catch {
+        // Non-fatal: Brain flywheel capture must not fail task approval
+      }
+    }
     return structuredClone(updated);
   }
 

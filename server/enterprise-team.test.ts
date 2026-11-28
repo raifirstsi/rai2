@@ -4,11 +4,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { EnterpriseTeamOrchestrator, getEnterpriseTeamOrchestrator, resetEnterpriseTeamOrchestratorForTest } from "./enterprise-team.ts";
 import { autoHandleTeamTagsFromBotReply } from "./enterprise-runtime-hooks.ts";
+import { getEnterpriseBrainStore, resetEnterpriseBrainStoreForTest } from "./enterprise-brain.ts";
 
 describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalations", () => {
   const dirs: string[] = [];
   afterEach(() => {
     resetEnterpriseTeamOrchestratorForTest();
+    resetEnterpriseBrainStoreForTest();
     for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
   });
 
@@ -121,6 +123,7 @@ describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalati
     dirs.push(dir);
     process.env.RAI2_DATA_DIR = dir;
     resetEnterpriseTeamOrchestratorForTest();
+    resetEnterpriseBrainStoreForTest();
 
     const team = getEnterpriseTeamOrchestrator();
     const tZone6 = team.createTask(
@@ -138,7 +141,7 @@ describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalati
 
     // Bot in Zone 6 attempting status="completed" on a task with leadBotId is routed to review_needed
     const ok = autoHandleTeamTagsFromBotReply(
-      `[WORK_UPDATE: taskId="${tZone6.id}" status="completed" progress=100 note="Xong P&L"]`,
+      `[WORK_UPDATE: taskId="${tZone6.id}" status="completed" progress=100 note="Đã hoàn tất báo cáo P&L quý 4 đạt biên lợi nhuận 24%"]`,
       "Zone 6",
       "bot-fin",
     );
@@ -150,5 +153,7 @@ describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalati
     const secondResolve = team.resolveEscalation(esc!.id, "dismissed", "other@co.vn");
     expect(firstResolve?.status).toBe("approved");
     expect(secondResolve?.status).toBe("approved");
+    const brainEntries = Object.values(getEnterpriseBrainStore().getState().knowledge);
+    expect(brainEntries.some((k) => k.sourceRef === `team_task:${tZone6.id}` && k.status === "proposed")).toBe(true);
   });
 });
