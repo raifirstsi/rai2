@@ -324,7 +324,8 @@ import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
 import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts";
-import { autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkServerMarginGuard, isEnterpriseRuntimeBot } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { applyEnterpriseInboundDlp, applyEnterpriseOutboundDlp, autoProposeDecisionFromBotReply, autoProposeKnowledgeFromBotReply, autoHandleTeamTagsFromBotReply, autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkEmployeeTurnAccess, checkEnterpriseTurnPolicy, checkServerMarginGuard, isEnterpriseRuntimeBot, stripEnterpriseControlTags } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts";
+import { getEnterpriseTeamOrchestrator } from "./enterprise-team.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -1377,8 +1378,38 @@ const attributeUsage = createUsageAttribution({ section: (botId) => store.bot(bo
           store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: guardRes.warningBanner, ok: false } });
         }
         const autoPulse = autoRecordBusinessPulseFromBotReply(lastBotMsg.text, lastBotMsg.id || `${row.threadId}:${Date.now()}`, "default", row.botName || row.botId, lastBotMsg.id);
+        const dlpRes = applyEnterpriseOutboundDlp(lastBotMsg.text, row.botName || row.botId);
+        if (dlpRes.redactions.length > 0) {
+          if (lastBotMsg.id && dlpRes.sanitizedText !== lastBotMsg.text) {
+            store.patchMessage(row.threadId, lastBotMsg.id, { text: dlpRes.sanitizedText });
+          }
+          const summary = dlpRes.redactions.map((r) => `${r.type}×${r.count}`).join(", ");
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[🛡️ DLP & Censorship] Đã che dữ liệu nhạy cảm & ghi sổ Merkle: ${summary}`, ok: false } });
+        }
         if (autoPulse.recorded) {
           store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[📊 Sổ Nhịp thở 17:00] Tự động ghi nhận đơn ${autoPulse.orderId} · Doanh thu ${autoPulse.revenueVnd?.toLocaleString("vi-VN")}đ`, ok: true } });
+        }
+        const autoDec = autoProposeDecisionFromBotReply(lastBotMsg.text, guardBot?.section, row.botName || row.botId, lastBotMsg.id);
+        if (autoDec.proposed) {
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[🧠 Đề xuất Quyết định mới] "${autoDec.title}" (Chờ Quản lý duyệt)`, ok: true } });
+        }
+        const autoKnow = autoProposeKnowledgeFromBotReply(lastBotMsg.text, guardBot?.section, row.botName || row.botId, lastBotMsg.id);
+        if (autoKnow.proposed) {
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[💡 Đề xuất Tri thức mới] "${autoKnow.title}" (Chờ Quản lý duyệt)`, ok: true } });
+        }
+        const teamHook = autoHandleTeamTagsFromBotReply(lastBotMsg.text, guardBot?.section, row.botName || row.botId);
+        if (teamHook.updatedTaskId) {
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[🤝 Cập nhật Công việc Đội ngũ] ${teamHook.updatedTaskId}`, ok: true } });
+        }
+        if (teamHook.escalationId) {
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[🚨 Cảnh báo cần Con người xử lý] ${teamHook.escalationId}`, ok: false } });
+        }
+        if (lastBotMsg.id) {
+          const baseText = dlpRes.redactions.length > 0 ? dlpRes.sanitizedText : lastBotMsg.text;
+          const stripped = stripEnterpriseControlTags(baseText);
+          if (stripped && stripped !== baseText) {
+            store.patchMessage(row.threadId, lastBotMsg.id, { text: stripped });
+          }
         }
       }
     }
@@ -7680,13 +7711,63 @@ async function beginTurn(
   console.log(turnStartLogLine({
     botId, text: resolvedImages.text, images: turnImages.length, depth: commsDepth, card: Boolean(opts?.cardContinuation), spoken,
   }));
-  const instanceId = instance.instanceId;
+  let activeInstance = instance;
+  let instanceId = activeInstance.instanceId;
+  let inboundDlpSanitized: string | null = null;
+  if (getRai2EntitlementSnapshot().enterpriseAccess) {
+    const senderObj = opts?.sender as { name?: string; email?: string } | undefined;
+    const senderIdentity = senderObj?.email || senderObj?.name;
+    const empAccess = checkEmployeeTurnAccess(senderIdentity);
+    if (!empAccess.allowed) {
+      throw Object.assign(
+        new Error("Tài khoản nhân viên đã nghỉ việc (offboarded) — quyền truy cập Enterprise AI đã bị thu hồi."),
+        { status: 403 },
+      );
+    }
+    if (isEnterpriseRuntimeBot(bot)) {
+      const availableIds = registry
+        .instances()
+        .filter((inst) => registry.lastSnapshot(inst.instanceId)?.state === "available")
+        .map((inst) => inst.instanceId);
+      const actorLabel = senderIdentity || bot.name || botId;
+      const policyRes = checkEnterpriseTurnPolicy({
+        botSection: bot.section,
+        currentEngineId: instanceId,
+        availableLocalEngineIds: availableIds,
+        actor: actorLabel,
+      });
+      if (!policyRes.allowed) {
+        throw Object.assign(
+          new Error(`Chính sách bảo mật Enterprise: Dữ liệu Mật (${bot.section || "Confidential"}) bắt buộc chạy qua Local LLM nội bộ (${policyRes.reason}).`),
+          { status: 403 },
+        );
+      }
+      if (policyRes.route === "local_enforced" && policyRes.targetEngineId && policyRes.targetEngineId !== instanceId) {
+        const rerouted = registry.get(policyRes.targetEngineId);
+        if (rerouted) {
+          activeInstance = rerouted;
+          instanceId = rerouted.instanceId;
+          getWorkspaceAuditLedger().append("default", actorLabel, "enterprise.confidential_llm_rerouted", {
+            fromEngine: instance.instanceId,
+            toEngine: instanceId,
+            botSection: bot.section || null,
+          });
+        }
+      }
+      const inDlp = applyEnterpriseInboundDlp(resolvedImages.text, actorLabel);
+      if (inDlp.redactions.length > 0) {
+        resolvedImages.text = inDlp.sanitizedText;
+        inboundDlpSanitized = inDlp.sanitizedText;
+      }
+    }
+  }
+  const persistedUserText = inboundDlpSanitized ?? text;
   const automated = commsDepth > 0 || opts?.automationSource !== undefined
     || Boolean(opts?.unattended || opts?.cardContinuation || opts?.peerAsk || opts?.coordination || opts?.compactOnly || opts?.computerSelectionContinuation);
-  const route = routeDirectTurn(bot, task, store.activePath(threadId), resolvedImages, instance, automated, quickFallback.refused(instance.instanceId));
+  const route = routeDirectTurn(bot, task, store.activePath(threadId), resolvedImages, activeInstance, automated, quickFallback.refused(activeInstance.instanceId));
   const { model, effort, variant } = route;
-  assertModelVariantSupported({ variant, effort }, instance.adapter.capabilities);
-  if (effort && !instance.adapter.capabilities.effortLevels?.includes(effort)) {
+  assertModelVariantSupported({ variant, effort }, activeInstance.adapter.capabilities);
+  if (effort && !activeInstance.adapter.capabilities.effortLevels?.includes(effort)) {
     throw Object.assign(
       new Error(`effort "${effort}" is not offered by this bot's engine — choose another level in settings`),
       { status: 409 },
@@ -7695,18 +7776,18 @@ async function beginTurn(
 
   let userMessage = opts?.userMessage;
   if (opts?.editedMessageId) {
-    const edited = store.branchMessage(threadId, opts.editedMessageId, text, opts.sendId, opts.sender, opts.dataContext);
+    const edited = store.branchMessage(threadId, opts.editedMessageId, persistedUserText, opts.sendId, opts.sender, opts.dataContext);
     if (!edited) throw Object.assign(new Error("only a user text message can be edited"), { status: 400 });
     store.patchTask(bot.id, threadId, { rewound: true });
     userMessage = edited;
   }
   if (!userMessage) {
     userMessage = opts?.cardContinuation
-      ? { id: `card-${randomUUID()}`, at: Date.now(), role: "user", kind: "text", text }
+      ? { id: `card-${randomUUID()}`, at: Date.now(), role: "user", kind: "text", text: persistedUserText }
       : store.appendMessage(threadId, {
           role: "user",
           kind: "text",
-          text,
+          text: persistedUserText,
           replyToId: opts?.replyTo?.id,
           reaction: opts?.replyTo?.reactedWith,
           sendId: opts?.sendId,
@@ -7716,6 +7797,9 @@ async function beginTurn(
           ...spokenLineFields(opts?.via, opts?.callId),
           ...(opts?.relayed ? { relayed: true } : {}),
         });
+  }
+  if (inboundDlpSanitized && userMessage?.id && !opts?.cardContinuation) {
+    store.patchMessage(threadId, userMessage.id, { text: inboundDlpSanitized });
   }
   const personLine = !opts?.coordination && !opts?.cardContinuation && !opts?.automationSource && !opts?.compactOnly
     && !opts?.computerSelectionContinuation && !opts?.editedMessageId && !commsDepth && !opts?.peerAsk && !userMessage.peerAsk; if (personLine) cloudConnections.personTurn(bot, threadId);
@@ -10806,6 +10890,25 @@ function startGroupTurn(
   if (options.goalCoordinatorBotId && (channelMode !== "goal" || !requestedGoalCoordinator)) {
     throw Object.assign(new Error("the selected goal coordinator is not an active room member"), { status: 409 });
   }
+  // Phase 1+2 Enterprise Guard for Group Turns: block offboarded senders & scrub secrets via DLP
+  let safeGroupText = text;
+  if (getRai2EntitlementSnapshot().enterpriseAccess) {
+    const gSender = options.sender as { name?: string; email?: string } | undefined;
+    const gIdentity = gSender?.email || gSender?.name;
+    const gAccess = checkEmployeeTurnAccess(gIdentity);
+    if (!gAccess.allowed) {
+      throw Object.assign(
+        new Error("Tài khoản nhân viên đã nghỉ việc (offboarded) — quyền truy cập Enterprise AI đã bị thu hồi."),
+        { status: 403 },
+      );
+    }
+    if (members.some((m) => isEnterpriseRuntimeBot(m))) {
+      const gDlp = applyEnterpriseInboundDlp(text, gIdentity || "group-user");
+      if (gDlp.redactions.length > 0) {
+        safeGroupText = gDlp.sanitizedText;
+      }
+    }
+  }
   // Read the room before this message is appended just below.
   const autoCandidate = !group.dm && channelMode === "chat" && group.defaultResponder.kind === "auto" &&
     deciderReady(cfg, "roomRouting");
@@ -10816,6 +10919,14 @@ function startGroupTurn(
         return before.filter((m) => m.kind === "text" && m.text && !narration.has(m.id)).slice(-GROUP_CONTEXT_MESSAGES);
       })()
     : [];
+  const scrubQueuedGroupText = (rawText: string, itemSender?: typeof options.sender): string => {
+    if (!getRai2EntitlementSnapshot().enterpriseAccess || !members.some((m) => isEnterpriseRuntimeBot(m))) {
+      return rawText;
+    }
+    const sObj = itemSender as { name?: string; email?: string } | undefined;
+    const res = applyEnterpriseInboundDlp(rawText, sObj?.email || sObj?.name || "group-user");
+    return res.redactions.length > 0 ? res.sanitizedText : rawText;
+  };
   const queuedGroup = options.queuedGroup;
   const message = queuedGroup && queuedGroup.length > 0
     ? (() => {
@@ -10823,7 +10934,7 @@ function startGroupTurn(
           store.appendMessage(threadId, {
             role: "user",
             kind: "text",
-            text: item.text,
+            text: scrubQueuedGroupText(item.text, item.sender),
             replyToId: item.replyToId,
             reaction: item.reaction,
             sendId: item.sendId,
@@ -10837,7 +10948,7 @@ function startGroupTurn(
         return store.appendMessage(threadId, {
           role: "user",
           kind: "text",
-          text: last.text,
+          text: scrubQueuedGroupText(last.text, last.sender),
           replyToId: replyTo?.id,
           reaction: last.reaction,
           sendId: last.sendId,
@@ -10850,7 +10961,7 @@ function startGroupTurn(
     : store.appendMessage(threadId, {
         role: "user",
         kind: "text",
-        text,
+        text: safeGroupText,
         replyToId: replyTo?.id,
         reaction: replyTo?.reactedWith,
         sendId,
@@ -10860,7 +10971,7 @@ function startGroupTurn(
         sender: options.sender,
       });
   if (options.trigger) turnTriggers.set(threadId, options.trigger);
-  const titled = group.dm ? null : store.titleGroupTaskFromFirstMessage(group.id, text, threadId);
+  const titled = group.dm ? null : store.titleGroupTaskFromFirstMessage(group.id, safeGroupText, threadId);
   const snippet = titled?.title;
 
   const archived = members.filter((member) => member.hidden);
@@ -12126,11 +12237,62 @@ const workspaceBackupAccess = {
 };
 const workspaceCopyAccess = { dataDir: DATA_DIR, appVersion: serverVersion(), readBody, restored: workspaceRestore, ...workspaceBackupAccess, ...(CLOUD_HOME ? { restart: () => { restartRequested = true; gracefulShutdown(); } } : {}) };
 const workspaceBackupRoutes = createWorkspaceBackupRoutes(workspaceCopyAccess);
+setInterval(() => {
+  try {
+    if (getRai2EntitlementSnapshot().enterpriseAccess) {
+      getEnterpriseTeamOrchestrator().runProactiveSweep("auto-scheduler");
+    }
+  } catch {}
+}, 15 * 60_000).unref();
 let restartRequested = false;
 const cloudMoveRoutes = createCloudMoveRoutes();
 
 // `workspaceAccess` is assigned at boot, after this line: read it per request.
 ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createVirtualTablesRoutes()); ROUTES.push(createSprint4Routes()); ROUTES.push(createSprint5Routes()); ROUTES.push(createEnterpriseStateRoutes({
+  provisionPersonalBot: ({ email, name, zone, botName, namespace }) => {
+    try {
+      const bot = store.createBot({
+        name: botName,
+        title: `Trợ lý AI riêng của ${name}`,
+        section: zone || "Trợ lý Cá Nhân",
+        visibility: { people: [email] },
+        soul: `Bạn là trợ lý AI riêng của ${name} (${email}). Tuân thủ Hiến pháp Doanh nghiệp và tách biệt namespace ${namespace}.`,
+      });
+      return { id: bot.id, name: bot.name };
+    } catch {
+      return null;
+    }
+  },
+  runOmnichannelBotTurn: async ({ botId, platform, channelGroupId, senderEmail, senderName, text, effectiveTier }) => {
+    try {
+      const targetBot = store.bot(botId) ?? store.bots.find((b) => isEnterpriseRuntimeBot(b)) ?? store.bots[0];
+      if (!targetBot) return null;
+      const threadId = targetBot.threadId;
+      const taggedPrompt = `[${platform.toUpperCase()} Group ${channelGroupId} · Scope=${effectiveTier.toUpperCase()}] ${senderName}: ${text}`;
+      const beforeCount = store.messagesFor(threadId).length;
+      const sender = senderEmail ? ({ name: senderName, email: senderEmail } as unknown as { name: string }) : { name: senderName };
+      const outcome = startTurn(targetBot.id, taggedPrompt, { threadId, sender });
+      await Promise.race([
+        outcome,
+        new Promise((resolve) => setTimeout(resolve, 25_000)),
+      ]);
+      const after = store.messagesFor(threadId).slice(beforeCount);
+      const reply = after.findLast((m) => m.role === "bot" && m.kind === "text" && typeof m.text === "string");
+      return reply?.text ?? null;
+    } catch {
+      return null;
+    }
+  },
+  offboardPersonalBot: (botId) => {
+    try {
+      store.patchBot(botId, { visibility: "admins" });
+    } catch {}
+  },
+  reactivatePersonalBot: (botId, email) => {
+    try {
+      store.patchBot(botId, { visibility: { people: [email] } });
+    } catch {}
+  },
   getBotInteractions: (botId) => {
     const b = store.bot(botId);
     if (!b) return { botName: botId, interactions: [] };

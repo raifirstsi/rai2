@@ -101,7 +101,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Trợ Lý Khởi Tạo & Điều Phối",
     badge: "Sẵn sàng 24/7",
     desc: "Tiếp nhận yêu cầu ban đầu, phân bổ đầu việc và kết nối tất cả các RAI trong phòng họp số.",
-    avatar: "/assets/mascots/mascot-1.png?v=7",
+    avatar: "/assets/mascots/mascot-1.png?v=8",
     color: "#0099ff",
   },
   {
@@ -110,7 +110,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Kỹ Sư Trình Duyệt Web",
     badge: "Chromium Sandbox",
     desc: "Đăng nhập cổng thông tin, cào dữ liệu đối thủ, tải hóa đơn và cập nhật giá tự động.",
-    avatar: "/assets/mascots/mascot-2.png?v=7",
+    avatar: "/assets/mascots/mascot-2.png?v=8",
     color: "#10b981",
   },
   {
@@ -119,7 +119,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Chiến Lược Gia Nội Dung",
     badge: "Chuẩn SEO / AEO",
     desc: "Soạn thảo bài viết chuyên sâu theo giọng văn thương hiệu, chuyển đổi đa kênh không tạo rác.",
-    avatar: "/assets/mascots/mascot-3.png?v=7",
+    avatar: "/assets/mascots/mascot-3.png?v=8",
     color: "#f59e0b",
   },
   {
@@ -128,7 +128,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Chuyên Viên Dịch Vụ & CSKH",
     badge: "Phản hồi tức thì",
     desc: "Lắng nghe tâm tư khách hàng, phân loại khiếu nại và phản hồi kịp thời qua Zalo/Telegram.",
-    avatar: "/assets/mascots/mascot-4.png?v=7",
+    avatar: "/assets/mascots/mascot-4.png?v=8",
     color: "#ec4899",
   },
   {
@@ -137,7 +137,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Tổng Quản Giám Sát AI",
     badge: "Bảo chứng P&L",
     desc: "Giám sát hiệu suất vận hành, kiểm soát rủi ro bảo mật và cam kết hoàn vốn 90 ngày.",
-    avatar: "/assets/mascots/mascot-5.png?v=7",
+    avatar: "/assets/mascots/mascot-5.png?v=8",
     color: "#8b5cf6",
   },
   {
@@ -146,7 +146,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Kỹ Sư Dữ Liệu & Báo Cáo",
     badge: "Google Sheets & SQL",
     desc: "Tự động hóa sổ sách kế toán, trích xuất báo cáo doanh thu và đồng bộ dữ liệu thời gian thực.",
-    avatar: "/assets/mascots/mascot-6.png?v=7",
+    avatar: "/assets/mascots/mascot-6.png?v=8",
     color: "#06b6d4",
   },
   {
@@ -155,7 +155,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Trinh Sát Thị Trường",
     badge: "Radar Cạnh Tranh",
     desc: "Quét xu hướng ngành, phân tích chiến dịch đối thủ và phát hiện cơ hội tăng trưởng mới.",
-    avatar: "/assets/mascots/mascot-7.png?v=7",
+    avatar: "/assets/mascots/mascot-7.png?v=8",
     color: "#6366f1",
   },
   {
@@ -164,7 +164,7 @@ export const AI_TEAM_MASCOTS: AiTeamMascot[] = [
     role: "Giám Đốc Vận Hành Định Kỳ",
     badge: "Routines Tự Hành",
     desc: "Chạy các luồng công việc lặp lại mỗi ngày, nhắc việc và duy trì nhịp độ chuẩn xác 100%.",
-    avatar: "/assets/mascots/mascot-8.png?v=7",
+    avatar: "/assets/mascots/mascot-8.png?v=8",
     color: "#14b8a6",
   },
 ];
@@ -614,7 +614,7 @@ export function RaiLandingPage({ onAdminSignIn: _onAdminSignIn }: { onAdminSignI
             Nếu hôm nay Tôi{" "}
             <span className="inline-flex items-center align-middle mx-1 sm:mx-2.5">
               <img
-                src="/assets/headline-badge-circle.png?v=6"
+                src="/assets/headline-badge-circle.png?v=8"
                 alt="RAI² Avatar"
                 className="size-8 sm:size-12 md:size-14 lg:size-16 rounded-full object-cover shadow-lg border-2 border-white/20 inline-block align-middle transform -translate-y-0.5 sm:-translate-y-1 hover:scale-105 transition-transform duration-200"
               />
@@ -1021,7 +1021,7 @@ export function RaiLandingPage({ onAdminSignIn: _onAdminSignIn }: { onAdminSignI
                   )}
                 >
                   <img
-                    src="/assets/mascots/mascot-5.png?v=7"
+                    src="/assets/mascots/mascot-5.png?v=8"
                     alt="CAIO Master"
                     className="size-5 rounded-full object-cover"
                   />
@@ -1077,7 +1077,7 @@ export function RaiLandingPage({ onAdminSignIn: _onAdminSignIn }: { onAdminSignI
                     )}
                   >
                     <img
-                      src="/assets/mascots/mascot-1.png?v=7"
+                      src="/assets/mascots/mascot-1.png?v=8"
                       alt="Ops RAI"
                       className="size-full rounded-full object-cover"
                     />
@@ -1121,7 +1121,7 @@ export function RaiLandingPage({ onAdminSignIn: _onAdminSignIn }: { onAdminSignI
                     )}
                   >
                     <img
-                      src="/assets/mascots/mascot-2.png?v=7"
+                      src="/assets/mascots/mascot-2.png?v=8"
                       alt="Browser RAI"
                       className="size-full rounded-full object-cover"
                     />
@@ -1165,7 +1165,7 @@ export function RaiLandingPage({ onAdminSignIn: _onAdminSignIn }: { onAdminSignI
                     )}
                   >
                     <img
-                      src="/assets/mascots/mascot-3.png?v=7"
+                      src="/assets/mascots/mascot-3.png?v=8"
                       alt="Content RAI"
                       className="size-full rounded-full object-cover"
                     />
@@ -1209,7 +1209,7 @@ export function RaiLandingPage({ onAdminSignIn: _onAdminSignIn }: { onAdminSignI
                     )}
                   >
                     <img
-                      src="/assets/mascots/mascot-5.png?v=7"
+                      src="/assets/mascots/mascot-5.png?v=8"
                       alt="CAIO Master"
                       className="size-full rounded-full object-cover"
                     />

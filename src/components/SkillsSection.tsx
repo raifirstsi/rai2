@@ -15,7 +15,7 @@ export function filterLibrarySkills(
 ): SkillsLibrarySkillWire[] {
   const q = query.trim().toLowerCase();
   return skills.filter((skill) => {
-    if (tag && !skill.tags.includes(tag)) return false;
+    if (tag && !(skill.tags ?? []).includes(tag)) return false;
     if (!q) return true;
     return [skill.name, skill.description, skill.source].some((part) => part.toLowerCase().includes(q));
   });
@@ -27,7 +27,7 @@ export function LibrarySkillMeta({ skill }: { skill: SkillsLibrarySkillWire }) {
       <span className="truncate" title={skill.source}>{t("skills.source", { source: skill.source })}</span>
       <span>{skill.version ? t("skills.library.version", { version: skill.version }) : t("skills.library.noVersion")}</span>
       <span>{t("skills.library.importedAt", { date: new Date(skill.importedAt).toLocaleDateString(intlLocale()) })}</span>
-      {skill.tags.map((tag) => (
+      {(skill.tags ?? []).map((tag) => (
         <span key={tag} className="rounded bg-control px-1.5 py-0.5 font-mono">{tag}</span>
       ))}
     </div>

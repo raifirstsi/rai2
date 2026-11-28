@@ -1,8 +1,7 @@
 // The community templates catalog (/api/team-library/catalog). Its names and
 // summaries come in English; the built-in teams show in the app's language.
-import { activeLocale, t } from "./i18n";
+import { activeLocale, tFromServer } from "./i18n";
 import { localizeTeamDescription, localizeTeamName } from "../../shared/team-templates-localization";
-import type { LocaleKey } from "@/locales";
 
 export interface TeamCatalogEntry {
   slug: string;
@@ -36,11 +35,14 @@ const CATALOG_COPY: Record<string, string> = {
 
 export function catalogCopy(entry: TeamCatalogEntry): TeamCatalogEntry {
   const id = CATALOG_COPY[entry.name.trim().toLowerCase()];
-  const baseName = id ? t(`templates.catalog.${id}.name` as LocaleKey) : entry.name;
-  const baseSummary = id ? t(`templates.catalog.${id}.summary` as LocaleKey) : entry.summary;
+  const baseName = id ? (tFromServer(`templates.catalog.${id}.name`, entry.name) ?? entry.name) : entry.name;
+  const baseSummary = id ? (tFromServer(`templates.catalog.${id}.summary`, entry.summary) ?? entry.summary) : entry.summary;
   const name = localizeTeamName(baseName, activeLocale());
   const summary = localizeTeamDescription(entry.slug || entry.name, baseSummary, activeLocale());
-  return { ...entry, name, summary, outcome: entry.outcome ? t(`templates.catalog.${id}.outcome` as LocaleKey) : undefined };
+  const outcome = entry.outcome
+    ? (id ? tFromServer(`templates.catalog.${id}.outcome`, entry.outcome) : entry.outcome)
+    : undefined;
+  return { ...entry, name, summary, outcome };
 }
 
 /** Search matches a team by its localized name and summary as well as its English ones, its category, skills and apps. */

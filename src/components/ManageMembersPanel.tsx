@@ -22,7 +22,7 @@ export function ManageMembersPanel({
 
   // Archived bots stay listed while still members, or a room could keep a member you cannot remove.
   const bots = useMemo(
-    () => state.bots.filter((b) => !b.hidden || group.memberIds.includes(b.id)),
+    () => state.bots.filter((b) => !b.hidden || (group.memberIds ?? []).includes(b.id)),
     [state.bots, group.memberIds],
   );
 
@@ -88,7 +88,7 @@ export function ManageMembersPanel({
       dispatch({ type: "patchGroup", groupId: group.id, patch: { memberIds } });
       track("room_members_changed", {
         members: memberIds.length,
-        added: memberIds.filter((id) => !group.memberIds.includes(id)).length,
+        added: memberIds.filter((id) => !(group.memberIds ?? []).includes(id)).length,
         removed: group.memberIds.filter((id) => !memberIds.includes(id)).length,
       });
     }

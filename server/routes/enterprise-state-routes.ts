@@ -7,6 +7,12 @@ import { getWorkspaceAuditLedger } from "../agent/merkle-audit.ts";
 import { getEvalsRunner, type BotSampleInteraction } from "../evals-runner.ts";
 import { getPromotionGate } from "../promotion-gate.ts";
 import { getPulseScheduler } from "../pulse-scheduler.ts";
+import { getEnterpriseGovernanceStore, ROLE_DEFAULT_MAX_TIER, type DataClassificationTier, type EmployeeRole } from "../enterprise-governance.ts";
+import { scanAndRedactText } from "../enterprise-dlp.ts";
+import { getEnterpriseBrainStore, matchesZone, type KnowledgeKind, type PromotionStatus } from "../enterprise-brain.ts";
+import { getEnterpriseTeamOrchestrator, type DagWorkflowStep, type WorkItemStatus, type WorkPriority } from "../enterprise-team.ts";
+import { getEnterpriseOmnichannelGateway, type ChannelPlatform } from "../enterprise-omnichannel.ts";
+import { getEnterpriseSovereigntyManager } from "../enterprise-sovereignty.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 function isSafeWebhookUrl(raw: string): URL | null {
@@ -46,6 +52,18 @@ export interface EnterpriseStateRouteDeps {
   getBotInteractions?: (botId: string) => { botName: string; interactions: BotSampleInteraction[]; systemPrompt?: string };
   getEnterpriseStats?: () => { enterpriseBotsCount: number; totalBotsCount: number };
   resolveOpenAiKey?: () => { apiKey?: string; baseUrl?: string } | null;
+  provisionPersonalBot?: (input: { email: string; name: string; zone?: string; botName: string; namespace: string }) => { id: string; name: string } | null;
+  offboardPersonalBot?: (botId: string) => void;
+  reactivatePersonalBot?: (botId: string, email: string) => void;
+  runOmnichannelBotTurn?: (opts: {
+    botId: string;
+    platform: string;
+    channelGroupId: string;
+    senderEmail?: string;
+    senderName: string;
+    text: string;
+    effectiveTier: string;
+  }) => Promise<string | null>;
   fetchImpl?: typeof fetch;
 }
 
@@ -92,6 +110,77 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         allowedDomain: verified.payload?.allowedDomain,
         enterpriseAccess: snap.enterpriseAccess,
       });
+    }
+
+    if (method === "POST" && path === "/api/webhooks/telegram-enterprise") {
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        update_id?: number;
+        message?: {
+          message_id?: number;
+          text?: string;
+          chat?: { id?: number | string };
+          from?: { id?: number | string; username?: string; first_name?: string };
+          reply_to_message?: { message_id?: number };
+        };
+      };
+      const chatId = body.message?.chat?.id !== undefined ? String(body.message.chat.id) : "";
+      const fromId = body.message?.from?.id !== undefined ? String(body.message.from.id) : "";
+      const text = body.message?.text ?? "";
+      if (!chatId || !fromId || !text.trim()) {
+        return json(res, 200, { ok: true, ignored: true });
+      }
+      const gw = getEnterpriseOmnichannelGateway();
+      const headerSecret = String(req.headers["x-telegram-bot-api-secret-token"] ?? "");
+      const secCheck = gw.verifyTelegramWebhookSecret(chatId, headerSecret);
+      if (!secCheck.ok) {
+        return json(res, 403, { error: "invalid_telegram_webhook_secret" });
+      }
+      const updateKey = body.update_id !== undefined ? `tg:${chatId}:${body.update_id}` : undefined;
+      if (!gw.claimWebhookUpdateOnce(updateKey)) {
+        return json(res, 200, { ok: true, duplicate: true });
+      }
+      const msgId = body.message?.message_id !== undefined ? String(body.message.message_id) : undefined;
+      const resMsg = gw.processInboundMessage({
+        platform: "telegram",
+        channelGroupId: chatId,
+        externalUserId: fromId,
+        externalDisplayName: body.message?.from?.first_name || body.message?.from?.username || fromId,
+        messageText: text,
+        replyToExternalId: msgId,
+      });
+      let finalReply = resMsg.outboundReply;
+      if (resMsg.allowed && resMsg.reason !== "identity_bound" && deps?.runOmnichannelBotTurn) {
+        try {
+          const chCfg = Object.values(gw.getStateMasked().channels).find((c) => c.platform === "telegram" && c.groupId === chatId);
+          const aiReply = await deps.runOmnichannelBotTurn({
+            botId: chCfg?.botId || "enterprise-group-bot",
+            platform: "telegram",
+            channelGroupId: chatId,
+            senderEmail: resMsg.senderEmail,
+            senderName: body.message?.from?.first_name || body.message?.from?.username || fromId,
+            text: resMsg.sanitizedInboundText,
+            effectiveTier: resMsg.effectiveTier,
+          });
+          if (aiReply && aiReply.trim()) {
+            const gov = getEnterpriseGovernanceStore().getState();
+            const outDlp = scanAndRedactText(aiReply.trim(), {
+              dlpEnabled: gov.constitution.dlpEnabled,
+              censorshipEnabled: gov.constitution.censorshipEnabled,
+              forbiddenTopics: gov.constitution.forbiddenTopics,
+              blockOnForbiddenTopic: false,
+              auditActor: chCfg?.botName || "telegram-bot",
+              auditAction: "enterprise.omnichannel_outbound_dlp",
+            });
+            finalReply = outDlp.sanitizedText;
+            resMsg.outboundReply = finalReply;
+          }
+        } catch {}
+      }
+      if (secCheck.telegramBotToken && finalReply) {
+        void gw.dispatchTelegramReply(secCheck.telegramBotToken, chatId, finalReply, msgId);
+      }
+      return json(res, 200, { ok: true, result: resMsg });
     }
 
     if (!path.startsWith("/api/enterprise/")) return PASS;
@@ -442,6 +531,798 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         // Non-fatal
       }
       return json(res, 200, { success: true, state: next, evalResult, promotionResult });
+    }
+
+    const rejectOffboardedSession = (): boolean => {
+      if (auth?.kind !== "session" || !auth.session.email) return false;
+      const email = auth.session.email.trim().toLowerCase();
+      const emp = getEnterpriseGovernanceStore().getState().employees[email];
+      if (emp && emp.status === "offboarded") {
+        try {
+          getWorkspaceAuditLedger().append("default", email, "enterprise.offboarded_api_blocked", { path });
+        } catch {}
+        json(res, 403, { error: "employee_offboarded" });
+        return true;
+      }
+      return false;
+    };
+
+    // ── Phase 1: Enterprise Governance, ABAC, Provisioning, DLP & Audit Trail ──
+    if (method === "GET" && path === "/api/enterprise/governance") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const full = getEnterpriseGovernanceStore().getState();
+      if (auth.scopes.includes("admin")) {
+        return json(res, 200, { governance: full });
+      }
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const selfEmp = actorEmail ? full.employees[actorEmail] : undefined;
+      return json(res, 200, {
+        governance: {
+          ...full,
+          employees: selfEmp && actorEmail ? { [actorEmail]: selfEmp } : {},
+        },
+      });
+    }
+
+    if (method === "PUT" && path === "/api/enterprise/governance") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as Record<string, unknown>;
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const next = getEnterpriseGovernanceStore().updateGovernance(
+        {
+          constitution: (body.constitution as Record<string, unknown> | undefined) as Parameters<ReturnType<typeof getEnterpriseGovernanceStore>["updateGovernance"]>[0]["constitution"],
+          zoneDataTiers: body.zoneDataTiers as Record<string, DataClassificationTier> | undefined,
+          employeeUpdates: body.employeeUpdates as Parameters<ReturnType<typeof getEnterpriseGovernanceStore>["updateGovernance"]>[0]["employeeUpdates"],
+        },
+        actor,
+      );
+      return json(res, 200, { success: true, governance: next });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/employees/provision") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        employees?: Array<{
+          email: string;
+          name?: string;
+          role?: EmployeeRole;
+          zone?: string;
+          maxDataTier?: DataClassificationTier;
+          personalBotId?: string;
+          personalBotName?: string;
+        }>;
+        email?: string;
+        name?: string;
+        role?: EmployeeRole;
+        zone?: string;
+        maxDataTier?: DataClassificationTier;
+      };
+      const items = Array.isArray(body.employees)
+        ? body.employees.slice(0, 20)
+        : body.email
+          ? [{ email: body.email, name: body.name, role: body.role, zone: body.zone, maxDataTier: body.maxDataTier }]
+          : [];
+      if (items.length === 0) {
+        return json(res, 400, { error: "email or employees[] is required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      if (body.email?.trim().toLowerCase() === actor.trim().toLowerCase()) {
+        return json(res, 400, { error: "self_offboard_forbidden" });
+      }
+      const storeGov = getEnterpriseGovernanceStore();
+      const provisioned = items
+        .filter((item) => typeof item.email === "string" && item.email.includes("@"))
+        .map((item) => {
+          const role: EmployeeRole = item.role && item.role in ROLE_DEFAULT_MAX_TIER ? item.role : "member";
+          const empName = item.name || item.email.split("@")[0]!;
+          const desiredBotName = item.personalBotName || `Trợ lý ${empName}`;
+          const existing = storeGov.getState().employees[item.email.trim().toLowerCase()];
+          let botId = item.personalBotId ?? existing?.personalBotId;
+          let botName = existing?.personalBotName ?? desiredBotName;
+          if (botId && existing?.status === "offboarded" && deps?.reactivatePersonalBot) {
+            deps.reactivatePersonalBot(botId, item.email.trim().toLowerCase());
+          }
+          if (!botId && deps?.provisionPersonalBot) {
+            const created = deps.provisionPersonalBot({
+              email: item.email.trim().toLowerCase(),
+              name: empName,
+              zone: item.zone,
+              botName: desiredBotName,
+              namespace: `work-context/${item.email.trim().toLowerCase()}`,
+            });
+            if (created) {
+              botId = created.id;
+              botName = created.name;
+            }
+          }
+          return storeGov.upsertEmployee(
+            {
+              email: item.email,
+              name: empName,
+              role,
+              zone: item.zone,
+              maxDataTier: item.maxDataTier ?? ROLE_DEFAULT_MAX_TIER[role],
+              personalBotId: botId,
+              personalBotName: botName,
+            },
+            actor,
+          );
+        });
+      return json(res, 200, { success: true, provisioned, governance: storeGov.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/employees/offboard") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { email?: string; successorEmail?: string; workSummary?: string };
+      if (!body.email || !body.email.includes("@")) {
+        return json(res, 400, { error: "valid email is required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const storeGov = getEnterpriseGovernanceStore();
+      const offboarded = storeGov.offboardEmployee(body.email, actor);
+      if (!offboarded) return json(res, 404, { error: "employee not found" });
+      if (offboarded.personalBotId && deps?.offboardPersonalBot) {
+        deps.offboardPersonalBot(offboarded.personalBotId);
+      }
+      const handover = getEnterpriseBrainStore().recordOffboardingHandover(
+        {
+          departedEmail: offboarded.email,
+          departedName: offboarded.name,
+          zone: offboarded.zone || "all",
+          successorEmail: body.successorEmail,
+          workSummary: body.workSummary || "",
+          preservedWorkNamespace: offboarded.namespaces.workContext,
+          purgedPrivateNamespace: offboarded.namespaces.privatePersonal,
+        },
+        actor,
+      );
+      getEnterpriseOmnichannelGateway().revokeBindingsForEmployee(offboarded.email, actor);
+      const teamOrch = getEnterpriseTeamOrchestrator();
+      for (const t of Object.values(teamOrch.getState().workItems)) {
+        if (
+          t.status !== "completed" &&
+          t.status !== "approved" &&
+          ((offboarded.personalBotId && t.assignedBotId === offboarded.personalBotId) ||
+            t.createdBy.toLowerCase() === offboarded.email.toLowerCase())
+        ) {
+          teamOrch.createEscalation(
+            {
+              kind: "blocker",
+              title: `Cần bàn giao việc của nhân sự nghỉ việc: ${t.title}`,
+              summaryLines: [
+                `Nhân sự ${offboarded.name} (${offboarded.email}) vừa bị thu hồi quyền.`,
+                `Đầu việc đang ở trạng thái ${t.status} (${t.progressPct}%).`,
+                "Cần Trưởng phòng chỉ định nhân sự / AI kế nhiệm.",
+              ],
+              zone: t.zone,
+              relatedTaskId: t.id,
+              assignedToEmail: body.successorEmail,
+            },
+            actor,
+          );
+        }
+      }
+      return json(res, 200, { success: true, employee: offboarded, handover, governance: storeGov.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/dlp/test") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { text?: string; blockOnForbiddenTopic?: boolean };
+      const gov = getEnterpriseGovernanceStore().getState();
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const result = scanAndRedactText(String(body.text ?? "").slice(0, 50_000), {
+        dlpEnabled: gov.constitution.dlpEnabled,
+        censorshipEnabled: gov.constitution.censorshipEnabled,
+        forbiddenTopics: gov.constitution.forbiddenTopics,
+        blockOnForbiddenTopic: body.blockOnForbiddenTopic === true,
+        auditActor: actor,
+        auditAction: "enterprise.dlp_policy_test",
+      });
+      return json(res, 200, { result });
+    }
+
+    if (method === "GET" && path === "/api/enterprise/audit-trail") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const actor = url.searchParams.get("actor") ?? undefined;
+      const action = url.searchParams.get("action") ?? undefined;
+      const q = url.searchParams.get("q") ?? undefined;
+      const limit = Math.min(200, Math.max(1, Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50));
+      const trail = getEnterpriseGovernanceStore().queryAuditTrail({ actor, action, q, limit });
+      return json(res, 200, trail);
+    }
+
+    // ── Phase 2: Org Decision Ledger, Knowledge Flywheel, Handover & Onboarding Brief ──
+    if (method === "GET" && path === "/api/enterprise/brain") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const brain = getEnterpriseBrainStore().getScopedState({
+        isAdmin,
+        employeeZone: emp?.zone,
+        employeeEmail: actorEmail,
+      });
+      return json(res, 200, { brain });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/decisions/propose") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { title?: string; summary?: string; scopeZone?: string; effectiveFrom?: string; autoApprove?: boolean };
+      if (!body.title?.trim() || !body.summary?.trim()) {
+        return json(res, 400, { error: "title and summary are required" });
+      }
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || (isAdmin ? "admin" : "employee");
+      const emp = auth.kind === "session" && auth.session.email ? getEnterpriseGovernanceStore().getState().employees[auth.session.email.toLowerCase()] : undefined;
+      if (!isAdmin && body.scopeZone && body.scopeZone.trim().toLowerCase() !== "all") {
+        if (emp?.zone && emp.zone.trim().toLowerCase() !== body.scopeZone.trim().toLowerCase()) {
+          return json(res, 403, { error: "cross_zone_propose_denied" });
+        }
+      }
+      const canAuto = Boolean(body.autoApprove && isAdmin);
+      const rec = getEnterpriseBrainStore().proposeDecision(
+        { title: body.title, summary: body.summary, scopeZone: body.scopeZone, effectiveFrom: body.effectiveFrom, autoApprove: canAuto },
+        actor,
+      );
+      const brain = getEnterpriseBrainStore().getScopedState({ isAdmin, employeeZone: emp?.zone, employeeEmail: actor.toLowerCase() });
+      return json(res, 200, { success: true, decision: rec, brain });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/decisions/review") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { id?: string; status?: PromotionStatus };
+      if (!body.id || !body.status || !["proposed", "approved", "deprecated"].includes(body.status)) {
+        return json(res, 400, { error: "valid id and status are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const updated = getEnterpriseBrainStore().reviewDecision(body.id, body.status, actor);
+      if (!updated) return json(res, 404, { error: "decision not found" });
+      return json(res, 200, { success: true, decision: updated, brain: getEnterpriseBrainStore().getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/knowledge/propose") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { kind?: KnowledgeKind; title?: string; content?: string; scopeZone?: string; autoApprove?: boolean };
+      if (!body.title?.trim() || !body.content?.trim()) {
+        return json(res, 400, { error: "title and content are required" });
+      }
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || (isAdmin ? "admin" : "employee");
+      const emp = auth.kind === "session" && auth.session.email ? getEnterpriseGovernanceStore().getState().employees[auth.session.email.toLowerCase()] : undefined;
+      if (!isAdmin && body.scopeZone && body.scopeZone.trim().toLowerCase() !== "all") {
+        if (emp?.zone && emp.zone.trim().toLowerCase() !== body.scopeZone.trim().toLowerCase()) {
+          return json(res, 403, { error: "cross_zone_propose_denied" });
+        }
+      }
+      const canAuto = Boolean(body.autoApprove && isAdmin);
+      const entry = getEnterpriseBrainStore().proposeKnowledge(
+        { kind: body.kind, title: body.title, content: body.content, scopeZone: body.scopeZone, autoApprove: canAuto },
+        actor,
+      );
+      const brain = getEnterpriseBrainStore().getScopedState({ isAdmin, employeeZone: emp?.zone, employeeEmail: actor.toLowerCase() });
+      return json(res, 200, { success: true, entry, brain });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/knowledge/review") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { id?: string; status?: PromotionStatus };
+      if (!body.id || !body.status || !["proposed", "approved", "deprecated"].includes(body.status)) {
+        return json(res, 400, { error: "valid id and status are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const updated = getEnterpriseBrainStore().reviewKnowledge(body.id, body.status, actor);
+      if (!updated) return json(res, 404, { error: "knowledge entry not found" });
+      return json(res, 200, { success: true, entry: updated, brain: getEnterpriseBrainStore().getState() });
+    }
+
+    if (method === "GET" && path === "/api/enterprise/onboarding-brief") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const requestedZone = url.searchParams.get("zone") ?? undefined;
+      const zone = isAdmin ? requestedZone : (emp?.zone || "all");
+      const employeeEmail = url.searchParams.get("email") ?? undefined;
+      const brief = getEnterpriseBrainStore().buildOnboardingBrief({ zone, employeeEmail });
+      return json(res, 200, { brief });
+    }
+
+    if (method === "GET" && path === "/api/enterprise/export") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        exportedBy: actor,
+        governance: getEnterpriseGovernanceStore().getState(),
+        brain: getEnterpriseBrainStore().getState(),
+        team: getEnterpriseTeamOrchestrator().getState(),
+        omnichannel: getEnterpriseOmnichannelGateway().getStateMasked(),
+      };
+      getWorkspaceAuditLedger().append("default", actor, "enterprise.data_exported", {
+        employees: Object.keys(payload.governance.employees).length,
+        decisions: Object.keys(payload.brain.decisions).length,
+        knowledge: Object.keys(payload.brain.knowledge).length,
+        handovers: Object.keys(payload.brain.handovers).length,
+      });
+      return json(res, 200, payload);
+    }
+
+    // â”€â”€ Phase 3: Hierarchical Team Orchestration, DAG Workflows & Proactive Escalations â”€â”€
+    const getTeamActor = () => {
+      const isAdmin = Boolean(auth?.scopes.includes("admin"));
+      const actorEmail = (auth?.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const canApprove = isAdmin || emp?.role === "manager" || emp?.role === "owner";
+      const actor = actorEmail || (isAdmin ? "admin" : "employee");
+      return { isAdmin, actorEmail, emp, canApprove, actor };
+    };
+    const scopedTeam = (ctx: ReturnType<typeof getTeamActor>) =>
+      getEnterpriseTeamOrchestrator().getScopedState({
+        isAdmin: ctx.isAdmin,
+        employeeZone: ctx.emp?.zone,
+        employeeEmail: ctx.actorEmail,
+      });
+    const hasZoneAccess = (ctx: ReturnType<typeof getTeamActor>, targetZone?: string): boolean => {
+      if (ctx.isAdmin) return true;
+      if (!targetZone || targetZone.trim().toLowerCase() === "all") return true;
+      return matchesZone(targetZone, ctx.emp?.zone);
+    };
+
+    if (method === "GET" && path === "/api/enterprise/team") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
+      return json(res, 200, { team: scopedTeam(ctx) });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/tasks") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
+      const body = (await readBody(req)) as {
+        title?: string;
+        description?: string;
+        zone?: string;
+        priority?: WorkPriority;
+        assignedBotId?: string;
+        assignedBotName?: string;
+        leadBotId?: string;
+        parentTaskId?: string;
+        dueAt?: number;
+        subtasks?: Array<{ title: string; description?: string; assignedBotId: string; assignedBotName?: string }>;
+      };
+      const orch = getEnterpriseTeamOrchestrator();
+      if (body.parentTaskId && Array.isArray(body.subtasks) && body.subtasks.length > 0) {
+        const parent = orch.getState().workItems[body.parentTaskId];
+        if (!parent) return json(res, 404, { error: "parent task not found" });
+        if (!hasZoneAccess(ctx, parent.zone)) return json(res, 403, { error: "cross_zone_denied" });
+        const created = orch.delegateSubtasks(body.parentTaskId, body.subtasks, ctx.actor);
+        return json(res, 200, { success: true, subtasks: created, team: scopedTeam(ctx) });
+      }
+      if (!body.title?.trim() || !body.assignedBotId?.trim()) {
+        return json(res, 400, { error: "title and assignedBotId are required" });
+      }
+      if (!hasZoneAccess(ctx, body.zone)) return json(res, 403, { error: "cross_zone_denied" });
+      const task = orch.createTask(
+        {
+          title: body.title,
+          description: body.description,
+          zone: body.zone,
+          priority: body.priority,
+          assignedBotId: body.assignedBotId,
+          assignedBotName: body.assignedBotName,
+          leadBotId: body.leadBotId,
+          parentTaskId: body.parentTaskId,
+          dueAt: body.dueAt,
+        },
+        ctx.actor,
+      );
+      return json(res, 200, { success: true, task, team: scopedTeam(ctx) });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/tasks/review") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
+      const body = (await readBody(req)) as {
+        taskId?: string;
+        action?: "progress" | "approved" | "rejected";
+        status?: WorkItemStatus;
+        progressPct?: number;
+        blockerReason?: string;
+        deliverable?: string;
+        notes?: string;
+      };
+      if (!body.taskId) return json(res, 400, { error: "taskId is required" });
+      const orch = getEnterpriseTeamOrchestrator();
+      const target = orch.getState().workItems[body.taskId];
+      if (!target) return json(res, 404, { error: "task not found" });
+      if (!hasZoneAccess(ctx, target.zone)) return json(res, 403, { error: "cross_zone_denied" });
+      if (body.action === "approved" || body.action === "rejected") {
+        if (!ctx.canApprove) return json(res, 403, { error: "manager_or_admin_required_to_review" });
+        const updated = orch.reviewTeamTask(body.taskId, body.action, body.notes ?? "", ctx.actor);
+        return json(res, 200, { success: true, task: updated, team: scopedTeam(ctx) });
+      }
+      const updated = orch.updateTaskProgress(
+        body.taskId,
+        { status: body.status, progressPct: body.progressPct, blockerReason: body.blockerReason, deliverable: body.deliverable },
+        ctx.actor,
+      );
+      return json(res, 200, { success: true, task: updated, team: scopedTeam(ctx) });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/workflows") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const ctx = getTeamActor();
+      const body = (await readBody(req)) as {
+        name?: string;
+        description?: string;
+        scopeZone?: string;
+        trigger?: "manual" | "schedule" | "event";
+        maxHops?: number;
+        budgetCapUsd?: number;
+        steps?: DagWorkflowStep[];
+        publish?: boolean;
+      };
+      if (!body.name?.trim() || !Array.isArray(body.steps) || body.steps.length === 0) {
+        return json(res, 400, { error: "name and steps[] are required" });
+      }
+      const orch = getEnterpriseTeamOrchestrator();
+      const workflow = orch.createDagWorkflow(
+        {
+          name: body.name,
+          description: body.description,
+          scopeZone: body.scopeZone,
+          trigger: body.trigger,
+          maxHops: body.maxHops,
+          budgetCapUsd: body.budgetCapUsd,
+          steps: body.steps,
+          publish: body.publish ?? true,
+        },
+        ctx.actor,
+      );
+      return json(res, 200, { success: true, workflow, team: scopedTeam(ctx) });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/workflows/run") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
+      const body = (await readBody(req)) as {
+        workflowId?: string;
+        runId?: string;
+        action?: "continue" | "approve" | "reject";
+        notes?: string;
+      };
+      const orch = getEnterpriseTeamOrchestrator();
+      if (body.runId) {
+        const existingRun = orch.getState().dagRuns[body.runId];
+        if (!existingRun) return json(res, 404, { error: "dag run not found" });
+        if (!hasZoneAccess(ctx, existingRun.scopeZone)) return json(res, 403, { error: "cross_zone_denied" });
+        if ((body.action === "approve" || body.action === "reject") && !ctx.canApprove) {
+          return json(res, 403, { error: "manager_or_admin_required_to_approve" });
+        }
+        const run = orch.advanceDagRun(body.runId, body.action ?? "continue", ctx.actor, body.notes);
+        return json(res, 200, { success: true, run, team: scopedTeam(ctx) });
+      }
+      if (!body.workflowId) return json(res, 400, { error: "workflowId or runId is required" });
+      const wf = orch.getState().workflows[body.workflowId];
+      if (!wf) return json(res, 404, { error: "workflow not found" });
+      if (!hasZoneAccess(ctx, wf.scopeZone)) return json(res, 403, { error: "cross_zone_denied" });
+      if (wf.status !== "published" && !ctx.isAdmin) {
+        return json(res, 403, { error: "workflow_not_published" });
+      }
+      const run = orch.startDagRun(body.workflowId, ctx.actor);
+      return json(res, 200, { success: true, run, team: scopedTeam(ctx) });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/escalations/resolve") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
+      const body = (await readBody(req)) as { id?: string; decision?: "approved" | "reassigned" | "dismissed"; note?: string };
+      if (!body.id || !body.decision || !["approved", "reassigned", "dismissed"].includes(body.decision)) {
+        return json(res, 400, { error: "valid id and decision are required" });
+      }
+      const orch = getEnterpriseTeamOrchestrator();
+      const targetEsc = orch.getState().escalations[body.id];
+      if (!targetEsc) return json(res, 404, { error: "escalation not found" });
+      if (!hasZoneAccess(ctx, targetEsc.zone)) return json(res, 403, { error: "cross_zone_denied" });
+      if (!ctx.canApprove) return json(res, 403, { error: "manager_or_admin_required_to_resolve" });
+      const card = orch.resolveEscalation(body.id, body.decision, ctx.actor, body.note);
+      return json(res, 200, { success: true, escalation: card, team: scopedTeam(ctx) });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/reminders") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const ctx = getTeamActor();
+      const body = (await readBody(req)) as {
+        title?: string;
+        schedule?: "hourly" | "daily_0900" | "daily_1700" | "weekly_mon";
+        targetZone?: string;
+        targetChannel?: "dashboard" | "group_chat";
+      };
+      if (!body.title?.trim()) return json(res, 400, { error: "title is required" });
+      const orch = getEnterpriseTeamOrchestrator();
+      const reminder = orch.createReminder(
+        { title: body.title, schedule: body.schedule, targetZone: body.targetZone, targetChannel: body.targetChannel },
+        ctx.actor,
+      );
+      return json(res, 200, { success: true, reminder, team: scopedTeam(ctx) });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/team/sweep") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const ctx = getTeamActor();
+      const orch = getEnterpriseTeamOrchestrator();
+      const sweep = orch.runProactiveSweep(ctx.actor);
+      return json(res, 200, { success: true, sweep, team: scopedTeam(ctx) });
+    }
+
+    // ── Phase 4: Omnichannel Group Chat (Zalo, Telegram, WhatsApp, Discord) ──
+    if (method === "GET" && path === "/api/enterprise/omnichannel") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const omnichannel = getEnterpriseOmnichannelGateway().getScopedStateMasked({
+        isAdmin,
+        employeeZone: emp?.zone,
+        employeeEmail: actorEmail,
+      });
+      return json(res, 200, { omnichannel });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/channels") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        id?: string;
+        platform?: ChannelPlatform;
+        name?: string;
+        groupId?: string;
+        botId?: string;
+        botName?: string;
+        scopeZone?: string;
+        maxChannelTier?: DataClassificationTier;
+        allowExternalGuests?: boolean;
+        telegramBotToken?: string;
+        discordWebhookUrl?: string;
+        webhookSecret?: string;
+        enabled?: boolean;
+      };
+      if (!body.platform || !body.name?.trim() || !body.groupId?.trim()) {
+        return json(res, 400, { error: "platform, name, and groupId are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const channel = getEnterpriseOmnichannelGateway().upsertChannel(
+        {
+          id: body.id,
+          platform: body.platform,
+          name: body.name,
+          groupId: body.groupId,
+          botId: body.botId,
+          botName: body.botName,
+          scopeZone: body.scopeZone,
+          maxChannelTier: body.maxChannelTier,
+          allowExternalGuests: body.allowExternalGuests,
+          telegramBotToken: body.telegramBotToken,
+          discordWebhookUrl: body.discordWebhookUrl,
+          webhookSecret: body.webhookSecret,
+          enabled: body.enabled,
+        },
+        actor,
+      );
+      return json(res, 200, { success: true, channel, omnichannel: getEnterpriseOmnichannelGateway().getStateMasked() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/bind/request") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { employeeEmail?: string; platform?: ChannelPlatform };
+      const isAdmin = auth.scopes.includes("admin");
+      const sessionEmail = auth.kind === "session" ? auth.session.email : undefined;
+      const targetEmail = isAdmin && body.employeeEmail ? body.employeeEmail : sessionEmail;
+      if (!targetEmail || !targetEmail.includes("@") || !body.platform) {
+        return json(res, 400, { error: "valid employeeEmail and platform are required" });
+      }
+      const challenge = getEnterpriseOmnichannelGateway().issueBindingOtp(targetEmail, body.platform, sessionEmail || "admin");
+      return json(res, 200, { success: true, challenge, omnichannel: getEnterpriseOmnichannelGateway().getStateMasked() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/bind/verify") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { code?: string; externalUserId?: string; externalDisplayName?: string };
+      if (!body.code || !body.externalUserId) {
+        return json(res, 400, { error: "code and externalUserId are required" });
+      }
+      const binding = getEnterpriseOmnichannelGateway().verifyBindingOtp(body.code, body.externalUserId, body.externalDisplayName);
+      if (!binding) return json(res, 400, { error: "invalid_or_expired_otp" });
+      return json(res, 200, { success: true, binding, omnichannel: getEnterpriseOmnichannelGateway().getStateMasked() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/bind/revoke") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { platform?: ChannelPlatform; externalUserId?: string };
+      if (!body.platform || !body.externalUserId) {
+        return json(res, 400, { error: "platform and externalUserId are required" });
+      }
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const gw = getEnterpriseOmnichannelGateway();
+      const state = gw.getStateMasked();
+      const existing = state.bindings[`${body.platform}:${body.externalUserId.trim()}`];
+      if (!existing) return json(res, 404, { error: "binding not found" });
+      if (!isAdmin && existing.employeeEmail.toLowerCase() !== actorEmail) {
+        return json(res, 403, { error: "forbidden_revoke_other_employee" });
+      }
+      gw.revokeSingleBinding(body.platform, body.externalUserId, actorEmail || "admin");
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      return json(res, 200, {
+        success: true,
+        omnichannel: gw.getScopedStateMasked({ isAdmin, employeeZone: emp?.zone, employeeEmail: actorEmail }),
+      });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/omnichannel/ingest") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      if (!auth.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required for manual omnichannel simulation" });
+      }
+      const body = (await readBody(req)) as {
+        platform?: ChannelPlatform;
+        channelGroupId?: string;
+        externalUserId?: string;
+        externalDisplayName?: string;
+        messageText?: string;
+        botMaxTier?: DataClassificationTier;
+        replyToExternalId?: string;
+      };
+      if (!body.platform || !body.channelGroupId || !body.externalUserId || !body.messageText?.trim()) {
+        return json(res, 400, { error: "platform, channelGroupId, externalUserId, and messageText are required" });
+      }
+      const result = getEnterpriseOmnichannelGateway().processInboundMessage({
+        platform: body.platform,
+        channelGroupId: body.channelGroupId,
+        externalUserId: body.externalUserId,
+        externalDisplayName: body.externalDisplayName,
+        messageText: body.messageText,
+        botMaxTier: body.botMaxTier,
+        replyToExternalId: body.replyToExternalId,
+      });
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      return json(res, 200, {
+        success: result.allowed,
+        result,
+        omnichannel: getEnterpriseOmnichannelGateway().getScopedStateMasked({
+          isAdmin,
+          employeeZone: emp?.zone,
+          employeeEmail: actorEmail,
+        }),
+      });
+    }
+
+    // ── Phase 5: Per-Tenant Envelope Encryption, Key Rotation, Open Export & CEO Console ──
+    if (method === "GET" && path === "/api/enterprise/ceo-console") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const tenantId = url.searchParams.get("tenantId") || "default";
+      const consoleSnap = getEnterpriseSovereigntyManager().buildCeoConsoleSnapshot(tenantId);
+      return json(res, 200, { console: consoleSnap });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/sovereignty/secrets") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string; secretName?: string; plaintext?: string };
+      if (!body.secretName?.trim() || !body.plaintext) {
+        return json(res, 400, { error: "secretName and plaintext are required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const mgr = getEnterpriseSovereigntyManager();
+      mgr.sealTenantSecret(body.tenantId || "default", body.secretName, body.plaintext, actor);
+      return json(res, 200, {
+        success: true,
+        keyStatus: mgr.getKeyStatusMasked(body.tenantId || "default"),
+      });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/sovereignty/rotate-key") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string };
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const mgr = getEnterpriseSovereigntyManager();
+      const rotated = mgr.rotateTenantDek(body.tenantId || "default", actor);
+      return json(res, 200, {
+        success: true,
+        rotated,
+        keyStatus: mgr.getKeyStatusMasked(body.tenantId || "default"),
+      });
+    }
+
+    if (method === "DELETE" && path === "/api/enterprise/sovereignty/secrets") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string; secretName?: string };
+      if (!body.secretName?.trim()) return json(res, 400, { error: "secretName is required" });
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const mgr = getEnterpriseSovereigntyManager();
+      const deleted = mgr.deleteTenantSecret(body.tenantId || "default", body.secretName, actor);
+      return json(res, 200, { success: deleted, keyStatus: mgr.getKeyStatusMasked(body.tenantId || "default") });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/sovereignty/verify-backup") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { tenantId?: string; keyVersion?: number; ciphertext?: string };
+      if (!body.ciphertext || body.ciphertext.length > 20_000_000 || typeof body.keyVersion !== "number" || body.keyVersion < 1) {
+        return json(res, 400, { error: "keyVersion and ciphertext are required" });
+      }
+      const resVerify = getEnterpriseSovereigntyManager().verifyEncryptedBackupPackage({
+        tenantId: body.tenantId || "default",
+        keyVersion: body.keyVersion,
+        ciphertext: body.ciphertext,
+      });
+      return json(res, 200, resVerify);
+    }
+
+    if (method === "GET" && path === "/api/enterprise/sovereignty/export") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const tenantId = url.searchParams.get("tenantId") || "default";
+      const format = url.searchParams.get("format") || "json";
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const bundle = getEnterpriseSovereigntyManager().buildOpenExportBundle(tenantId, actor);
+      if (format === "markdown") {
+        return json(res, 200, { format: "markdown", content: bundle.markdownBundle });
+      }
+      if (format === "csv") {
+        return json(res, 200, { format: "csv", content: bundle.csvBundle });
+      }
+      if (format === "encrypted") {
+        return json(res, 200, { format: "encrypted", package: bundle.encryptedBackupPackage });
+      }
+      return json(res, 200, { format: "json", bundle: bundle.jsonBundle });
     }
 
     return PASS;

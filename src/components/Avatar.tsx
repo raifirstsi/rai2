@@ -245,6 +245,14 @@ export function resolveBotAvatarOutcome(params: {
   return "flatImage";
 }
 
+export function withMascotAssetVersion(url: string | undefined): string | undefined {
+  if (!url) return url;
+  if ((url.startsWith("/assets/mascots/") || url.startsWith("/assets/bot-mascot")) && !url.includes("?")) {
+    return `${url}?v=8`;
+  }
+  return url;
+}
+
 export function BotAvatar({ bot, size = 44, label }: BotAvatarProps) {
   const profile = botAvatarProfile(bot);
   const [imageFailed, setImageFailed] = useState(false);
@@ -265,7 +273,7 @@ export function BotAvatar({ bot, size = 44, label }: BotAvatarProps) {
         style={{ width: size, height: size }}
       >
         <img
-          src="/assets/bot-mascot-circle.png?v=7"
+          src="/assets/bot-mascot-circle.png?v=8"
           alt={label ?? bot.name ?? "RAI²"}
           className="size-full object-cover"
         />
@@ -280,7 +288,7 @@ export function BotAvatar({ bot, size = 44, label }: BotAvatarProps) {
   });
 
   if (outcome !== "flatImage") {
-    const mascotSrc = getBotMascotUrl(bot as any);
+    const mascotSrc = withMascotAssetVersion(getBotMascotUrl(bot as any));
     return (
       <span
         className="relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full shadow-xs bg-raised border border-hairline/40 select-none"
@@ -306,7 +314,7 @@ export function BotAvatar({ bot, size = 44, label }: BotAvatarProps) {
       style={{ width: size, height: size, borderRadius: radius }}
     >
       <img
-        src={profile.avatarUrl}
+        src={withMascotAssetVersion(profile.avatarUrl)}
         alt={label ?? (bot.name ? t("avatar.alt", { name: bot.name }) : t("avatar.altFallback"))}
         width={size}
         height={size}

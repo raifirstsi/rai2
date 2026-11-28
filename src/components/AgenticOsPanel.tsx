@@ -1,3 +1,8 @@
+import { EnterpriseBrainPanel } from "./EnterpriseBrainPanel";
+import { EnterpriseTeamPanel } from "./EnterpriseTeamPanel";
+import { EnterpriseOmnichannelPanel } from "./EnterpriseOmnichannelPanel";
+import { EnterpriseCeoConsolePanel } from "./EnterpriseCeoConsolePanel";
+import { EnterpriseGovernancePanel } from "./EnterpriseGovernancePanel";
 import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
@@ -65,7 +70,7 @@ interface BudgetStatus {
   arbitrageEnabled: boolean;
 }
 
-type ActiveTab = "pulse" | "roi" | "evals" | "tables";
+type ActiveTab = "pulse" | "roi" | "evals" | "tables" | "governance" | "brain" | "team" | "omnichannel" | "ceo";
 
 function triggerDownload(filename: string, content: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
@@ -82,7 +87,15 @@ function triggerDownload(filename: string, content: string, mimeType: string) {
 export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: string }) {
   const [pulse, setPulse] = useState<DailyPulse | null>(null);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<ActiveTab>("pulse");
+  const [simpleMode, setSimpleMode] = useState(true);
+  const [tab, setTab] = useState<ActiveTab>("ceo");
+  const [showQuickGuide, setShowQuickGuide] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("rai2_hide_quick_guide") !== "1";
+    } catch {
+      return true;
+    }
+  });
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -505,13 +518,26 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
             <div className="flex items-center gap-1.5 overflow-x-auto border-b border-hairline/60 bg-raised/60 px-3.5 py-2 sm:px-5 text-xs font-medium">
               {(
-                [
-                  { id: "pulse", label: "Nhịp thở 17:00 & TOC", icon: Activity },
-                  { id: "roi", label: "Hoàn vốn 90 ngày", icon: TrendingUp },
-                  { id: "evals", label: "Sát hạch & Chữ ký", icon: ShieldCheck },
-                  { id: "tables", label: "Bảng tính & Ngân sách", icon: Table2 },
-                ] as const
-              ).map(({ id, label, icon: Icon }) => (
+                simpleMode
+                  ? ([
+                      { id: "ceo", label: "Tổng quan Giám đốc", icon: ShieldCheck },
+                      { id: "governance", label: "Nhân sự & Trợ lý AI", icon: ShieldCheck },
+                      { id: "brain", label: "Quyết định & Tri thức", icon: Activity },
+                      { id: "team", label: "Giao việc & Quy trình", icon: CheckCircle2 },
+                      { id: "omnichannel", label: "Zalo / Telegram Nhóm", icon: Activity },
+                    ] as const)
+                  : ([
+                      { id: "ceo", label: "Tổng quan Giám đốc", icon: ShieldCheck },
+                      { id: "governance", label: "Nhân sự & Trợ lý AI", icon: ShieldCheck },
+                      { id: "brain", label: "Quyết định & Tri thức", icon: Activity },
+                      { id: "team", label: "Giao việc & Quy trình", icon: CheckCircle2 },
+                      { id: "omnichannel", label: "Zalo / Telegram Nhóm", icon: Activity },
+                      { id: "pulse", label: "Nhịp thở 17:00 & TOC", icon: Activity },
+                      { id: "roi", label: "Hoàn vốn 90 ngày", icon: TrendingUp },
+                      { id: "evals", label: "Sát hạch & Chữ ký", icon: ShieldCheck },
+                      { id: "tables", label: "Bảng tính & Ngân sách", icon: Table2 },
+                    ] as const)
+                            ).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   type="button"
@@ -528,7 +554,46 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                   <span>{label}</span>
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setSimpleMode((v) => !v)}
+                className="ml-auto shrink-0 rounded-lg border border-hairline/40 bg-card px-2.5 py-1 text-[11px] text-ink-secondary hover:text-ink"
+              >
+                {simpleMode ? "Mở rộng (9 mục)" : "Thu gọn đơn giản"}
+              </button>
             </div>
+
+                        {showQuickGuide && (
+              <div className="border-b border-hairline/40 bg-accent/5 px-4 py-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-ink">Bắt đầu nhanh trong 3 bước (Dành cho mọi nhân sự, không cần rành IT)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowQuickGuide(false);
+                      try { localStorage.setItem("rai2_hide_quick_guide", "1"); } catch {}
+                    }}
+                    className="text-[11px] text-ink-tertiary hover:text-ink"
+                  >
+                    Ẩn hướng dẫn
+                  </button>
+                </div>
+                <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                  <button type="button" onClick={() => setTab("governance")} className="rounded-lg border border-hairline/40 bg-card px-2.5 py-1.5 text-left hover:border-accent/60">
+                    <div className="font-medium text-ink">1. Mời nhân viên</div>
+                    <div className="text-[11px] text-ink-secondary">Tạo Trợ lý AI riêng &amp; chọn phòng ban</div>
+                  </button>
+                  <button type="button" onClick={() => setTab("brain")} className="rounded-lg border border-hairline/40 bg-card px-2.5 py-1.5 text-left hover:border-accent/60">
+                    <div className="font-medium text-ink">2. Dạy AI nhớ việc</div>
+                    <div className="text-[11px] text-ink-secondary">Lưu quyết định &amp; quy trình công ty</div>
+                  </button>
+                  <button type="button" onClick={() => setTab("omnichannel")} className="rounded-lg border border-hairline/40 bg-card px-2.5 py-1.5 text-left hover:border-accent/60">
+                    <div className="font-medium text-ink">3. Đưa vào Zalo / Telegram</div>
+                    <div className="text-[11px] text-ink-secondary">Lấy mã 6 số gõ /bind vào nhóm chat</div>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="flex-1 space-y-4 overflow-y-auto bg-card p-3.5 sm:p-5 text-sm">
               {errorMsg && (
@@ -817,6 +882,12 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                   </div>
                 </div>
               )}
+
+              {tab === "governance" && <EnterpriseGovernancePanel />}
+              {tab === "brain" && <EnterpriseBrainPanel />}
+              {tab === "team" && <EnterpriseTeamPanel />}
+              {tab === "omnichannel" && <EnterpriseOmnichannelPanel />}
+              {tab === "ceo" && <EnterpriseCeoConsolePanel />}
 
               {tab === "tables" && (
                 <div className="space-y-4">
