@@ -143,8 +143,13 @@ export function AutonomyGraduationModal({
     saveAutonomyProfiles(updatedMap);
     const srv = await recordAutonomyOnServer(updated.botId, updated);
     if (tier === "TIER_3_AUTONOMOUS" && srv.evalResult && srv.evalResult.passed === false) {
+      const rollbackTier = currentProfile.currentTier === "TIER_3_AUTONOMOUS" ? "TIER_2_COPILOT" : currentProfile.currentTier;
+      const rolledBack = { ...updated, currentTier: rollbackTier };
+      const rolledMap = { ...profiles, [currentProfile.botId]: rolledBack };
+      setProfiles(rolledMap);
+      saveAutonomyProfiles(rolledMap);
       setActionNotice(
-        `⚠️ Đã lưu cấu hình, nhưng EvalsRunner chấm thực tế ${srv.evalResult.totalScore ?? 0}/${srv.evalResult.maxScore ?? 21} (${srv.evalResult.summary ?? "Cần hội thoại thực tế"}). Promotion Gate đang giữ ở ${srv.promotionResult?.status ?? "evaluating"}.`,
+        `⚠️ Chưa đủ điều kiện Tự trị 95%: EvalsRunner chấm thực tế ${srv.evalResult.totalScore ?? 0}/${srv.evalResult.maxScore ?? 21} (${srv.evalResult.summary ?? "Cần hội thoại thực tế"}). Promotion Gate giữ nguyên ở ${AUTONOMY_TIERS[rollbackTier].name}.`,
       );
     } else {
       setActionNotice(`Đã đồng bộ Server & chuyển bot ${updated.botName} sang ${AUTONOMY_TIERS[tier].name}.`);
