@@ -221,6 +221,9 @@ export class EnterpriseSovereigntyManager {
     if (!name || !plaintext || name === "__proto__" || name === "constructor" || name === "prototype") {
       throw new Error("valid secretName and plaintext are required");
     }
+    if (plaintext.length > 16_384) {
+      throw new Error("secret plaintext exceeds 16KB cap");
+    }
     const rec = this.ensureTenantKey(tenantId, actor);
     const dek = this.unwrapDek(rec);
     const now = Date.now();
@@ -346,7 +349,8 @@ export class EnterpriseSovereigntyManager {
 
     // Security & AI Spend telemetry from Merkle Audit
     const auditTrailRes = getEnterpriseGovernanceStore().queryAuditTrail({ limit: 2000 });
-    const auditRecs = auditTrailRes.records;
+    const tidNorm = this.sanitizeTenantId(tenantId);
+    const auditRecs = tidNorm === "default" ? auditTrailRes.records : auditTrailRes.records.filter((r) => r.tenantId === tidNorm);
     let dlpEventsCount = 0;
     let confidentialReroutesCount = 0;
     let offboardBlocksCount = 0;
@@ -429,6 +433,7 @@ export class EnterpriseSovereigntyManager {
   public buildOpenExportBundle(tenantId = "default", actor = "admin"): {
     jsonBundle: Record<string, unknown>;
     markdownBundle: string;
+    csvBundle: string;
     encryptedBackupPackage: {
       format: "rai2-envelope-backup-v1";
       tenantId: string;
@@ -488,9 +493,20 @@ export class EnterpriseSovereigntyManager {
       tasks: Object.keys(team.workItems).length,
     });
 
+    const csvEscape = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csvRows = [
+      ["Loại", "ID", "Tiêu đề / Tên", "Phạm vi Zone", "Trạng thái", "Chi tiết"],
+      ...Object.values(gov.employees).map((e) => ["Nhân sự", e.email, e.name, e.zone || "all", e.status, `${e.role} (${e.maxDataTier})`]),
+      ...Object.values(brain.decisions).map((d) => ["Quyết định", d.id, d.title, d.scopeZone, d.status, d.summary]),
+      ...Object.values(brain.knowledge).map((k) => ["Tri thức", k.id, k.title, k.scopeZone, k.status, `Dùng ${k.usageCount} lần`]),
+      ...Object.values(team.workItems).map((t) => ["Công việc", t.id, t.title, t.zone, t.status, `${t.progressPct}% - ${t.assignedBotName}`]),
+    ];
+    const csvBundle = "\uFEFF" + csvRows.map((row) => row.map(csvEscape).join(",")).join("\n");
+
     return {
       jsonBundle,
       markdownBundle: mdLines.join("\n"),
+      csvBundle,
       encryptedBackupPackage: {
         format: "rai2-envelope-backup-v1",
         tenantId: rec.tenantId,
@@ -499,6 +515,27 @@ export class EnterpriseSovereigntyManager {
         ciphertext,
       },
     };
+  }
+
+  public decryptBackupBundle(
+    pkg: { tenantId: string; keyVersion: number; ciphertext: string },
+    actor = "admin",
+  ): Record<string, unknown> | null {
+    try {
+      const tid = this.sanitizeTenantId(pkg.tenantId);
+      const rec = this.state.tenants[tid];
+      if (!rec) return null;
+      const dek = this.unwrapDekForVersion(rec, pkg.keyVersion);
+      const plain = decryptWithKey(pkg.ciphertext, dek, `enc:dek:v${pkg.keyVersion}`);
+      const parsed = JSON.parse(plain) as Record<string, unknown>;
+      if (parsed.schema !== "rai2-enterprise-open-export-v1") return null;
+      getWorkspaceAuditLedger().append(tid, actor, "enterprise.backup_decrypted", {
+        keyVersion: pkg.keyVersion,
+      });
+      return parsed;
+    } catch {
+      return null;
+    }
   }
 
   public verifyEncryptedBackupPackage(pkg: {

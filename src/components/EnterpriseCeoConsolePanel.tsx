@@ -189,7 +189,7 @@ export function EnterpriseCeoConsolePanel() {
     }
   };
 
-  const handleExport = async (format: "json" | "markdown" | "encrypted") => {
+  const handleExport = async (format: "json" | "markdown" | "csv" | "encrypted") => {
     setBusy(true);
     setMsg(null);
     setErr(null);
@@ -203,6 +203,8 @@ export function EnterpriseCeoConsolePanel() {
       const dateStr = new Date().toISOString().slice(0, 10);
       if (format === "markdown" && data.content) {
         triggerDownload(`rai2-sovereign-export-${dateStr}.md`, data.content, "text/markdown");
+      } else if (format === "csv" && data.content) {
+        triggerDownload(`rai2-sovereign-export-${dateStr}.csv`, data.content, "text/csv;charset=utf-8");
       } else if (format === "encrypted" && data.package) {
         triggerDownload(`rai2-envelope-backup-${dateStr}.rai2enc.json`, JSON.stringify(data.package, null, 2), "application/json");
       } else {
@@ -294,6 +296,11 @@ export function EnterpriseCeoConsolePanel() {
                 <Lock size={12} /> Xoay vòng Khóa DEK
               </button>
             </div>
+            {Date.now() - snap.security.dekRotatedAt > 90 * 86_400_000 && (
+              <div className="rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                Khuyến nghị bảo mật: Đã quá 90 ngày chưa xoay vòng khóa DEK. Hãy bấm "Xoay vòng Khóa DEK".
+              </div>
+            )}
             <form onSubmit={(e) => void handleSealSecret(e)} className="flex flex-wrap gap-2">
               <input value={secretName} onChange={(e) => setSecretName(e.target.value)} placeholder="Tên Credential (VD: OPENAI_KEY)" className="w-44 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
               <input type="password" value={secretValue} onChange={(e) => setSecretValue(e.target.value)} placeholder="Giá trị bí mật (được bọc AES-256-GCM)" className="flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
@@ -328,6 +335,9 @@ export function EnterpriseCeoConsolePanel() {
               </button>
               <button type="button" disabled={busy} onClick={() => void handleExport("json")} className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 font-medium text-ink hover:bg-control">
                 <Download size={13} /> Xuất Open JSON (.json)
+              </button>
+              <button type="button" disabled={busy} onClick={() => void handleExport("csv")} className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 font-medium text-ink hover:bg-control">
+                <Download size={13} /> Xuất Excel CSV (.csv)
               </button>
               <button type="button" disabled={busy} onClick={() => void handleExport("encrypted")} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-1.5 font-medium text-emerald-600 hover:bg-emerald-500/25">
                 <Lock size={13} /> Sao lưu Mã hóa DEK (.rai2enc.json)

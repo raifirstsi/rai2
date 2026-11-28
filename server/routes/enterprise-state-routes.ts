@@ -1258,7 +1258,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
       if (requireEnterpriseVip(res, json)) return;
       const body = (await readBody(req)) as { tenantId?: string; keyVersion?: number; ciphertext?: string };
-      if (!body.ciphertext || typeof body.keyVersion !== "number") {
+      if (!body.ciphertext || body.ciphertext.length > 20_000_000 || typeof body.keyVersion !== "number" || body.keyVersion < 1) {
         return json(res, 400, { error: "keyVersion and ciphertext are required" });
       }
       const resVerify = getEnterpriseSovereigntyManager().verifyEncryptedBackupPackage({
@@ -1278,6 +1278,9 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       const bundle = getEnterpriseSovereigntyManager().buildOpenExportBundle(tenantId, actor);
       if (format === "markdown") {
         return json(res, 200, { format: "markdown", content: bundle.markdownBundle });
+      }
+      if (format === "csv") {
+        return json(res, 200, { format: "csv", content: bundle.csvBundle });
       }
       if (format === "encrypted") {
         return json(res, 200, { format: "encrypted", package: bundle.encryptedBackupPackage });

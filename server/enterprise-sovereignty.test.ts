@@ -76,5 +76,11 @@ describe("Enterprise Phase 5: Envelope Encryption, Key Rotation, Open Export & C
     mgr.rotateTenantDek("default", "ceo@co.vn");
     expect(mgr.verifyEncryptedBackupPackage(exp.encryptedBackupPackage).valid).toBe(true);
     expect(() => mgr.sealTenantSecret("default", "__proto__", "bad", "ceo@co.vn")).toThrow();
+    expect(() => mgr.sealTenantSecret("default", "too_big", "x".repeat(16_385), "ceo@co.vn")).toThrow();
+    expect(exp.csvBundle.startsWith("\uFEFF")).toBe(true);
+    expect(exp.csvBundle).toContain("Chuẩn Margin 20%");
+    const decrypted = mgr.decryptBackupBundle(exp.encryptedBackupPackage, "ceo@co.vn");
+    expect(decrypted?.schema).toBe("rai2-enterprise-open-export-v1");
+    expect(mgr.decryptBackupBundle(tampered, "ceo@co.vn")).toBeNull();
   });
 });
