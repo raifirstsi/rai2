@@ -67,7 +67,15 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
           enterpriseAccess: snap.enterpriseAccess,
         });
       }
-      const verified = verifyRai2CustomLicense(token);
+      let publicDomain: string | undefined;
+      try {
+        if (process.env.OMB_PUBLIC_URL) {
+          publicDomain = new URL(process.env.OMB_PUBLIC_URL).hostname;
+        }
+      } catch {
+        publicDomain = undefined;
+      }
+      const verified = verifyRai2CustomLicense(token, { domain: publicDomain });
       const daysRemaining = verified.payload?.expiresAt
         ? Math.max(0, Math.ceil((verified.payload.expiresAt - Date.now()) / 86_400_000))
         : 0;
