@@ -1,8 +1,10 @@
-import { randomInt, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 import { matchesZone } from "./enterprise-brain.ts";
+import { autoProposeDecisionFromBotReply, autoProposeKnowledgeFromBotReply } from "./enterprise-runtime-hooks.ts";
+import { getEnterpriseTeamOrchestrator } from "./enterprise-team.ts";
 import { scanAndRedactText } from "./enterprise-dlp.ts";
 import {
   DATA_TIER_RANK,
@@ -77,6 +79,48 @@ export interface OmnichannelState {
   updatedAt: number;
 }
 
+function deriveOmniKey(filePath: string): Buffer {
+  const secret = process.env.RAI2_VAULT_KEY || process.env.OMB_SESSION_SECRET || process.env.RAI2_CUSTOM_LICENSE_PUBLIC_KEY || `${filePath}:rai2-omni-v1`;
+  return scryptSync(secret, "rai2-omni-salt", 32);
+}
+
+function sealSecret(plain: string | undefined, key: Buffer): string | undefined {
+  if (!plain || !plain.trim()) return undefined;
+  const s = plain.trim();
+  if (s.startsWith("enc:v1:")) return s;
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const enc = Buffer.concat([cipher.update(s, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `enc:v1:${iv.toString("hex")}:${tag.toString("hex")}:${enc.toString("hex")}`;
+}
+
+function unsealSecret(sealed: string | undefined, key: Buffer): string | undefined {
+  if (!sealed || !sealed.trim()) return undefined;
+  if (!sealed.startsWith("enc:v1:")) return sealed;
+  try {
+    const parts = sealed.split(":");
+    if (parts.length !== 5) return undefined;
+    const iv = Buffer.from(parts[2]!, "hex");
+    const tag = Buffer.from(parts[3]!, "hex");
+    const data = Buffer.from(parts[4]!, "hex");
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+function isSafeDiscordWebhook(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl.trim());
+    return u.protocol === "https:" && (u.hostname === "discord.com" || u.hostname === "discordapp.com") && u.pathname.startsWith("/api/webhooks/");
+  } catch {
+    return false;
+  }
+}
+
 const VALID_PLATFORMS: readonly ChannelPlatform[] = ["zalo", "telegram", "whatsapp", "discord"];
 
 function makeId(prefix: string): string {
@@ -107,6 +151,7 @@ function minTier(a: DataClassificationTier, b: DataClassificationTier, c: DataCl
 
 export class EnterpriseOmnichannelGateway {
   private readonly filePath: string;
+  private readonly encKey: Buffer;
   private state: OmnichannelState;
   private readonly processedUpdateIds = new Set<string>();
 
@@ -118,6 +163,7 @@ export class EnterpriseOmnichannelGateway {
       process.env.DATA_DIR ||
       "/tmp";
     this.filePath = join(baseDir, "enterprise-omnichannel.json");
+    this.encKey = deriveOmniKey(this.filePath);
     this.state = this.loadFromDisk();
   }
 
@@ -142,8 +188,14 @@ export class EnterpriseOmnichannelGateway {
   private saveToDisk(): void {
     const dir = dirname(this.filePath);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const toWrite = structuredClone(this.state);
+    for (const ch of Object.values(toWrite.channels)) {
+      if (ch.telegramBotToken) ch.telegramBotToken = sealSecret(ch.telegramBotToken, this.encKey);
+      if (ch.discordWebhookUrl) ch.discordWebhookUrl = sealSecret(ch.discordWebhookUrl, this.encKey);
+      if (ch.webhookSecret) ch.webhookSecret = sealSecret(ch.webhookSecret, this.encKey);
+    }
     const tmp = `${this.filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
-    writeFileSync(tmp, JSON.stringify(this.state, null, 2), "utf8");
+    writeFileSync(tmp, JSON.stringify(toWrite, null, 2), "utf8");
     renameSync(tmp, this.filePath);
   }
 
@@ -152,14 +204,15 @@ export class EnterpriseOmnichannelGateway {
       (c) => c.platform === "telegram" && c.groupId === groupId.trim() && c.enabled,
     );
     if (!ch) return { ok: false };
-    if (ch.webhookSecret) {
-      const a = Buffer.from(ch.webhookSecret, "utf8");
+    const realSecret = unsealSecret(ch.webhookSecret, this.encKey);
+    if (realSecret) {
+      const a = Buffer.from(realSecret, "utf8");
       const b = Buffer.from(providedSecret, "utf8");
       if (a.length !== b.length || !timingSafeEqual(a, b)) {
         return { ok: false };
       }
     }
-    return { ok: true, telegramBotToken: ch.telegramBotToken };
+    return { ok: true, telegramBotToken: unsealSecret(ch.telegramBotToken, this.encKey) };
   }
 
   public claimWebhookUpdateOnce(updateKey: string | undefined): boolean {
@@ -208,9 +261,9 @@ export class EnterpriseOmnichannelGateway {
   public getStateMasked(): OmnichannelState {
     const cloned = structuredClone(this.state);
     for (const ch of Object.values(cloned.channels)) {
-      if (ch.telegramBotToken) ch.telegramBotToken = maskSecret(ch.telegramBotToken);
-      if (ch.discordWebhookUrl) ch.discordWebhookUrl = maskSecret(ch.discordWebhookUrl);
-      if (ch.webhookSecret) ch.webhookSecret = maskSecret(ch.webhookSecret);
+      if (ch.telegramBotToken) ch.telegramBotToken = maskSecret(unsealSecret(ch.telegramBotToken, this.encKey));
+      if (ch.discordWebhookUrl) ch.discordWebhookUrl = maskSecret(unsealSecret(ch.discordWebhookUrl, this.encKey));
+      if (ch.webhookSecret) ch.webhookSecret = maskSecret(unsealSecret(ch.webhookSecret, this.encKey));
     }
     return cloned;
   }
@@ -285,20 +338,22 @@ export class EnterpriseOmnichannelGateway {
           : (existing?.maxChannelTier ?? "zone"),
       allowExternalGuests: input.allowExternalGuests ?? existing?.allowExternalGuests ?? false,
       ...(input.telegramBotToken?.trim()
-        ? { telegramBotToken: input.telegramBotToken.trim() }
+        ? { telegramBotToken: sealSecret(input.telegramBotToken.trim(), this.encKey) }
         : existing?.telegramBotToken
           ? { telegramBotToken: existing.telegramBotToken }
           : {}),
-      ...(input.discordWebhookUrl?.trim()
-        ? { discordWebhookUrl: input.discordWebhookUrl.trim() }
+      ...(input.discordWebhookUrl?.trim() && isSafeDiscordWebhook(input.discordWebhookUrl)
+        ? { discordWebhookUrl: sealSecret(input.discordWebhookUrl.trim(), this.encKey) }
         : existing?.discordWebhookUrl
           ? { discordWebhookUrl: existing.discordWebhookUrl }
           : {}),
       ...(input.webhookSecret?.trim()
-        ? { webhookSecret: input.webhookSecret.trim() }
+        ? { webhookSecret: sealSecret(input.webhookSecret.trim(), this.encKey) }
         : existing?.webhookSecret
           ? { webhookSecret: existing.webhookSecret }
-          : {}),
+          : input.platform === "telegram"
+            ? { webhookSecret: sealSecret(randomBytes(18).toString("hex"), this.encKey) }
+            : {}),
       enabled: input.enabled ?? existing?.enabled ?? true,
       createdBy: existing?.createdBy ?? actor,
       createdAt: existing?.createdAt ?? now,
@@ -542,9 +597,10 @@ export class EnterpriseOmnichannelGateway {
     }
 
     const botTier = input.botMaxTier ?? "zone";
-    const effectiveTier: DataClassificationTier = isGuestMode
-      ? "public"
-      : minTier(emp.maxDataTier, botTier, channel.maxChannelTier);
+    const effectiveTier: DataClassificationTier =
+      isGuestMode || channel.allowExternalGuests
+        ? "public"
+        : minTier(emp.maxDataTier, botTier, channel.maxChannelTier);
 
     const actor = emp?.email ?? `guest:${input.platform}:${input.externalUserId}`;
     const inboundDlp = scanAndRedactText(rawText, {
@@ -567,6 +623,25 @@ export class EnterpriseOmnichannelGateway {
       auditActor: channel.botName,
       auditAction: "enterprise.omnichannel_outbound_dlp",
     });
+
+    if (!isGuestMode && emp && !channel.allowExternalGuests) {
+      try {
+        autoProposeDecisionFromBotReply(inboundDlp.sanitizedText, channel.scopeZone, emp.email, `omni:${channel.platform}:${channel.groupId}`);
+        autoProposeKnowledgeFromBotReply(inboundDlp.sanitizedText, channel.scopeZone, emp.email, `omni:${channel.platform}:${channel.groupId}`);
+        const taskAssignMatch = inboundDlp.sanitizedText.match(/(?:@\S+\s+)?giao\s+việc\s*[:=]?\s*(.{5,160})/i);
+        if (taskAssignMatch?.[1]) {
+          getEnterpriseTeamOrchestrator().createTask(
+            {
+              title: taskAssignMatch[1].trim(),
+              zone: channel.scopeZone,
+              assignedBotId: channel.botId,
+              assignedBotName: channel.botName,
+            },
+            emp.email,
+          );
+        }
+      } catch {}
+    }
 
     const event: OmnichannelSyncEvent = {
       id: makeId("omni"),

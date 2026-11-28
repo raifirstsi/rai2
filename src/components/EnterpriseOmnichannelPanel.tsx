@@ -303,6 +303,11 @@ export function EnterpriseOmnichannelPanel() {
                 <Plus size={13} /> Kết nối Kênh
               </button>
             </div>
+            {allowGuests && (
+              <div className="rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                Chống Confused Deputy: Khi nhóm cho phép khách lạ, toàn bộ phản hồi bot trong nhóm sẽ tự động khóa ở mức <strong>Public</strong>.
+              </div>
+            )}
             <div className="text-[11px] text-ink-tertiary">
               Telegram Webhook URL: <code>/api/webhooks/telegram-enterprise</code>
             </div>

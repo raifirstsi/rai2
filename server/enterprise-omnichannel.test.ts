@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -36,6 +36,9 @@ describe("Enterprise Phase 4: Omnichannel (Zalo, Telegram, WhatsApp, Discord), O
     // Secret token must be masked when read back
     const masked = gw.getStateMasked();
     expect(Object.values(masked.channels)[0]?.telegramBotToken).toBe("***OKEN");
+    const rawDisk = readFileSync(join(dir, "enterprise-omnichannel.json"), "utf8");
+    expect(rawDisk).not.toContain("123456:ABCDEF_SECRET_TOKEN");
+    expect(rawDisk).toContain("enc:v1:");
 
     // Issue OTP and bind via `/bind <OTP>` right inside Telegram
     const otp = gw.issueBindingOtp("an@co.vn", "telegram", "an@co.vn");
@@ -112,6 +115,20 @@ describe("Enterprise Phase 4: Omnichannel (Zalo, Telegram, WhatsApp, Discord), O
     expect(guestRes.allowed).toBe(true);
     expect(guestRes.isGuestMode).toBe(true);
     expect(guestRes.effectiveTier).toBe("public");
+
+    // Even an internal employee in a mixed group (allowExternalGuests=true) must be capped at public!
+    const gov = getEnterpriseGovernanceStore();
+    gov.upsertEmployee({ email: "vip@co.vn", name: "VIP", role: "admin", zone: "Zone 3", maxDataTier: "confidential" }, "admin");
+    const otp = gw.issueBindingOtp("vip@co.vn", "zalo", "admin");
+    gw.verifyBindingOtp(otp.code, "zalo-vip-1", "VIP");
+    const mixedEmpRes = gw.processInboundMessage({
+      platform: "zalo",
+      channelGroupId: "zalo-grp-1",
+      externalUserId: "zalo-vip-1",
+      messageText: "Kiểm tra doanh thu",
+      botMaxTier: "confidential",
+    });
+    expect(mixedEmpRes.effectiveTier).toBe("public");
   });
   it("verifies Telegram webhook secret via timingSafeEqual, deduplicates update_id, and locks OTP after 5 failed guesses", () => {
     const dir = mkdtempSync(join(tmpdir(), "rai2-omni-sec-"));
