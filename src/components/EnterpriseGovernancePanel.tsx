@@ -188,6 +188,31 @@ export function EnterpriseGovernancePanel() {
     }
   };
 
+  const handleExportBackup = async () => {
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const resp = await fetch("/api/enterprise/export");
+      if (!resp.ok) {
+        setErr("Không thể xuất bản sao lưu dữ liệu Enterprise.");
+        return;
+      }
+      const data = await resp.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rai2-enterprise-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMsg("Đã xuất tệp sao lưu Governance & Enterprise Brain (JSON).");
+      void loadAudit(auditQuery);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleOffboard = async (email: string) => {
     setBusy(true);
     setMsg(null);
@@ -502,6 +527,16 @@ export function EnterpriseGovernancePanel() {
         </div>
       )}
 
+      <div className="mb-3 flex justify-end">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void handleExportBackup()}
+          className="rounded-lg border border-hairline/40 bg-raised px-3 py-1 text-[11px] font-medium text-ink hover:bg-control disabled:opacity-50"
+        >
+          Xuất Backup Dữ liệu (JSON)
+        </button>
+      </div>
       {subTab === "audit" && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">

@@ -207,7 +207,7 @@ export class EnterpriseGovernanceStore {
   private saveToDisk(): void {
     const dir = dirname(this.filePath);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    const tmp = `${this.filePath}.${process.pid}.tmp`;
+    const tmp = `${this.filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
     writeFileSync(tmp, JSON.stringify(this.state, null, 2), "utf8");
     renameSync(tmp, this.filePath);
   }

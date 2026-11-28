@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { EnterpriseBrainStore, matchesZone, resetEnterpriseBrainStoreForTest } from "./enterprise-brain.ts";
-import { autoProposeDecisionFromBotReply, autoProposeKnowledgeFromBotReply, buildEnterprisePromptSection } from "./enterprise-runtime-hooks.ts";
+import { autoProposeDecisionFromBotReply, autoProposeKnowledgeFromBotReply, buildEnterprisePromptSection, stripEnterpriseControlTags } from "./enterprise-runtime-hooks.ts";
 
 describe("Enterprise Phase 2 Brain: Decision Ledger, Knowledge Flywheel, Handover & Onboarding", () => {
   const dirs: string[] = [];
@@ -120,5 +120,6 @@ describe("Enterprise Phase 2 Brain: Decision Ledger, Knowledge Flywheel, Handove
     );
     expect(autoK.proposed).toBe(true);
     expect(autoK.title).toBe("Quy trình CSKH 5 bước");
+    expect(stripEnterpriseControlTags('OK [KNOWLEDGE_PROPOSE: title="ABC" kind="sop" content="XYZ"]')).toBe("OK");
   });
 });

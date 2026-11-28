@@ -510,3 +510,16 @@ export function autoProposeDecisionFromBotReply(
     return { proposed: false };
   }
 }
+
+/**
+ * Removes internal machine-readable tags ([PULSE_RECORD:...], [DECISION_PROPOSE:...], [KNOWLEDGE_PROPOSE:...])
+ * from visible bot replies after server-side extraction completes.
+ */
+export function stripEnterpriseControlTags(replyText: string): string {
+  return replyText
+    .replace(PULSE_DEAL_TAG_RE, "")
+    .replace(DECISION_TAG_RE, "")
+    .replace(KNOWLEDGE_TAG_RE, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}

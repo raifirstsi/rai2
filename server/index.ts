@@ -324,7 +324,7 @@ import { voiceNoteFailure } from "./tts/errors.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
 import { createVirtualTablesRoutes } from "./routes/virtual-tables-routes.ts"; import { createSprint4Routes } from "./routes/sprint4-routes.ts"; import { createSprint5Routes } from "./routes/sprint5-routes.ts"; import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts";
-import { applyEnterpriseInboundDlp, applyEnterpriseOutboundDlp, autoProposeDecisionFromBotReply, autoProposeKnowledgeFromBotReply, autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkEmployeeTurnAccess, checkEnterpriseTurnPolicy, checkServerMarginGuard, isEnterpriseRuntimeBot } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { applyEnterpriseInboundDlp, applyEnterpriseOutboundDlp, autoProposeDecisionFromBotReply, autoProposeKnowledgeFromBotReply, autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkEmployeeTurnAccess, checkEnterpriseTurnPolicy, checkServerMarginGuard, isEnterpriseRuntimeBot, stripEnterpriseControlTags } from "./enterprise-runtime-hooks.ts"; import { getPulseScheduler } from "./pulse-scheduler.ts"; import { getBudgetGuard } from "./budget-guard.ts"; import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts"; import { RunReaper } from "./agent/reaper.ts"; import { configureRai2Entitlement, getRai2EntitlementSnapshot, refreshRai2Entitlement } from "./rai2-entitlement.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -1395,6 +1395,13 @@ const attributeUsage = createUsageAttribution({ section: (botId) => store.bot(bo
         const autoKnow = autoProposeKnowledgeFromBotReply(lastBotMsg.text, guardBot?.section, row.botName || row.botId, lastBotMsg.id);
         if (autoKnow.proposed) {
           store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[💡 Đề xuất Tri thức mới] "${autoKnow.title}" (Chờ Quản lý duyệt)`, ok: true } });
+        }
+        if (lastBotMsg.id) {
+          const baseText = dlpRes.redactions.length > 0 ? dlpRes.sanitizedText : lastBotMsg.text;
+          const stripped = stripEnterpriseControlTags(baseText);
+          if (stripped && stripped !== baseText) {
+            store.patchMessage(row.threadId, lastBotMsg.id, { text: stripped });
+          }
         }
       }
     }
@@ -7696,46 +7703,63 @@ async function beginTurn(
   console.log(turnStartLogLine({
     botId, text: resolvedImages.text, images: turnImages.length, depth: commsDepth, card: Boolean(opts?.cardContinuation), spoken,
   }));
-  const instanceId = instance.instanceId;
+  let activeInstance = instance;
+  let instanceId = activeInstance.instanceId;
   let inboundDlpSanitized: string | null = null;
-  if (getRai2EntitlementSnapshot().enterpriseAccess && isEnterpriseRuntimeBot(bot)) {
-    const availableIds = registry
-      .instances()
-      .filter((inst) => registry.lastSnapshot(inst.instanceId)?.state === "available")
-      .map((inst) => inst.instanceId);
-    const actorLabel = opts?.sender?.name || bot.name || botId;
-    const empAccess = checkEmployeeTurnAccess(opts?.sender?.name);
+  if (getRai2EntitlementSnapshot().enterpriseAccess) {
+    const senderObj = opts?.sender as { name?: string; email?: string } | undefined;
+    const senderIdentity = senderObj?.email || senderObj?.name;
+    const empAccess = checkEmployeeTurnAccess(senderIdentity);
     if (!empAccess.allowed) {
       throw Object.assign(
         new Error("Tài khoản nhân viên đã nghỉ việc (offboarded) — quyền truy cập Enterprise AI đã bị thu hồi."),
         { status: 403 },
       );
     }
-    const policyRes = checkEnterpriseTurnPolicy({
-      botSection: bot.section,
-      currentEngineId: instanceId,
-      availableLocalEngineIds: availableIds,
-      actor: actorLabel,
-    });
-    if (!policyRes.allowed || (policyRes.route === "local_enforced" && policyRes.targetEngineId && policyRes.targetEngineId !== instanceId)) {
-      const hint = policyRes.targetEngineId ? ` Vui lòng chuyển model của bot sang ${policyRes.targetEngineId}.` : "";
-      throw Object.assign(
-        new Error(`Chính sách bảo mật Enterprise: Dữ liệu Mật (${bot.section || "Confidential"}) bắt buộc chạy qua Local LLM nội bộ (${policyRes.reason}).${hint}`),
-        { status: 403 },
-      );
-    }
-    const inDlp = applyEnterpriseInboundDlp(resolvedImages.text, actorLabel);
-    if (inDlp.redactions.length > 0) {
-      resolvedImages.text = inDlp.sanitizedText;
-      inboundDlpSanitized = inDlp.sanitizedText;
+    if (isEnterpriseRuntimeBot(bot)) {
+      const availableIds = registry
+        .instances()
+        .filter((inst) => registry.lastSnapshot(inst.instanceId)?.state === "available")
+        .map((inst) => inst.instanceId);
+      const actorLabel = senderIdentity || bot.name || botId;
+      const policyRes = checkEnterpriseTurnPolicy({
+        botSection: bot.section,
+        currentEngineId: instanceId,
+        availableLocalEngineIds: availableIds,
+        actor: actorLabel,
+      });
+      if (!policyRes.allowed) {
+        throw Object.assign(
+          new Error(`Chính sách bảo mật Enterprise: Dữ liệu Mật (${bot.section || "Confidential"}) bắt buộc chạy qua Local LLM nội bộ (${policyRes.reason}).`),
+          { status: 403 },
+        );
+      }
+      if (policyRes.route === "local_enforced" && policyRes.targetEngineId && policyRes.targetEngineId !== instanceId) {
+        const rerouted = registry.get(policyRes.targetEngineId);
+        if (rerouted) {
+          activeInstance = rerouted;
+          instanceId = rerouted.instanceId;
+          getWorkspaceAuditLedger().append("default", actorLabel, "enterprise.confidential_llm_rerouted", {
+            fromEngine: instance.instanceId,
+            toEngine: instanceId,
+            botSection: bot.section || null,
+          });
+        }
+      }
+      const inDlp = applyEnterpriseInboundDlp(resolvedImages.text, actorLabel);
+      if (inDlp.redactions.length > 0) {
+        resolvedImages.text = inDlp.sanitizedText;
+        inboundDlpSanitized = inDlp.sanitizedText;
+      }
     }
   }
+  const persistedUserText = inboundDlpSanitized ?? text;
   const automated = commsDepth > 0 || opts?.automationSource !== undefined
     || Boolean(opts?.unattended || opts?.cardContinuation || opts?.peerAsk || opts?.coordination || opts?.compactOnly || opts?.computerSelectionContinuation);
-  const route = routeDirectTurn(bot, task, store.activePath(threadId), resolvedImages, instance, automated, quickFallback.refused(instance.instanceId));
+  const route = routeDirectTurn(bot, task, store.activePath(threadId), resolvedImages, activeInstance, automated, quickFallback.refused(activeInstance.instanceId));
   const { model, effort, variant } = route;
-  assertModelVariantSupported({ variant, effort }, instance.adapter.capabilities);
-  if (effort && !instance.adapter.capabilities.effortLevels?.includes(effort)) {
+  assertModelVariantSupported({ variant, effort }, activeInstance.adapter.capabilities);
+  if (effort && !activeInstance.adapter.capabilities.effortLevels?.includes(effort)) {
     throw Object.assign(
       new Error(`effort "${effort}" is not offered by this bot's engine — choose another level in settings`),
       { status: 409 },
@@ -7744,18 +7768,18 @@ async function beginTurn(
 
   let userMessage = opts?.userMessage;
   if (opts?.editedMessageId) {
-    const edited = store.branchMessage(threadId, opts.editedMessageId, text, opts.sendId, opts.sender, opts.dataContext);
+    const edited = store.branchMessage(threadId, opts.editedMessageId, persistedUserText, opts.sendId, opts.sender, opts.dataContext);
     if (!edited) throw Object.assign(new Error("only a user text message can be edited"), { status: 400 });
     store.patchTask(bot.id, threadId, { rewound: true });
     userMessage = edited;
   }
   if (!userMessage) {
     userMessage = opts?.cardContinuation
-      ? { id: `card-${randomUUID()}`, at: Date.now(), role: "user", kind: "text", text }
+      ? { id: `card-${randomUUID()}`, at: Date.now(), role: "user", kind: "text", text: persistedUserText }
       : store.appendMessage(threadId, {
           role: "user",
           kind: "text",
-          text,
+          text: persistedUserText,
           replyToId: opts?.replyTo?.id,
           reaction: opts?.replyTo?.reactedWith,
           sendId: opts?.sendId,

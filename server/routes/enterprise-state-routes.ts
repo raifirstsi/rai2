@@ -686,6 +686,25 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       return json(res, 200, { brief });
     }
 
+    if (method === "GET" && path === "/api/enterprise/export") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        exportedBy: actor,
+        governance: getEnterpriseGovernanceStore().getState(),
+        brain: getEnterpriseBrainStore().getState(),
+      };
+      getWorkspaceAuditLedger().append("default", actor, "enterprise.data_exported", {
+        employees: Object.keys(payload.governance.employees).length,
+        decisions: Object.keys(payload.brain.decisions).length,
+        knowledge: Object.keys(payload.brain.knowledge).length,
+        handovers: Object.keys(payload.brain.handovers).length,
+      });
+      return json(res, 200, payload);
+    }
+
     return PASS;
   };
 }

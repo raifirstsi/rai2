@@ -104,6 +104,9 @@ describe("Enterprise Phase 1 Governance, ABAC, DLP & Sensitivity Routing", () =>
     expect(res.sanitizedText).toContain("[REDACTED_JWT]");
     expect(res.sanitizedText).toContain("[REDACTED_API_KEY]");
     expect(res.sanitizedText).toContain("[REDACTED_DB_URI]");
+    const vn = scanAndRedactText("CCCD: 079099001234 và SĐT 0912345678");
+    expect(vn.sanitizedText).toContain("[REDACTED_VN_ID]");
+    expect(vn.sanitizedText).toContain("[REDACTED_PHONE]");
   });
 
   it("offboards employee, revokes access, and evaluates checkEnterpriseTurnPolicy", () => {
