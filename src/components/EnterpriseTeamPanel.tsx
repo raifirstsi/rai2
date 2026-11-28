@@ -338,8 +338,8 @@ export function EnterpriseTeamPanel() {
       <div className="flex flex-wrap gap-2">
         {[
           { id: "tasks", label: `Đội ngũ & Bảng việc (${tasks.length})`, icon: Users },
-          { id: "dag", label: `Quy trình DAG (${workflows.length})`, icon: GitBranch },
-          { id: "escalations", label: `Cảnh báo cần xử lý${openEscCount > 0 ? ` (${openEscCount})` : ""}`, icon: AlertTriangle },
+          { id: "dag", label: `Quy trình Tự động (${workflows.length})`, icon: GitBranch },
+          { id: "escalations", label: `Việc cần bạn duyệt${openEscCount > 0 ? ` (${openEscCount})` : ""}`, icon: AlertTriangle },
           { id: "reminders", label: `Nhắc việc & Báo cáo (${reminders.length})`, icon: BellRing },
         ].map((item) => {
           const Icon = item.icon;
@@ -441,7 +441,7 @@ export function EnterpriseTeamPanel() {
             <input value={dagName} onChange={(e) => setDagName(e.target.value)} placeholder="Tên gói quy trình DAG (VD: Chốt đơn & Duyệt Margin)..." className="flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
             <input value={dagZone} onChange={(e) => setDagZone(e.target.value)} placeholder="Zone" className="w-28 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
             <button type="submit" disabled={busy || !dagName.trim()} className="inline-flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 font-medium text-white disabled:opacity-50">
-              <Plus size={13} /> Đóng gói DAG
+              <Plus size={13} /> Lưu Quy trình
             </button>
           </form>
 
@@ -450,10 +450,10 @@ export function EnterpriseTeamPanel() {
               <div key={wf.id} className="flex items-center justify-between rounded-xl border border-hairline/40 bg-card p-3 text-xs">
                 <div>
                   <div className="font-semibold text-ink">{wf.name} ({wf.scopeZone})</div>
-                  <div className="text-[11px] text-ink-tertiary">{wf.steps.map((s) => s.title).join(" → ")} · Max Hops: {wf.maxHops} · Budget Cap: ${wf.budgetCapUsd}</div>
+                  <div className="text-[11px] text-ink-tertiary">{wf.steps.map((s) => s.title).join(" → ")} · Giới hạn bước: {wf.maxHops} · Ngân sách tối đa: ${wf.budgetCapUsd}</div>
                 </div>
                 <button type="button" disabled={busy} onClick={() => void handleRunDag({ workflowId: wf.id })} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-600 hover:bg-emerald-500/25">
-                  <Play size={12} /> Chạy DAG
+                  <Play size={12} /> Chạy Quy trình
                 </button>
               </div>
             ))}
@@ -461,7 +461,7 @@ export function EnterpriseTeamPanel() {
 
           {runs.length > 0 && (
             <div className="space-y-2">
-              <div className="text-xs font-medium text-ink">Lịch sử chạy DAG (Checkpoints)</div>
+              <div className="text-xs font-medium text-ink">Tiến độ Quy trình đang chạy</div>
               {runs.map((r) => (
                 <div key={r.id} className="flex items-center justify-between rounded-xl border border-hairline/40 bg-inset p-2.5 text-xs">
                   <span><strong>{r.workflowName}</strong> · Trạng thái: <code>{r.status}</code> · Hops: {r.hopCount} · Checkpoints: {Object.values(r.stepCheckpoints ?? {}).filter((c) => c.status === "completed").length}/{Object.keys(r.stepCheckpoints ?? {}).length}</span>

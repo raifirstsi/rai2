@@ -240,9 +240,9 @@ export function EnterpriseOmnichannelPanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {[
-          { id: "channels", label: `1. Kênh Nhóm (${channels.length})`, icon: Webhook },
-          { id: "binding", label: `2. Định danh OTP (${bindings.length})`, icon: KeyRound },
-          { id: "ingest", label: `3. Đồng bộ & Kiểm thử (${events.length})`, icon: MessageSquare },
+          { id: "channels", label: `1. Nhóm Zalo / Telegram (${channels.length})`, icon: Webhook },
+          { id: "binding", label: `2. Xác thực Nhân viên 6 số (${bindings.length})`, icon: KeyRound },
+          { id: "ingest", label: `3. Nhật ký Nhóm Chat (${events.length})`, icon: MessageSquare },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -283,10 +283,10 @@ export function EnterpriseOmnichannelPanel() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <select value={maxTier} onChange={(e) => setMaxTier(e.target.value as Tier)} className="rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-ink">
-                  <option value="public">Trần kênh: Public</option>
-                  <option value="internal">Trần kênh: Internal</option>
-                  <option value="zone">Trần kênh: Zone</option>
-                  <option value="confidential">Trần kênh: Confidential</option>
+                  <option value="public">Mức dữ liệu: Công khai</option>
+                  <option value="internal">Mức dữ liệu: Nội bộ công ty</option>
+                  <option value="zone">Mức dữ liệu: Riêng phòng ban</option>
+                  <option value="confidential">Mức dữ liệu: Tuyệt mật</option>
                 </select>
                 {platform === "telegram" && (
                   <>
@@ -305,7 +305,7 @@ export function EnterpriseOmnichannelPanel() {
             </div>
             {allowGuests && (
               <div className="rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
-                Chống Confused Deputy: Khi nhóm cho phép khách lạ, toàn bộ phản hồi bot trong nhóm sẽ tự động khóa ở mức <strong>Public</strong>.
+                Bảo vệ nhóm có khách ngoài: Khi nhóm cho phép khách lạ, toàn bộ phản hồi bot trong nhóm sẽ tự động khóa ở mức <strong>Public</strong>.
               </div>
             )}
             <div className="text-[11px] text-ink-tertiary">

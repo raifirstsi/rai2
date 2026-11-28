@@ -88,6 +88,13 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
   const [pulse, setPulse] = useState<DailyPulse | null>(null);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<ActiveTab>("pulse");
+  const [showQuickGuide, setShowQuickGuide] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("rai2_hide_quick_guide") !== "1";
+    } catch {
+      return true;
+    }
+  });
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -515,8 +522,8 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                   { id: "roi", label: "Hoàn vốn 90 ngày", icon: TrendingUp },
                   { id: "evals", label: "Sát hạch & Chữ ký", icon: ShieldCheck },
                   { id: "tables", label: "Bảng tính & Ngân sách", icon: Table2 },
-                  { id: "governance", label: "Quản trị & Bảo mật", icon: ShieldCheck },
-                  { id: "brain", label: "Bộ não & Tri thức", icon: Activity },
+                  { id: "governance", label: "Nhân sự & Phân quyền", icon: ShieldCheck },
+                  { id: "brain", label: "Quyết định & Tri thức", icon: Activity },
                 ] as const
               ).map(({ id, label, icon: Icon }) => (
                 <button
@@ -536,6 +543,38 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                 </button>
               ))}
             </div>
+
+                        {showQuickGuide && (
+              <div className="border-b border-hairline/40 bg-accent/5 px-4 py-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-ink">Bắt đầu nhanh trong 3 bước (Dành cho mọi nhân sự, không cần rành IT)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowQuickGuide(false);
+                      try { localStorage.setItem("rai2_hide_quick_guide", "1"); } catch {}
+                    }}
+                    className="text-[11px] text-ink-tertiary hover:text-ink"
+                  >
+                    Ẩn hướng dẫn
+                  </button>
+                </div>
+                <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                  <button type="button" onClick={() => setTab("governance")} className="rounded-lg border border-hairline/40 bg-card px-2.5 py-1.5 text-left hover:border-accent/60">
+                    <div className="font-medium text-ink">1. Mời nhân viên</div>
+                    <div className="text-[11px] text-ink-secondary">Tạo Trợ lý AI riêng &amp; chọn phòng ban</div>
+                  </button>
+                  <button type="button" onClick={() => setTab("brain")} className="rounded-lg border border-hairline/40 bg-card px-2.5 py-1.5 text-left hover:border-accent/60">
+                    <div className="font-medium text-ink">2. Dạy AI nhớ việc</div>
+                    <div className="text-[11px] text-ink-secondary">Lưu quyết định &amp; quy trình công ty</div>
+                  </button>
+                  <button type="button" onClick={() => setTab("omnichannel")} className="rounded-lg border border-hairline/40 bg-card px-2.5 py-1.5 text-left hover:border-accent/60">
+                    <div className="font-medium text-ink">3. Đưa vào Zalo / Telegram</div>
+                    <div className="text-[11px] text-ink-secondary">Lấy mã 6 số gõ /bind vào nhóm chat</div>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="flex-1 space-y-4 overflow-y-auto bg-card p-3.5 sm:p-5 text-sm">
               {errorMsg && (

@@ -220,7 +220,7 @@ export function EnterpriseCeoConsolePanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold text-ink">
-          <BarChart3 size={15} /> CEO Governance & Sovereignty Console
+          <BarChart3 size={15} /> Bảng Tổng quan Giám đốc & An toàn Dữ liệu
         </div>
         <button type="button" disabled={busy} onClick={() => void loadConsole()} className="inline-flex items-center gap-1 rounded-lg bg-raised px-2.5 py-1 text-xs text-ink-secondary hover:text-ink">
           <RefreshCw size={12} /> Làm mới
@@ -290,15 +290,15 @@ export function EnterpriseCeoConsolePanel() {
           <div className="rounded-xl border border-hairline/40 bg-card p-3 text-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-medium text-ink">
-                <KeyRound size={14} /> Envelope Encryption & Xoay vòng Khóa DEK (v{snap.security.dekKeyVersion})
+                <KeyRound size={14} /> Két sắt Mã hóa Riêng của Công ty (v{snap.security.dekKeyVersion})
               </div>
               <button type="button" disabled={busy} onClick={() => void handleRotateDek()} className="inline-flex items-center gap-1 rounded-lg bg-amber-500/15 px-3 py-1 font-medium text-amber-600 hover:bg-amber-500/25">
-                <Lock size={12} /> Xoay vòng Khóa DEK
+                <Lock size={12} /> Đổi Khóa Bảo mật Mới
               </button>
             </div>
             {Date.now() - snap.security.dekRotatedAt > 90 * 86_400_000 && (
               <div className="rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
-                Khuyến nghị bảo mật: Đã quá 90 ngày chưa xoay vòng khóa DEK. Hãy bấm "Xoay vòng Khóa DEK".
+                Khuyến nghị bảo mật: Đã quá 90 ngày chưa xoay vòng khóa DEK. Hãy bấm "Đổi Khóa Bảo mật Mới".
               </div>
             )}
             <form onSubmit={(e) => void handleSealSecret(e)} className="flex flex-wrap gap-2">
@@ -327,23 +327,23 @@ export function EnterpriseCeoConsolePanel() {
 
           <div className="rounded-xl border border-hairline/40 bg-card p-3 text-xs space-y-2">
             <div className="flex items-center gap-1.5 font-medium text-ink">
-              <ShieldCheck size={14} /> Xuất Dữ liệu Mở & Sao lưu Chủ quyền (Data Portability)
+              <ShieldCheck size={14} /> Tải Dữ liệu Công ty & Sao lưu An toàn
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" disabled={busy} onClick={() => void handleExport("markdown")} className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 font-medium text-ink hover:bg-control">
-                <Download size={13} /> Xuất Open Markdown (.md)
+                <Download size={13} /> Tải Hồ sơ Văn bản (.md)
               </button>
               <button type="button" disabled={busy} onClick={() => void handleExport("json")} className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 font-medium text-ink hover:bg-control">
-                <Download size={13} /> Xuất Open JSON (.json)
+                <Download size={13} /> Tải Dữ liệu Mở (.json)
               </button>
               <button type="button" disabled={busy} onClick={() => void handleExport("csv")} className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 font-medium text-ink hover:bg-control">
-                <Download size={13} /> Xuất Excel CSV (.csv)
+                <Download size={13} /> Tải Bảng Excel (.csv)
               </button>
               <button type="button" disabled={busy} onClick={() => void handleExport("encrypted")} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-1.5 font-medium text-emerald-600 hover:bg-emerald-500/25">
-                <Lock size={13} /> Sao lưu Mã hóa DEK (.rai2enc.json)
+                <Lock size={13} /> Tải File Sao lưu Mã hóa (.rai2enc.json)
               </button>
               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-hairline/40 bg-inset px-3 py-1.5 font-medium text-ink hover:bg-control">
-                <ShieldCheck size={13} /> Kiểm chứng Backup (.rai2enc.json)
+                <ShieldCheck size={13} /> Kiểm tra File Sao lưu
                 <input type="file" accept=".json" onChange={(e) => void handleVerifyBackupFile(e)} className="hidden" />
               </label>
             </div>
