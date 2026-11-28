@@ -7,6 +7,8 @@ import { getWorkspaceAuditLedger } from "../agent/merkle-audit.ts";
 import { getEvalsRunner, type BotSampleInteraction } from "../evals-runner.ts";
 import { getPromotionGate } from "../promotion-gate.ts";
 import { getPulseScheduler } from "../pulse-scheduler.ts";
+import { getEnterpriseGovernanceStore, ROLE_DEFAULT_MAX_TIER, type DataClassificationTier, type EmployeeRole } from "../enterprise-governance.ts";
+import { scanAndRedactText } from "../enterprise-dlp.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 function isSafeWebhookUrl(raw: string): URL | null {
@@ -442,6 +444,106 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         // Non-fatal
       }
       return json(res, 200, { success: true, state: next, evalResult, promotionResult });
+    }
+
+    // ── Phase 1: Enterprise Governance, ABAC, Provisioning, DLP & Audit Trail ──
+    if (method === "GET" && path === "/api/enterprise/governance") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      return json(res, 200, { governance: getEnterpriseGovernanceStore().getState() });
+    }
+
+    if (method === "PUT" && path === "/api/enterprise/governance") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as Record<string, unknown>;
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const next = getEnterpriseGovernanceStore().updateGovernance(
+        {
+          constitution: (body.constitution as Record<string, unknown> | undefined) as Parameters<ReturnType<typeof getEnterpriseGovernanceStore>["updateGovernance"]>[0]["constitution"],
+          zoneDataTiers: body.zoneDataTiers as Record<string, DataClassificationTier> | undefined,
+          employeeUpdates: body.employeeUpdates as Parameters<ReturnType<typeof getEnterpriseGovernanceStore>["updateGovernance"]>[0]["employeeUpdates"],
+        },
+        actor,
+      );
+      return json(res, 200, { success: true, governance: next });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/employees/provision") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as {
+        employees?: Array<{
+          email: string;
+          name?: string;
+          role?: EmployeeRole;
+          zone?: string;
+          maxDataTier?: DataClassificationTier;
+          personalBotId?: string;
+          personalBotName?: string;
+        }>;
+        email?: string;
+        name?: string;
+        role?: EmployeeRole;
+        zone?: string;
+        maxDataTier?: DataClassificationTier;
+      };
+      const items = Array.isArray(body.employees)
+        ? body.employees.slice(0, 20)
+        : body.email
+          ? [{ email: body.email, name: body.name, role: body.role, zone: body.zone, maxDataTier: body.maxDataTier }]
+          : [];
+      if (items.length === 0) {
+        return json(res, 400, { error: "email or employees[] is required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const storeGov = getEnterpriseGovernanceStore();
+      const provisioned = items
+        .filter((item) => typeof item.email === "string" && item.email.includes("@"))
+        .map((item) => {
+          const role: EmployeeRole = item.role && item.role in ROLE_DEFAULT_MAX_TIER ? item.role : "member";
+          return storeGov.upsertEmployee(
+            {
+              email: item.email,
+              name: item.name || item.email.split("@")[0]!,
+              role,
+              zone: item.zone,
+              maxDataTier: item.maxDataTier ?? ROLE_DEFAULT_MAX_TIER[role],
+              personalBotId: item.personalBotId,
+              personalBotName: item.personalBotName || `Trợ lý ${item.name || item.email.split("@")[0]}`,
+            },
+            actor,
+          );
+        });
+      return json(res, 200, { success: true, provisioned, governance: storeGov.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/dlp/test") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { text?: string; blockOnForbiddenTopic?: boolean };
+      const gov = getEnterpriseGovernanceStore().getState();
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const result = scanAndRedactText(String(body.text ?? ""), {
+        dlpEnabled: gov.constitution.dlpEnabled,
+        censorshipEnabled: gov.constitution.censorshipEnabled,
+        forbiddenTopics: gov.constitution.forbiddenTopics,
+        blockOnForbiddenTopic: body.blockOnForbiddenTopic === true,
+        auditActor: actor,
+        auditAction: "enterprise.dlp_policy_test",
+      });
+      return json(res, 200, { result });
+    }
+
+    if (method === "GET" && path === "/api/enterprise/audit-trail") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const actor = url.searchParams.get("actor") ?? undefined;
+      const action = url.searchParams.get("action") ?? undefined;
+      const q = url.searchParams.get("q") ?? undefined;
+      const limit = Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50;
+      const trail = getEnterpriseGovernanceStore().queryAuditTrail({ actor, action, q, limit });
+      return json(res, 200, trail);
     }
 
     return PASS;
