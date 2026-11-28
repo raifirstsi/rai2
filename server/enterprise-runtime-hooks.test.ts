@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { configureRai2Entitlement, refreshRai2Entitlement } from "./rai2-entitlement.ts";
 import { getEnterpriseStateStore } from "./enterprise-state.ts";
-import { buildEnterprisePromptSection, checkServerMarginGuard } from "./enterprise-runtime-hooks.ts";
+import { autoRecordBusinessPulseFromBotReply, buildEnterprisePromptSection, checkServerMarginGuard } from "./enterprise-runtime-hooks.ts";
 import { createAgenticOsRoutes } from "./routes/agentic-routes.ts";
 import { createEnterpriseStateRoutes } from "./routes/enterprise-state-routes.ts";
 import { redactSecretsInText } from "../shared/redact.ts";
@@ -198,5 +198,42 @@ describe("Enterprise Runtime Hooks (Deep Upgrades)", () => {
     expect(state.status).toBe(200);
     const body = state.body as { evalResult: { passed: boolean; totalScore: number } };
     expect(body.evalResult.passed).toBe(false);
+  });
+
+  it("auto-records confirmed closed deals into BusinessPulseEngine and serves /api/enterprise/architecture-scan", async () => {
+    const pulseRes = autoRecordBusinessPulseFromBotReply(
+      "Đã chốt đơn thành công cho anh Nam! Doanh thu: 45.000.000đ, Giá vốn: 28.000.000đ.",
+      "turn-deal-1",
+      "default",
+      "RAI Close",
+    );
+    expect(pulseRes.recorded).toBe(true);
+    expect(pulseRes.revenueVnd).toBe(45_000_000);
+    expect(pulseRes.costVnd).toBe(28_000_000);
+
+    await setTestPlan(tmpDir, "vip");
+    getEnterpriseStateStore().updateState("default", {
+      contextVault: { pillars: { brand_voice: "Chuyên gia", offer_breakdown: "Gói VIP", sales_process: "3 bước", sops: "Chuẩn" } },
+      tocDiagnosis: { zoneNumber: 3, departmentName: "Phòng Kinh Doanh" },
+    });
+    const route = createEnterpriseStateRoutes({
+      getEnterpriseStats: () => ({ enterpriseBotsCount: 2, totalBotsCount: 3 }),
+    });
+    const { res, json, state } = fakeRes();
+    await route({
+      req: {} as never,
+      res,
+      path: "/api/enterprise/architecture-scan",
+      method: "GET",
+      url: new URL("http://localhost/api/enterprise/architecture-scan?workspaceId=default"),
+      auth: { kind: "session", session: { email: "ceo@corp.vn" }, scopes: ["admin"] } as never,
+      readBody: async () => ({}),
+      json,
+    });
+    expect(state.status).toBe(200);
+    const body = state.body as { totalScore: number; maxScore: number; checks: Array<{ id: string; passed: boolean }> };
+    expect(body.maxScore).toBe(21);
+    expect(body.totalScore).toBeGreaterThan(0);
+    expect(body.checks.find((c) => c.id === "bots")?.passed).toBe(true);
   });
 });

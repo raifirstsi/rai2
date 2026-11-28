@@ -1,6 +1,7 @@
 import { getEnterpriseStateStore } from "./enterprise-state.ts";
 import { getRai2EntitlementSnapshot } from "./rai2-entitlement.ts";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
+import { getBusinessPulseEngine } from "./business-pulse.ts";
 
 export interface EnterpriseBotLike {
   id?: string;
@@ -213,4 +214,80 @@ export function checkServerMarginGuard(
     maxDiscountPct,
     warningBanner,
   };
+}
+
+
+export interface AutoPulseRecordResult {
+  recorded: boolean;
+  orderId?: string;
+  revenueVnd?: number;
+  costVnd?: number;
+}
+
+const PULSE_DEAL_TAG_RE = /\[PULSE_RECORD:\s*orderId=([^\s\]]+)\s+revenue=(\d+)\s+cost=(\d+)(?:\s+customer=([^\]]+))?\]/i;
+const PULSE_VI_CONFIRMED_RE = /(?:đã chốt đơn|chốt đơn thành công|xác nhận đơn hàng)[^\n]{0,120}?doanh thu\s*[:=]?\s*(\d[\d.,]*)\s*(?:đ|vnd|triệu|tr)?[^\n]{0,120}?(?:giá vốn|chi phí)\s*[:=]?\s*(\d[\d.,]*)\s*(?:đ|vnd|triệu|tr)?/i;
+
+function parseVndAmount(raw: string, contextSlice: string): number {
+  const digits = raw.replace(/[.,]/g, "");
+  const n = Number.parseFloat(digits);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  if (/triệu|tr\b/i.test(contextSlice) && n < 10_000) {
+    return Math.round(n * 1_000_000);
+  }
+  return Math.round(n);
+}
+
+/**
+ * Automatically records verified closed deals from Enterprise bot replies into BusinessPulseEngine
+ * so 17:00 Business Pulse & 5-Levers receive real revenue/cost telemetry without manual entry.
+ */
+export function autoRecordBusinessPulseFromBotReply(
+  text: string,
+  turnKey: string,
+  workspaceId = "default",
+  actor = "bot",
+): AutoPulseRecordResult {
+  let orderId = "";
+  let revenueVnd = 0;
+  let costVnd = 0;
+  let customerName = "Khách hàng qua Bot";
+
+  const tagMatch = text.match(PULSE_DEAL_TAG_RE);
+  if (tagMatch) {
+    orderId = (tagMatch[1] ?? "").trim().slice(0, 64);
+    revenueVnd = Number.parseInt(tagMatch[2] ?? "0", 10);
+    costVnd = Number.parseInt(tagMatch[3] ?? "0", 10);
+    if (tagMatch[4]?.trim()) customerName = tagMatch[4].trim().slice(0, 80);
+  } else {
+    const viMatch = text.match(PULSE_VI_CONFIRMED_RE);
+    if (viMatch) {
+      const snippet = viMatch[0] ?? "";
+      orderId = `BOT-${turnKey.replace(/[^a-zA-Z0-9]/g, "").slice(-8) || Date.now()}`;
+      revenueVnd = parseVndAmount(viMatch[1] ?? "0", snippet);
+      costVnd = parseVndAmount(viMatch[2] ?? "0", snippet);
+    }
+  }
+
+  if (!orderId || !Number.isFinite(revenueVnd) || revenueVnd <= 0 || !Number.isFinite(costVnd) || costVnd < 0) {
+    return { recorded: false };
+  }
+
+  try {
+    getBusinessPulseEngine().recordTransaction({
+      id: orderId,
+      workspaceId,
+      customerName,
+      revenue: revenueVnd,
+      cost: costVnd,
+      timestamp: new Date().toISOString(),
+    });
+    getWorkspaceAuditLedger().append(workspaceId, actor, "enterprise.pulse_auto_recorded", {
+      orderId,
+      revenueVnd,
+      costVnd,
+    });
+    return { recorded: true, orderId, revenueVnd, costVnd };
+  } catch {
+    return { recorded: false };
+  }
 }

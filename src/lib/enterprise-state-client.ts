@@ -171,3 +171,21 @@ export async function recordAutonomyOnServer(
   }
 }
 
+
+
+export interface ArchitectureScanResult {
+  success: boolean;
+  totalScore: number;
+  maxScore: number;
+  checks: Array<{ id: string; label: string; passed: boolean; points: number }>;
+  stats?: { enterpriseBotsCount: number; totalBotsCount: number };
+}
+
+export async function scanEnterpriseArchitecture(workspaceId = "default"): Promise<ArchitectureScanResult | null> {
+  try {
+    const resp = await api<ArchitectureScanResult>(`/api/enterprise/architecture-scan?workspaceId=${encodeURIComponent(workspaceId)}`);
+    return resp?.success ? resp : null;
+  } catch {
+    return null;
+  }
+}
