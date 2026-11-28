@@ -265,7 +265,7 @@ export function BotAvatar({ bot, size = 44, label }: BotAvatarProps) {
         style={{ width: size, height: size }}
       >
         <img
-          src="/assets/bot-mascot-circle.png?v=7"
+          src="/assets/bot-mascot-circle.png?v=8"
           alt={label ?? bot.name ?? "RAI²"}
           className="size-full object-cover"
         />
