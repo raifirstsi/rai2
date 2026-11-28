@@ -87,7 +87,8 @@ function triggerDownload(filename: string, content: string, mimeType: string) {
 export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: string }) {
   const [pulse, setPulse] = useState<DailyPulse | null>(null);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<ActiveTab>("pulse");
+  const [simpleMode, setSimpleMode] = useState(true);
+  const [tab, setTab] = useState<ActiveTab>("ceo");
   const [showQuickGuide, setShowQuickGuide] = useState<boolean>(() => {
     try {
       return localStorage.getItem("rai2_hide_quick_guide") !== "1";
@@ -517,15 +518,26 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
 
             <div className="flex items-center gap-1.5 overflow-x-auto border-b border-hairline/60 bg-raised/60 px-3.5 py-2 sm:px-5 text-xs font-medium">
               {(
-                [
-                  { id: "pulse", label: "Nhịp thở 17:00 & TOC", icon: Activity },
-                  { id: "roi", label: "Hoàn vốn 90 ngày", icon: TrendingUp },
-                  { id: "evals", label: "Sát hạch & Chữ ký", icon: ShieldCheck },
-                  { id: "tables", label: "Bảng tính & Ngân sách", icon: Table2 },
-                  { id: "governance", label: "Nhân sự & Phân quyền", icon: ShieldCheck },
-                  { id: "brain", label: "Quyết định & Tri thức", icon: Activity },
-                ] as const
-              ).map(({ id, label, icon: Icon }) => (
+                simpleMode
+                  ? ([
+                      { id: "ceo", label: "Tổng quan Giám đốc", icon: ShieldCheck },
+                      { id: "governance", label: "Nhân sự & Trợ lý AI", icon: ShieldCheck },
+                      { id: "brain", label: "Quyết định & Tri thức", icon: Activity },
+                      { id: "team", label: "Giao việc & Quy trình", icon: CheckCircle2 },
+                      { id: "omnichannel", label: "Zalo / Telegram Nhóm", icon: Activity },
+                    ] as const)
+                  : ([
+                      { id: "ceo", label: "Tổng quan Giám đốc", icon: ShieldCheck },
+                      { id: "governance", label: "Nhân sự & Trợ lý AI", icon: ShieldCheck },
+                      { id: "brain", label: "Quyết định & Tri thức", icon: Activity },
+                      { id: "team", label: "Giao việc & Quy trình", icon: CheckCircle2 },
+                      { id: "omnichannel", label: "Zalo / Telegram Nhóm", icon: Activity },
+                      { id: "pulse", label: "Nhịp thở 17:00 & TOC", icon: Activity },
+                      { id: "roi", label: "Hoàn vốn 90 ngày", icon: TrendingUp },
+                      { id: "evals", label: "Sát hạch & Chữ ký", icon: ShieldCheck },
+                      { id: "tables", label: "Bảng tính & Ngân sách", icon: Table2 },
+                    ] as const)
+                            ).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   type="button"
@@ -542,6 +554,13 @@ export function AgenticOsPanel({ botId, botName }: { botId?: string; botName?: s
                   <span>{label}</span>
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setSimpleMode((v) => !v)}
+                className="ml-auto shrink-0 rounded-lg border border-hairline/40 bg-card px-2.5 py-1 text-[11px] text-ink-secondary hover:text-ink"
+              >
+                {simpleMode ? "Mở rộng (9 mục)" : "Thu gọn đơn giản"}
+              </button>
             </div>
 
                         {showQuickGuide && (

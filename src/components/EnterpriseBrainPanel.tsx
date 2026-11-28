@@ -259,7 +259,20 @@ export function EnterpriseBrainPanel() {
       {subTab === "decisions" && (
         <div className="space-y-4">
           <form onSubmit={(e) => void handleProposeDecision(e)} className="space-y-2 rounded-xl border border-hairline/40 bg-card p-3 text-xs">
-            <div className="font-medium text-ink">Ghi nhận / Đề xuất Quyết định Doanh nghiệp</div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium text-ink">Ghi nhận Quyết định để mọi Trợ lý AI cùng nhớ</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setDecTitle("Quy định chiết khấu tối đa 15% cho đơn hàng mới");
+                  setDecSummary("Từ tuần này, mọi báo giá giảm trên 15% phải được Trưởng phòng hoặc Giám đốc duyệt trước khi gửi khách.");
+                  setDecZone("Zone 3");
+                }}
+                className="rounded-md bg-raised px-2 py-0.5 text-[11px] text-ink-secondary hover:text-ink"
+              >
+                Điền mẫu ví dụ
+              </button>
+            </div>
             <div className="grid gap-2 sm:grid-cols-3">
               <input value={decTitle} onChange={(e) => setDecTitle(e.target.value)} required placeholder="VD: Ngừng chiết khấu quá 10% từ tháng 12" className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink sm:col-span-2" />
               <input value={decZone} onChange={(e) => setDecZone(e.target.value)} placeholder="Phạm vi (all hoặc Zone 3)" className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
