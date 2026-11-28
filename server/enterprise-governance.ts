@@ -304,6 +304,27 @@ export class EnterpriseGovernanceStore {
     return structuredClone(profile);
   }
 
+  public offboardEmployee(email: string, actor = "admin"): EmployeeGovernanceProfile | null {
+    const key = normalizeEmailKey(email);
+    const existing = this.state.employees[key];
+    if (!existing) return null;
+    const updated: EmployeeGovernanceProfile = {
+      ...existing,
+      status: "offboarded",
+      updatedAt: Date.now(),
+    };
+    this.state.employees[key] = updated;
+    this.state.updatedAt = Date.now();
+    this.saveToDisk();
+    getWorkspaceAuditLedger().append("default", actor, "employee_offboarded", {
+      email: updated.email,
+      personalBotId: updated.personalBotId ?? null,
+      preservedWorkNamespace: updated.namespaces.workContext,
+      revokedPrivateNamespace: updated.namespaces.privatePersonal,
+    });
+    return structuredClone(updated);
+  }
+
   public queryAuditTrail(opts?: {
     actor?: string;
     action?: string;
@@ -318,11 +339,11 @@ export class EnterpriseGovernanceStore {
     let records = ledger.getRecords().reverse();
     if (opts?.actor) {
       const a = opts.actor.trim().toLowerCase();
-      records = records.filter((r) => r.actor.toLowerCase().includes(a));
+      records = records.filter((r) => (r.actor ?? '').toLowerCase().includes(a));
     }
     if (opts?.action) {
       const act = opts.action.trim().toLowerCase();
-      records = records.filter((r) => r.action.toLowerCase().includes(act));
+      records = records.filter((r) => (r.action ?? '').toLowerCase().includes(act));
     }
     if (opts?.q) {
       const needle = opts.q.trim().toLowerCase();

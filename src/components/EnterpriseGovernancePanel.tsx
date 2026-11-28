@@ -153,6 +153,29 @@ export function EnterpriseGovernancePanel() {
     }
   };
 
+  const handleOffboard = async (email: string) => {
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const resp = await fetch("/api/enterprise/employees/offboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await resp.json()) as { success?: boolean; governance?: GovernanceState; error?: string };
+      if (!resp.ok || !data.success) {
+        setErr(data.error || "Không thể thu hồi quyền nhân viên.");
+        return;
+      }
+      if (data.governance) setGov(data.governance);
+      setMsg(`Đã thu hồi quyền ${email} & khóa bot riêng về chế độ Admin-only.`);
+      void loadAudit(auditQuery);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleSavePolicy = async () => {
     setBusy(true);
     setMsg(null);
@@ -293,9 +316,26 @@ export function EnterpriseGovernancePanel() {
                       NS: {emp.namespaces.privatePersonal} | {emp.namespaces.workContext}
                     </div>
                   </div>
-                  <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-medium", emp.status === "active" ? "bg-emerald-500/15 text-emerald-600" : "bg-danger/15 text-danger")}>
-                    {emp.status === "active" ? "Đang hoạt động" : "Đã nghỉ việc"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {emp.personalBotName && (
+                      <span className="rounded-full bg-raised px-2.5 py-0.5 text-[11px] text-ink-secondary">
+                        🤖 {emp.personalBotName}
+                      </span>
+                    )}
+                    <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-medium", emp.status === "active" ? "bg-emerald-500/15 text-emerald-600" : "bg-danger/15 text-danger")}>
+                      {emp.status === "active" ? "Đang hoạt động" : "Đã nghỉ việc"}
+                    </span>
+                    {emp.status === "active" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handleOffboard(emp.email)}
+                        className="rounded-lg border border-danger/40 px-2 py-0.5 text-[11px] text-danger hover:bg-danger/10 disabled:opacity-50"
+                      >
+                        Thu hồi
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))
             )}

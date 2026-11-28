@@ -1,7 +1,7 @@
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 
 export interface DlpRedactionItem {
-  type: "api_key" | "private_key" | "bearer_token" | "bank_card" | "forbidden_term";
+  type: "api_key" | "private_key" | "bearer_token" | "jwt_token" | "db_uri" | "bank_card" | "forbidden_term";
   count: number;
 }
 
@@ -20,8 +20,18 @@ const SECRET_RULES: Array<{ type: DlpRedactionItem["type"]; regex: RegExp; place
   },
   {
     type: "api_key",
-    regex: /\b(?:sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{16,})\b/g,
+    regex: /\b(?:sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|sk-or-v1-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{16,}|gsk_[A-Za-z0-9]{20,}|xai-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16})\b/g,
     placeholder: "[REDACTED_API_KEY]",
+  },
+  {
+    type: "jwt_token",
+    regex: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+    placeholder: "[REDACTED_JWT]",
+  },
+  {
+    type: "db_uri",
+    regex: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis):\/\/[^\s:@]+:[^\s@]+@[^\s/]+/gi,
+    placeholder: "[REDACTED_DB_URI]",
   },
   {
     type: "bearer_token",

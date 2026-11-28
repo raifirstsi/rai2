@@ -1379,8 +1379,11 @@ const attributeUsage = createUsageAttribution({ section: (botId) => store.bot(bo
         const autoPulse = autoRecordBusinessPulseFromBotReply(lastBotMsg.text, lastBotMsg.id || `${row.threadId}:${Date.now()}`, "default", row.botName || row.botId, lastBotMsg.id);
         const dlpRes = applyEnterpriseOutboundDlp(lastBotMsg.text, row.botName || row.botId);
         if (dlpRes.redactions.length > 0) {
+          if (lastBotMsg.id && dlpRes.sanitizedText !== lastBotMsg.text) {
+            store.patchMessage(row.threadId, lastBotMsg.id, { text: dlpRes.sanitizedText });
+          }
           const summary = dlpRes.redactions.map((r) => `${r.type}×${r.count}`).join(", ");
-          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[🛡️ DLP & Censorship] Đã phát hiện & ghi sổ Merkle: ${summary}`, ok: false } });
+          store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[🛡️ DLP & Censorship] Đã che dữ liệu nhạy cảm & ghi sổ Merkle: ${summary}`, ok: false } });
         }
         if (autoPulse.recorded) {
           store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[📊 Sổ Nhịp thở 17:00] Tự động ghi nhận đơn ${autoPulse.orderId} · Doanh thu ${autoPulse.revenueVnd?.toLocaleString("vi-VN")}đ`, ok: true } });
@@ -12136,6 +12139,25 @@ const cloudMoveRoutes = createCloudMoveRoutes();
 
 // `workspaceAccess` is assigned at boot, after this line: read it per request.
 ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createVirtualTablesRoutes()); ROUTES.push(createSprint4Routes()); ROUTES.push(createSprint5Routes()); ROUTES.push(createEnterpriseStateRoutes({
+  provisionPersonalBot: ({ email, name, zone, botName, namespace }) => {
+    try {
+      const bot = store.createBot({
+        name: botName,
+        title: `Trợ lý AI riêng của ${name}`,
+        section: zone || "Trợ lý Cá Nhân",
+        visibility: { people: [email] },
+        soul: `Bạn là trợ lý AI riêng của ${name} (${email}). Tuân thủ Hiến pháp Doanh nghiệp và tách biệt namespace ${namespace}.`,
+      });
+      return { id: bot.id, name: bot.name };
+    } catch {
+      return null;
+    }
+  },
+  offboardPersonalBot: (botId) => {
+    try {
+      store.patchBot(botId, { visibility: "admins" });
+    } catch {}
+  },
   getBotInteractions: (botId) => {
     const b = store.bot(botId);
     if (!b) return { botName: botId, interactions: [] };

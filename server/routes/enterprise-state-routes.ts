@@ -48,6 +48,8 @@ export interface EnterpriseStateRouteDeps {
   getBotInteractions?: (botId: string) => { botName: string; interactions: BotSampleInteraction[]; systemPrompt?: string };
   getEnterpriseStats?: () => { enterpriseBotsCount: number; totalBotsCount: number };
   resolveOpenAiKey?: () => { apiKey?: string; baseUrl?: string } | null;
+  provisionPersonalBot?: (input: { email: string; name: string; zone?: string; botName: string; namespace: string }) => { id: string; name: string } | null;
+  offboardPersonalBot?: (botId: string) => void;
   fetchImpl?: typeof fetch;
 }
 
@@ -502,20 +504,55 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         .filter((item) => typeof item.email === "string" && item.email.includes("@"))
         .map((item) => {
           const role: EmployeeRole = item.role && item.role in ROLE_DEFAULT_MAX_TIER ? item.role : "member";
+          const empName = item.name || item.email.split("@")[0]!;
+          const desiredBotName = item.personalBotName || `Trợ lý ${empName}`;
+          const existing = storeGov.getState().employees[item.email.trim().toLowerCase()];
+          let botId = item.personalBotId ?? existing?.personalBotId;
+          let botName = existing?.personalBotName ?? desiredBotName;
+          if (!botId && deps?.provisionPersonalBot) {
+            const created = deps.provisionPersonalBot({
+              email: item.email.trim().toLowerCase(),
+              name: empName,
+              zone: item.zone,
+              botName: desiredBotName,
+              namespace: `work-context/${item.email.trim().toLowerCase()}`,
+            });
+            if (created) {
+              botId = created.id;
+              botName = created.name;
+            }
+          }
           return storeGov.upsertEmployee(
             {
               email: item.email,
-              name: item.name || item.email.split("@")[0]!,
+              name: empName,
               role,
               zone: item.zone,
               maxDataTier: item.maxDataTier ?? ROLE_DEFAULT_MAX_TIER[role],
-              personalBotId: item.personalBotId,
-              personalBotName: item.personalBotName || `Trợ lý ${item.name || item.email.split("@")[0]}`,
+              personalBotId: botId,
+              personalBotName: botName,
             },
             actor,
           );
         });
       return json(res, 200, { success: true, provisioned, governance: storeGov.getState() });
+    }
+
+    if (method === "POST" && path === "/api/enterprise/employees/offboard") {
+      if (!auth || !auth.scopes.includes("admin")) return json(res, 403, { error: "admin scope required" });
+      if (requireEnterpriseVip(res, json)) return;
+      const body = (await readBody(req)) as { email?: string };
+      if (!body.email || !body.email.includes("@")) {
+        return json(res, 400, { error: "valid email is required" });
+      }
+      const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
+      const storeGov = getEnterpriseGovernanceStore();
+      const offboarded = storeGov.offboardEmployee(body.email, actor);
+      if (!offboarded) return json(res, 404, { error: "employee not found" });
+      if (offboarded.personalBotId && deps?.offboardPersonalBot) {
+        deps.offboardPersonalBot(offboarded.personalBotId);
+      }
+      return json(res, 200, { success: true, employee: offboarded, governance: storeGov.getState() });
     }
 
     if (method === "POST" && path === "/api/enterprise/dlp/test") {

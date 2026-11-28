@@ -9,6 +9,7 @@ import {
   resolveSensitivityModelRoute,
 } from "./enterprise-governance.ts";
 import { scanAndRedactText } from "./enterprise-dlp.ts";
+import { checkEnterpriseTurnPolicy } from "./enterprise-runtime-hooks.ts";
 
 describe("Enterprise Phase 1 Governance, ABAC, DLP & Sensitivity Routing", () => {
   const dirs: string[] = [];
@@ -93,5 +94,30 @@ describe("Enterprise Phase 1 Governance, ABAC, DLP & Sensitivity Routing", () =>
     expect(trail.integrity.valid).toBe(true);
     expect(trail.records.some((r) => r.action === "employee_provisioned")).toBe(true);
     expect(trail.records.some((r) => r.action === "governance_updated")).toBe(true);
+  });
+
+  it("redacts JWT tokens, AWS keys, and DB connection strings", () => {
+    const res = scanAndRedactText(
+      "jwt=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123def456 aws=AKIAIOSFODNN7EXAMPLE db=postgres://admin:secret123@db.internal:5432/prod",
+      { dlpEnabled: true },
+    );
+    expect(res.sanitizedText).toContain("[REDACTED_JWT]");
+    expect(res.sanitizedText).toContain("[REDACTED_API_KEY]");
+    expect(res.sanitizedText).toContain("[REDACTED_DB_URI]");
+  });
+
+  it("offboards employee, revokes access, and evaluates checkEnterpriseTurnPolicy", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-off-"));
+    dirs.push(dir);
+    const store = new EnterpriseGovernanceStore(dir);
+    store.upsertEmployee({ email: "minh@company.vn", name: "Minh", role: "member", zone: "Zone 6" }, "admin");
+    const off = store.offboardEmployee("minh@company.vn", "admin");
+    expect(off?.status).toBe("offboarded");
+    expect(evaluateDataAccess({ employee: off, targetTier: "public" }).allowed).toBe(false);
+    const trail = store.queryAuditTrail({ action: "employee_offboarded" });
+    expect(trail.records.length).toBeGreaterThan(0);
+
+    const policyCheck = checkEnterpriseTurnPolicy({ botSection: "Zone 3", currentEngineId: "claude" });
+    expect(policyCheck.allowed).toBe(true);
   });
 });

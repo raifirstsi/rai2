@@ -2,7 +2,7 @@ import { getEnterpriseStateStore } from "./enterprise-state.ts";
 import { getRai2EntitlementSnapshot } from "./rai2-entitlement.ts";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 import { getBusinessPulseEngine } from "./business-pulse.ts";
-import { getEnterpriseGovernanceStore } from "./enterprise-governance.ts";
+import { getEnterpriseGovernanceStore, resolveSensitivityModelRoute, type DataClassificationTier } from "./enterprise-governance.ts";
 import { scanAndRedactText, type DlpScanResult } from "./enterprise-dlp.ts";
 
 export interface EnterpriseBotLike {
@@ -359,4 +359,39 @@ export function applyEnterpriseOutboundDlp(replyText: string, actor = "enterpris
     auditActor: actor,
     auditAction: "enterprise.outbound_dlp_censorship",
   });
+}
+
+/**
+ * Evaluates sensitivity-based model routing for an Enterprise bot turn (Phase 1 audit enforcement).
+ */
+export function checkEnterpriseTurnPolicy(input: {
+  botSection?: string;
+  currentEngineId?: string;
+  availableLocalEngineIds?: readonly string[];
+  actor?: string;
+}): { allowed: boolean; route: string; targetEngineId?: string; reason: string } {
+  const gov = getEnterpriseGovernanceStore().getState();
+  const sec = (input.botSection || "").trim();
+  let tier: DataClassificationTier = "internal";
+  for (const [zoneKey, zoneTier] of Object.entries(gov.zoneDataTiers ?? {})) {
+    if (sec.toLowerCase().includes(zoneKey.toLowerCase())) {
+      tier = zoneTier;
+      break;
+    }
+  }
+  const routeRes = resolveSensitivityModelRoute({
+    constitution: gov.constitution,
+    dataTier: tier,
+    currentEngineId: input.currentEngineId,
+    availableLocalEngineIds: input.availableLocalEngineIds,
+  });
+  if (routeRes.route === "blocked_no_local_llm") {
+    getWorkspaceAuditLedger().append("default", input.actor || "enterprise-bot", "enterprise.confidential_llm_blocked", {
+      botSection: sec || null,
+      currentEngineId: input.currentEngineId ?? null,
+      reason: routeRes.reason,
+    });
+    return { allowed: false, ...routeRes };
+  }
+  return { allowed: true, ...routeRes };
 }
