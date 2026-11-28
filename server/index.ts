@@ -7689,6 +7689,7 @@ async function beginTurn(
     botId, text: resolvedImages.text, images: turnImages.length, depth: commsDepth, card: Boolean(opts?.cardContinuation), spoken,
   }));
   const instanceId = instance.instanceId;
+  let inboundDlpSanitized: string | null = null;
   if (getRai2EntitlementSnapshot().enterpriseAccess && isEnterpriseRuntimeBot(bot)) {
     const availableIds = registry
       .instances()
@@ -7718,6 +7719,7 @@ async function beginTurn(
     const inDlp = applyEnterpriseInboundDlp(resolvedImages.text, actorLabel);
     if (inDlp.redactions.length > 0) {
       resolvedImages.text = inDlp.sanitizedText;
+      inboundDlpSanitized = inDlp.sanitizedText;
     }
   }
   const automated = commsDepth > 0 || opts?.automationSource !== undefined
@@ -7755,6 +7757,9 @@ async function beginTurn(
           ...spokenLineFields(opts?.via, opts?.callId),
           ...(opts?.relayed ? { relayed: true } : {}),
         });
+  }
+  if (inboundDlpSanitized && userMessage?.id && !opts?.cardContinuation) {
+    store.patchMessage(threadId, userMessage.id, { text: inboundDlpSanitized });
   }
   const personLine = !opts?.coordination && !opts?.cardContinuation && !opts?.automationSource && !opts?.compactOnly
     && !opts?.computerSelectionContinuation && !opts?.editedMessageId && !commsDepth && !opts?.peerAsk && !userMessage.peerAsk; if (personLine) cloudConnections.personTurn(bot, threadId);
