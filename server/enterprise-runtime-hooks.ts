@@ -116,11 +116,18 @@ export function buildEnterprisePromptSection(
 
   const minMargin = state.marginGuard?.minThresholdPct ?? 18;
   const maxDiscount = state.marginGuard?.maxDiscountPct ?? 15;
+  const isDealBot = typeof bot?.section === "string" && /kinh doanh|tài chính|vùng 3|vùng 6|sales|finance/i.test(bot.section);
   const marginBlock = [
     "### CẦU DAO MARGIN GUARD (BẢO VỆ BIÊN LỢI NHUẬN BẮT BUỘC)",
     `- Biên lợi nhuận ròng tối thiểu: ${minMargin}%`,
     `- Chiết khấu tối đa cho phép không cần duyệt: ${maxDiscount}%`,
     `- TUYỆT ĐỐI KHÔNG tự ý đề xuất giảm giá > ${maxDiscount}% hoặc để biên lợi nhuận < ${minMargin}% khi chưa có phê duyệt của Founder.`,
+    ...(isDealBot
+      ? [
+          "### GHI SỔ NHỊP THỞ 17:00 TỰ ĐỘNG",
+          "- Khi khách xác nhận CHỐT ĐƠN thành công có số liệu thật, kèm thêm thẻ: [PULSE_RECORD: orderId=<MÃ_ĐƠN> revenue=<SỐ_TIỀN_VND> cost=<GIÁ_VỐN_VND>] để hệ thống tự ghi vào Sổ P&L.",
+        ]
+      : []),
   ].join("\n");
 
   const body = parts.join("\n\n");
