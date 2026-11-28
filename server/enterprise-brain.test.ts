@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { EnterpriseBrainStore, resetEnterpriseBrainStoreForTest } from "./enterprise-brain.ts";
-import { autoProposeDecisionFromBotReply, buildEnterprisePromptSection } from "./enterprise-runtime-hooks.ts";
+import { EnterpriseBrainStore, matchesZone, resetEnterpriseBrainStoreForTest } from "./enterprise-brain.ts";
+import { autoProposeDecisionFromBotReply, autoProposeKnowledgeFromBotReply, buildEnterprisePromptSection } from "./enterprise-runtime-hooks.ts";
 
 describe("Enterprise Phase 2 Brain: Decision Ledger, Knowledge Flywheel, Handover & Onboarding", () => {
   const dirs: string[] = [];
@@ -77,5 +77,48 @@ describe("Enterprise Phase 2 Brain: Decision Ledger, Knowledge Flywheel, Handove
 
     const section = buildEnterprisePromptSection({ section: "Zone 4" });
     expect(section).toContain("ENTERPRISE OS RUNTIME CONTEXT");
+  });
+
+  it("prevents Zone 1 from leaking into Zone 10 and enforces ABAC scoped state", () => {
+    expect(matchesZone("Zone 1", "Zone 10")).toBe(false);
+    expect(matchesZone("Zone 10", "Zone 1")).toBe(false);
+    expect(matchesZone("Zone 3", "Zone 3 - Sales")).toBe(true);
+
+    const dir = mkdtempSync(join(tmpdir(), "rai2-brain-"));
+    dirs.push(dir);
+    const store = new EnterpriseBrainStore(dir);
+    store.proposeDecision({ title: "Quyết định Zone 1", summary: "Nội bộ Zone 1", scopeZone: "Zone 1", autoApprove: true }, "admin");
+    store.proposeDecision({ title: "Quyết định Zone 10", summary: "Nội bộ Zone 10", scopeZone: "Zone 10", autoApprove: true }, "admin");
+    const scoped = store.getScopedState({ isAdmin: false, employeeZone: "Zone 10", employeeEmail: "staff10@co.vn" });
+    const titles = Object.values(scoped.decisions).map((d) => d.title);
+    expect(titles).toContain("Quyết định Zone 10");
+    expect(titles).not.toContain("Quyết định Zone 1");
+  });
+
+  it("scrubs secrets via DLP before persisting, auto-proposes knowledge, and deduplicates", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-brain-"));
+    dirs.push(dir);
+    const store = new EnterpriseBrainStore(dir);
+    const k = store.proposeKnowledge(
+      { title: "SOP Key Test", content: "Dùng key sk-1234567890abcdef1234567890abcdef để gọi API", scopeZone: "Zone 2", sourceRef: "msg-1" },
+      "staff@co.vn",
+    );
+    expect(k.content).not.toContain("sk-1234567890abcdef1234567890abcdef");
+    const dup = store.proposeKnowledge(
+      { title: "SOP Key Test", content: "Bản lặp lại", scopeZone: "Zone 2", sourceRef: "msg-1" },
+      "staff@co.vn",
+    );
+    expect(dup.id).toBe(k.id);
+
+    process.env.RAI2_DATA_DIR = dir;
+    resetEnterpriseBrainStoreForTest();
+    const autoK = autoProposeKnowledgeFromBotReply(
+      'Tuyệt vời! [KNOWLEDGE_PROPOSE: title="Quy trình CSKH 5 bước" kind="sop" content="Bước 1 chào hỏi, bước 2 xác nhận nhu cầu." zone="Zone 3"]',
+      "Zone 3",
+      "bot-cs",
+      "msg-k-1",
+    );
+    expect(autoK.proposed).toBe(true);
+    expect(autoK.title).toBe("Quy trình CSKH 5 bước");
   });
 });

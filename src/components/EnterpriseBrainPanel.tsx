@@ -25,6 +25,7 @@ interface OrgKnowledge {
   authorEmail: string;
   status: PromotionStatus;
   approvedBy?: string;
+  usageCount?: number;
 }
 
 interface HandoverPkg {
@@ -277,7 +278,7 @@ export function EnterpriseBrainPanel() {
                   </div>
                   <p className="mt-1 text-ink-secondary">{d.summary}</p>
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-tertiary">
-                    <span>Phạm vi: <strong>{d.scopeZone}</strong> · Đề xuất: {d.proposedBy}</span>
+                    <span>Phạm vi: <strong>{d.scopeZone}</strong> · Hiệu lực: {d.effectiveFrom} · Đề xuất: {d.proposedBy}{d.approvedBy ? ` · Duyệt: ${d.approvedBy}` : ""}</span>
                     <div className="flex gap-1.5">
                       {d.status !== "approved" && (
                         <button type="button" disabled={busy} onClick={() => void handleReviewDecision(d.id, "approved")} className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600 hover:bg-emerald-500/25">
@@ -324,7 +325,7 @@ export function EnterpriseBrainPanel() {
                 </div>
                 <p className="mt-1 whitespace-pre-wrap text-ink-secondary">{k.content}</p>
                 <div className="mt-2 flex items-center justify-between text-[11px] text-ink-tertiary">
-                  <span>Phạm vi: <strong>{k.scopeZone}</strong> · Tác giả: {k.authorEmail}</span>
+                  <span>Phạm vi: <strong>{k.scopeZone}</strong> · Tác giả: {k.authorEmail} · Đã dùng: <strong>{k.usageCount ?? 0}</strong> lần</span>
                   <div className="flex gap-1.5">
                     {k.status !== "approved" && (
                       <button type="button" disabled={busy} onClick={() => void handleReviewKnowledge(k.id, "approved")} className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600 hover:bg-emerald-500/25">

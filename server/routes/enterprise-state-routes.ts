@@ -604,7 +604,15 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     if (method === "GET" && path === "/api/enterprise/brain") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
-      return json(res, 200, { brain: getEnterpriseBrainStore().getState() });
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const brain = getEnterpriseBrainStore().getScopedState({
+        isAdmin,
+        employeeZone: emp?.zone,
+        employeeEmail: actorEmail,
+      });
+      return json(res, 200, { brain });
     }
 
     if (method === "POST" && path === "/api/enterprise/decisions/propose") {
@@ -668,7 +676,11 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     if (method === "GET" && path === "/api/enterprise/onboarding-brief") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
-      const zone = url.searchParams.get("zone") ?? undefined;
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      const requestedZone = url.searchParams.get("zone") ?? undefined;
+      const zone = isAdmin ? requestedZone : (emp?.zone || "all");
       const employeeEmail = url.searchParams.get("email") ?? undefined;
       const brief = getEnterpriseBrainStore().buildOnboardingBrief({ zone, employeeEmail });
       return json(res, 200, { brief });

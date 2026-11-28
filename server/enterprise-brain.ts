@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { dirname, join } from "node:path";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 import { getEnterpriseGovernanceStore } from "./enterprise-governance.ts";
+import { scanAndRedactText } from "./enterprise-dlp.ts";
 
 export type PromotionStatus = "proposed" | "approved" | "deprecated";
 
@@ -61,12 +62,38 @@ function makeId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function matchesZone(itemZone: string, botSection?: string): boolean {
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function matchesZone(itemZone: string, botSection?: string): boolean {
   const z = itemZone.trim().toLowerCase();
   if (!z || z === "all" || z === "chung") return true;
   if (!botSection) return false;
   const sec = botSection.trim().toLowerCase();
-  return sec.includes(z) || z.includes(sec);
+  if (sec === z) return true;
+  const zInSec = new RegExp(`(?:^|[^a-z0-9à-ỹ])${escapeRegex(z)}(?:$|[^a-z0-9à-ỹ])`, "i");
+  const secInZ = new RegExp(`(?:^|[^a-z0-9à-ỹ])${escapeRegex(sec)}(?:$|[^a-z0-9à-ỹ])`, "i");
+  return zInSec.test(sec) || secInZ.test(z);
+}
+
+function scrubBrainText(raw: string, actor: string): string {
+  const text = raw.trim();
+  if (!text) return "";
+  try {
+    const gov = getEnterpriseGovernanceStore().getState();
+    const res = scanAndRedactText(text, {
+      dlpEnabled: gov.constitution.dlpEnabled,
+      censorshipEnabled: gov.constitution.censorshipEnabled,
+      forbiddenTopics: gov.constitution.forbiddenTopics,
+      blockOnForbiddenTopic: false,
+      auditActor: actor,
+      auditAction: "enterprise.brain_dlp_scrub",
+    });
+    return res.sanitizedText;
+  } catch {
+    return text;
+  }
 }
 
 export class EnterpriseBrainStore {
@@ -124,13 +151,27 @@ export class EnterpriseBrainStore {
     },
     actor = "bot",
   ): OrgDecisionRecord {
+    const scopeZone = (input.scopeZone ?? "all").trim() || "all";
+    const cleanTitle = scrubBrainText(input.title, actor).slice(0, 180);
+    const cleanSummary = scrubBrainText(input.summary, actor).slice(0, 1500);
+    const sourceRef = input.sourceRef?.trim().slice(0, 200);
+    const dup = Object.values(this.state.decisions).find(
+      (d) =>
+        d.status !== "deprecated" &&
+        ((sourceRef && d.sourceRef === sourceRef) ||
+          (d.title.toLowerCase() === cleanTitle.toLowerCase() &&
+            d.scopeZone.toLowerCase() === scopeZone.toLowerCase())),
+    );
+    if (dup) {
+      return structuredClone(dup);
+    }
     const now = Date.now();
     const status: PromotionStatus = input.autoApprove ? "approved" : "proposed";
     const rec: OrgDecisionRecord = {
       id: makeId("dec"),
-      title: input.title.trim().slice(0, 180),
-      summary: input.summary.trim().slice(0, 1500),
-      scopeZone: (input.scopeZone ?? "all").trim() || "all",
+      title: cleanTitle,
+      summary: cleanSummary,
+      scopeZone,
       status,
       effectiveFrom: input.effectiveFrom ?? new Date(now).toISOString().slice(0, 10),
       proposedBy: actor,
@@ -182,14 +223,28 @@ export class EnterpriseBrainStore {
     },
     actor = "employee",
   ): OrgKnowledgeEntry {
+    const scopeZone = (input.scopeZone ?? "all").trim() || "all";
+    const cleanTitle = scrubBrainText(input.title, actor).slice(0, 180);
+    const cleanContent = scrubBrainText(input.content, actor).slice(0, 4000);
+    const sourceRef = input.sourceRef?.trim().slice(0, 200);
+    const dup = Object.values(this.state.knowledge).find(
+      (k) =>
+        k.status !== "deprecated" &&
+        ((sourceRef && k.sourceRef === sourceRef) ||
+          (k.title.toLowerCase() === cleanTitle.toLowerCase() &&
+            k.scopeZone.toLowerCase() === scopeZone.toLowerCase())),
+    );
+    if (dup) {
+      return structuredClone(dup);
+    }
     const now = Date.now();
     const status: PromotionStatus = input.autoApprove ? "approved" : "proposed";
     const entry: OrgKnowledgeEntry = {
       id: makeId("know"),
       kind: input.kind ?? "best_practice",
-      title: input.title.trim().slice(0, 180),
-      content: input.content.trim().slice(0, 4000),
-      scopeZone: (input.scopeZone ?? "all").trim() || "all",
+      title: cleanTitle,
+      content: cleanContent,
+      scopeZone,
       authorEmail: actor,
       status,
       ...(status === "approved" ? { approvedBy: actor } : {}),
@@ -266,7 +321,7 @@ export class EnterpriseBrainStore {
       ...(input.successorEmail?.trim() ? { successorEmail: input.successorEmail.trim().toLowerCase() } : {}),
       preservedWorkNamespace: input.preservedWorkNamespace,
       purgedPrivateNamespace: input.purgedPrivateNamespace,
-      summary: input.workSummary.trim() || `Đã đóng gói tri thức work-context của ${input.departedName}.`,
+      summary: scrubBrainText(input.workSummary, actor) || `Đã đóng gói tri thức work-context của ${input.departedName}.`,
       extractedKnowledgeIds: extractedIds,
       createdBy: actor,
       createdAt: now,
@@ -283,17 +338,63 @@ export class EnterpriseBrainStore {
     return structuredClone(pkg);
   }
 
+  public getScopedState(opts: {
+    isAdmin: boolean;
+    employeeZone?: string;
+    employeeEmail?: string;
+  }): EnterpriseBrainState {
+    if (opts.isAdmin) return this.getState();
+    const email = opts.employeeEmail?.trim().toLowerCase();
+    const zone = opts.employeeZone?.trim();
+    const decisions: Record<string, OrgDecisionRecord> = {};
+    for (const [id, d] of Object.entries(this.state.decisions)) {
+      const isAuthor = Boolean(email && d.proposedBy.toLowerCase() === email);
+      if (isAuthor || matchesZone(d.scopeZone, zone)) {
+        decisions[id] = structuredClone(d);
+      }
+    }
+    const knowledge: Record<string, OrgKnowledgeEntry> = {};
+    for (const [id, k] of Object.entries(this.state.knowledge)) {
+      const isAuthor = Boolean(email && k.authorEmail.toLowerCase() === email);
+      if (isAuthor || matchesZone(k.scopeZone, zone)) {
+        knowledge[id] = structuredClone(k);
+      }
+    }
+    const handovers: Record<string, KnowledgeHandoverPackage> = {};
+    for (const [id, h] of Object.entries(this.state.handovers)) {
+      const isSuccessor = Boolean(email && h.successorEmail?.toLowerCase() === email);
+      if (isSuccessor || matchesZone(h.zone, zone)) {
+        handovers[id] = structuredClone(h);
+      }
+    }
+    return { decisions, knowledge, handovers, updatedAt: this.state.updatedAt };
+  }
+
   public getRelevantContextForBot(botSection?: string): {
     decisions: OrgDecisionRecord[];
     knowledge: OrgKnowledgeEntry[];
   } {
+    const isZoneSpecific = (z: string) => {
+      const nz = z.trim().toLowerCase();
+      return Boolean(nz && nz !== "all" && nz !== "chung");
+    };
     const decisions = Object.values(this.state.decisions)
       .filter((d) => d.status === "approved" && matchesZone(d.scopeZone, botSection))
-      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .sort((a, b) => {
+        const specDiff = Number(isZoneSpecific(b.scopeZone)) - Number(isZoneSpecific(a.scopeZone));
+        if (specDiff !== 0) return specDiff;
+        const effDiff = b.effectiveFrom.localeCompare(a.effectiveFrom);
+        return effDiff !== 0 ? effDiff : b.updatedAt - a.updatedAt;
+      })
       .slice(0, 8);
     const knowledge = Object.values(this.state.knowledge)
       .filter((k) => k.status === "approved" && matchesZone(k.scopeZone, botSection))
-      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .sort((a, b) => {
+        const specDiff = Number(isZoneSpecific(b.scopeZone)) - Number(isZoneSpecific(a.scopeZone));
+        if (specDiff !== 0) return specDiff;
+        const useDiff = (b.usageCount ?? 0) - (a.usageCount ?? 0);
+        return useDiff !== 0 ? useDiff : b.updatedAt - a.updatedAt;
+      })
       .slice(0, 8);
     return { decisions, knowledge };
   }

@@ -163,6 +163,10 @@ export function buildEnterprisePromptSection(
             .join("\n"),
       );
     }
+    parts.push(
+      "### CƠ CHẾ ĐỀ XUẤT TRI THỨC & QUYẾT ĐỊNH (TỰ ĐỘNG HỌC HỎI)\n" +
+        "- Khi có quyết định quan trọng hoặc cách làm hiệu quả/SOP mới cần chia sẻ cho công ty, có thể đính kèm thẻ `[DECISION_PROPOSE: title=\"...\" summary=\"...\" zone=\"...\"]` hoặc `[KNOWLEDGE_PROPOSE: title=\"...\" kind=\"best_practice\" content=\"...\" zone=\"...\"]` để Quản lý duyệt.",
+    );
     if (brain.knowledge.length > 0) {
       parts.push(
         "## TRI THỨC & QUY TRÌNH CHUẨN DOANH NGHIỆP (KNOWLEDGE FLYWHEEL)\n" +
@@ -455,6 +459,35 @@ const DECISION_TAG_RE = /\[DECISION_PROPOSE:\s*title="([^"]{3,180})"\s+summary="
 /**
  * Extracts [DECISION_PROPOSE: title="..." summary="..." zone="..."] from bot replies into 2-stage Decision Ledger.
  */
+const KNOWLEDGE_TAG_RE = /\[KNOWLEDGE_PROPOSE:\s*title="([^"]{3,180})"\s+(?:kind="(sop|best_practice|project_brief|operational_pattern)"\s+)?content="([^"]{3,1500})"(?:\s+zone="([^"]{1,80})")?\s*\]/i;
+
+/**
+ * Extracts [KNOWLEDGE_PROPOSE: title="..." kind="..." content="..." zone="..."] from bot replies into Knowledge Flywheel.
+ */
+export function autoProposeKnowledgeFromBotReply(
+  replyText: string,
+  botSection?: string,
+  actor = "enterprise-bot",
+  sourceRef?: string,
+): { proposed: boolean; knowledgeId?: string; title?: string } {
+  const m = replyText.match(KNOWLEDGE_TAG_RE);
+  if (!m) return { proposed: false };
+  const title = m[1]?.trim();
+  const kindRaw = (m[2]?.trim().toLowerCase() || "best_practice") as "sop" | "best_practice" | "project_brief" | "operational_pattern";
+  const content = m[3]?.trim();
+  const scopeZone = m[4]?.trim() || botSection || "all";
+  if (!title || !content) return { proposed: false };
+  try {
+    const entry = getEnterpriseBrainStore().proposeKnowledge(
+      { kind: kindRaw, title, content, scopeZone, sourceRef, autoApprove: false },
+      actor,
+    );
+    return { proposed: true, knowledgeId: entry.id, title: entry.title };
+  } catch {
+    return { proposed: false };
+  }
+}
+
 export function autoProposeDecisionFromBotReply(
   replyText: string,
   botSection?: string,
