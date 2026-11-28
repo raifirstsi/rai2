@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { randomInt, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
@@ -37,6 +37,7 @@ export interface BindingOtpChallenge {
   platform: ChannelPlatform;
   expiresAt: number;
   createdBy: string;
+  failedAttempts?: number;
 }
 
 export interface VerifiedIdentityBinding {
@@ -107,6 +108,7 @@ function minTier(a: DataClassificationTier, b: DataClassificationTier, c: DataCl
 export class EnterpriseOmnichannelGateway {
   private readonly filePath: string;
   private state: OmnichannelState;
+  private readonly processedUpdateIds = new Set<string>();
 
   constructor(dataDir?: string) {
     const baseDir =
@@ -143,6 +145,64 @@ export class EnterpriseOmnichannelGateway {
     const tmp = `${this.filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
     writeFileSync(tmp, JSON.stringify(this.state, null, 2), "utf8");
     renameSync(tmp, this.filePath);
+  }
+
+  public verifyTelegramWebhookSecret(groupId: string, providedSecret: string): { ok: boolean; telegramBotToken?: string } {
+    const ch = Object.values(this.state.channels).find(
+      (c) => c.platform === "telegram" && c.groupId === groupId.trim() && c.enabled,
+    );
+    if (!ch) return { ok: false };
+    if (ch.webhookSecret) {
+      const a = Buffer.from(ch.webhookSecret, "utf8");
+      const b = Buffer.from(providedSecret, "utf8");
+      if (a.length !== b.length || !timingSafeEqual(a, b)) {
+        return { ok: false };
+      }
+    }
+    return { ok: true, telegramBotToken: ch.telegramBotToken };
+  }
+
+  public claimWebhookUpdateOnce(updateKey: string | undefined): boolean {
+    if (!updateKey) return true;
+    if (this.processedUpdateIds.has(updateKey)) return false;
+    if (this.processedUpdateIds.size > 2000) {
+      const first = this.processedUpdateIds.values().next().value;
+      if (first) this.processedUpdateIds.delete(first);
+    }
+    this.processedUpdateIds.add(updateKey);
+    return true;
+  }
+
+  public revokeSingleBinding(platform: ChannelPlatform, externalUserId: string, actor = "admin"): boolean {
+    const key = bindingKey(platform, externalUserId);
+    const b = this.state.bindings[key];
+    if (!b || b.status !== "active") return false;
+    b.status = "revoked";
+    b.revokedAt = Date.now();
+    this.state.updatedAt = Date.now();
+    this.saveToDisk();
+    getWorkspaceAuditLedger().append("default", actor, "enterprise.channel_binding_revoked", {
+      employeeEmail: b.employeeEmail,
+      platform,
+      externalUserId,
+    });
+    return true;
+  }
+
+  public async dispatchTelegramReply(token: string, chatId: string, text: string, replyToMessageId?: string): Promise<void> {
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text.slice(0, 4000),
+          ...(replyToMessageId && /^\d+$/.test(replyToMessageId) ? { reply_to_message_id: Number(replyToMessageId) } : {}),
+        }),
+      });
+    } catch {
+      // Non-fatal network dispatch
+    }
   }
 
   public getStateMasked(): OmnichannelState {
@@ -298,6 +358,12 @@ export class EnterpriseOmnichannelGateway {
         delete this.state.otps[cleanCode];
         this.saveToDisk();
       }
+      // Increment failed attempt counter on all active OTPs to thwart brute-force guessing
+      for (const [k, v] of Object.entries(this.state.otps)) {
+        v.failedAttempts = (v.failedAttempts ?? 0) + 1;
+        if (v.failedAttempts >= 5) delete this.state.otps[k];
+      }
+      this.saveToDisk();
       return null;
     }
     const extId = externalUserId.trim();

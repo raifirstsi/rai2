@@ -57,6 +57,7 @@ export function EnterpriseOmnichannelPanel() {
   const [maxTier, setMaxTier] = useState<Tier>("zone");
   const [allowGuests, setAllowGuests] = useState(false);
   const [tgToken, setTgToken] = useState("");
+  const [tgWebhookSecret, setTgWebhookSecret] = useState("");
 
   // OTP Binding form
   const [bindEmail, setBindEmail] = useState("");
@@ -107,6 +108,7 @@ export function EnterpriseOmnichannelPanel() {
           maxChannelTier: maxTier,
           allowExternalGuests: allowGuests,
           telegramBotToken: platform === "telegram" ? tgToken : undefined,
+          webhookSecret: platform === "telegram" ? tgWebhookSecret : undefined,
         }),
       });
       const data = (await resp.json()) as { success?: boolean; omnichannel?: OmnichannelState; error?: string };
@@ -118,6 +120,7 @@ export function EnterpriseOmnichannelPanel() {
       setChName("");
       setGroupId("");
       setTgToken("");
+      setTgWebhookSecret("");
       setMsg(`Đã kết nối nhóm ${platform.toUpperCase()} với trần dữ liệu ${maxTier}.`);
     } finally {
       setBusy(false);
@@ -144,6 +147,28 @@ export function EnterpriseOmnichannelPanel() {
       setIssuedOtp(data.challenge.code);
       setVerifyCode(data.challenge.code);
       setMsg(`Mã OTP: ${data.challenge.code} (hết hạn sau 10 phút). Gõ /bind ${data.challenge.code} trong nhóm ${bindPlatform.toUpperCase()}!`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRevokeBinding = async (bPlatform: Platform, externalUserId: string) => {
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const resp = await fetch("/api/enterprise/omnichannel/bind/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: bPlatform, externalUserId }),
+      });
+      const data = (await resp.json()) as { success?: boolean; omnichannel?: OmnichannelState; error?: string };
+      if (!resp.ok || !data.success) {
+        setErr(data.error || "Không thể thu hồi liên kết.");
+        return;
+      }
+      if (data.omnichannel) setOmni(data.omnichannel);
+      setMsg("Đã thu hồi liên kết định danh kênh chat.");
     } finally {
       setBusy(false);
     }
@@ -264,7 +289,10 @@ export function EnterpriseOmnichannelPanel() {
                   <option value="confidential">Trần kênh: Confidential</option>
                 </select>
                 {platform === "telegram" && (
-                  <input value={tgToken} onChange={(e) => setTgToken(e.target.value)} placeholder="Telegram Bot Token (tùy chọn)" className="w-48 rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-ink" />
+                  <>
+                    <input value={tgToken} onChange={(e) => setTgToken(e.target.value)} placeholder="Telegram Bot Token (tùy chọn)" className="w-44 rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-ink" />
+                    <input value={tgWebhookSecret} onChange={(e) => setTgWebhookSecret(e.target.value)} placeholder="Webhook Secret (bảo mật)" className="w-40 rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-ink" />
+                  </>
                 )}
                 <label className="flex items-center gap-1.5 text-ink-secondary">
                   <input type="checkbox" checked={allowGuests} onChange={(e) => setAllowGuests(e.target.checked)} />
@@ -329,7 +357,14 @@ export function EnterpriseOmnichannelPanel() {
             {bindings.map((b) => (
               <div key={b.id} className="flex items-center justify-between rounded-lg border border-hairline/40 bg-card px-3 py-2 text-xs">
                 <span><strong>{b.employeeEmail}</strong> ↔ [{b.platform.toUpperCase()}] <code>{b.externalUserId}</code></span>
-                <span className={cn("rounded-full px-2 py-0.5 text-[10px]", b.status === "active" ? "bg-emerald-500/15 text-emerald-600" : "bg-danger/15 text-danger")}>{b.status}</span>
+                <div className="flex items-center gap-2">
+                  <span className={cn("rounded-full px-2 py-0.5 text-[10px]", b.status === "active" ? "bg-emerald-500/15 text-emerald-600" : "bg-danger/15 text-danger")}>{b.status}</span>
+                  {b.status === "active" && (
+                    <button type="button" disabled={busy} onClick={() => void handleRevokeBinding(b.platform, b.externalUserId)} className="rounded-md bg-danger/15 px-2 py-0.5 text-[10px] font-medium text-danger">
+                      Thu hồi
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

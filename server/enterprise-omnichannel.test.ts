@@ -113,4 +113,31 @@ describe("Enterprise Phase 4: Omnichannel (Zalo, Telegram, WhatsApp, Discord), O
     expect(guestRes.isGuestMode).toBe(true);
     expect(guestRes.effectiveTier).toBe("public");
   });
+  it("verifies Telegram webhook secret via timingSafeEqual, deduplicates update_id, and locks OTP after 5 failed guesses", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-omni-sec-"));
+    dirs.push(dir);
+    process.env.RAI2_DATA_DIR = dir;
+    resetEnterpriseGovernanceStoreForTest();
+
+    const gw = new EnterpriseOmnichannelGateway(dir);
+    gw.upsertChannel({
+      platform: "telegram",
+      name: "TG Secure",
+      groupId: "-100111",
+      webhookSecret: "top-secret-hmac",
+      telegramBotToken: "999:tok",
+    });
+
+    expect(gw.verifyTelegramWebhookSecret("-100111", "wrong-secret").ok).toBe(false);
+    expect(gw.verifyTelegramWebhookSecret("-100111", "top-secret-hmac").ok).toBe(true);
+    expect(gw.claimWebhookUpdateOnce("tg:-100111:1001")).toBe(true);
+    expect(gw.claimWebhookUpdateOnce("tg:-100111:1001")).toBe(false);
+
+    const otp = gw.issueBindingOtp("sec@co.vn", "telegram", "admin");
+    for (let i = 0; i < 5; i++) {
+      expect(gw.verifyBindingOtp("000000", "u1")).toBeNull();
+    }
+    // Real OTP must be invalidated after 5 failed attempts
+    expect(gw.verifyBindingOtp(otp.code, "u1")).toBeNull();
+  });
 });

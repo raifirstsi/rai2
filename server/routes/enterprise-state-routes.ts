@@ -105,6 +105,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
     if (method === "POST" && path === "/api/webhooks/telegram-enterprise") {
       if (requireEnterpriseVip(res, json)) return;
       const body = (await readBody(req)) as {
+        update_id?: number;
         message?: {
           message_id?: number;
           text?: string;
@@ -120,19 +121,27 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         return json(res, 200, { ok: true, ignored: true });
       }
       const gw = getEnterpriseOmnichannelGateway();
-      const ch = Object.values(gw.getStateMasked().channels).find((c) => c.platform === "telegram" && c.groupId === chatId);
       const headerSecret = String(req.headers["x-telegram-bot-api-secret-token"] ?? "");
-      if (ch?.webhookSecret && !headerSecret) {
-        return json(res, 403, { error: "missing_telegram_webhook_secret" });
+      const secCheck = gw.verifyTelegramWebhookSecret(chatId, headerSecret);
+      if (!secCheck.ok) {
+        return json(res, 403, { error: "invalid_telegram_webhook_secret" });
       }
+      const updateKey = body.update_id !== undefined ? `tg:${chatId}:${body.update_id}` : undefined;
+      if (!gw.claimWebhookUpdateOnce(updateKey)) {
+        return json(res, 200, { ok: true, duplicate: true });
+      }
+      const msgId = body.message?.message_id !== undefined ? String(body.message.message_id) : undefined;
       const resMsg = gw.processInboundMessage({
         platform: "telegram",
         channelGroupId: chatId,
         externalUserId: fromId,
         externalDisplayName: body.message?.from?.first_name || body.message?.from?.username || fromId,
         messageText: text,
-        replyToExternalId: body.message?.reply_to_message?.message_id ? String(body.message.reply_to_message.message_id) : undefined,
+        replyToExternalId: msgId,
       });
+      if (secCheck.telegramBotToken && resMsg.outboundReply) {
+        void gw.dispatchTelegramReply(secCheck.telegramBotToken, chatId, resMsg.outboundReply, msgId);
+      }
       return json(res, 200, { ok: true, result: resMsg });
     }
 
@@ -1127,10 +1136,38 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       return json(res, 200, { success: true, binding, omnichannel: getEnterpriseOmnichannelGateway().getStateMasked() });
     }
 
+    if (method === "POST" && path === "/api/enterprise/omnichannel/bind/revoke") {
+      if (!auth) return json(res, 401, { error: "unauthorized" });
+      if (requireEnterpriseVip(res, json)) return;
+      if (rejectOffboardedSession()) return;
+      const body = (await readBody(req)) as { platform?: ChannelPlatform; externalUserId?: string };
+      if (!body.platform || !body.externalUserId) {
+        return json(res, 400, { error: "platform and externalUserId are required" });
+      }
+      const isAdmin = auth.scopes.includes("admin");
+      const actorEmail = (auth.kind === "session" ? auth.session.email : undefined)?.toLowerCase();
+      const gw = getEnterpriseOmnichannelGateway();
+      const state = gw.getStateMasked();
+      const existing = state.bindings[`${body.platform}:${body.externalUserId.trim()}`];
+      if (!existing) return json(res, 404, { error: "binding not found" });
+      if (!isAdmin && existing.employeeEmail.toLowerCase() !== actorEmail) {
+        return json(res, 403, { error: "forbidden_revoke_other_employee" });
+      }
+      gw.revokeSingleBinding(body.platform, body.externalUserId, actorEmail || "admin");
+      const emp = actorEmail ? getEnterpriseGovernanceStore().getState().employees[actorEmail] : undefined;
+      return json(res, 200, {
+        success: true,
+        omnichannel: gw.getScopedStateMasked({ isAdmin, employeeZone: emp?.zone, employeeEmail: actorEmail }),
+      });
+    }
+
     if (method === "POST" && path === "/api/enterprise/omnichannel/ingest") {
       if (!auth) return json(res, 401, { error: "unauthorized" });
       if (requireEnterpriseVip(res, json)) return;
       if (rejectOffboardedSession()) return;
+      if (!auth.scopes.includes("admin")) {
+        return json(res, 403, { error: "admin scope required for manual omnichannel simulation" });
+      }
       const body = (await readBody(req)) as {
         platform?: ChannelPlatform;
         channelGroupId?: string;
