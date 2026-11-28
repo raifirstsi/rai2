@@ -50,6 +50,7 @@ export function VoiceToSopModal({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaChunksRef = useRef<BlobPart[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const discardStopRef = useRef(false);
   const [extractedSop, setExtractedSop] = useState<ExtractedSop | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState("");
@@ -87,6 +88,28 @@ export function VoiceToSopModal({
       setRecordingSupported(hasMedia || hasSpeech);
     }
   }, []);
+
+  useEffect(() => {
+    if (!isOpen && mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      discardStopRef.current = true;
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // Ignore
+      }
+      setIsRecording(false);
+    }
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        discardStopRef.current = true;
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {
+          // Ignore
+        }
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -146,8 +169,13 @@ export function VoiceToSopModal({
         recorder.ondataavailable = (evt) => {
           if (evt.data && evt.data.size > 0) mediaChunksRef.current.push(evt.data);
         };
+        discardStopRef.current = false;
         recorder.onstop = () => {
           stream.getTracks().forEach((t) => t.stop());
+          if (discardStopRef.current) {
+            discardStopRef.current = false;
+            return;
+          }
           const outBlob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || "audio/webm" });
           if (outBlob.size > 0) {
             void transcribeBlob(outBlob, "mic-recording");
