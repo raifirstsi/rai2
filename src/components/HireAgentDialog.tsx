@@ -615,9 +615,19 @@ export function HireAgentDialog({ open, onClose, onSelectAgent, onHired, initial
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 rounded-lg bg-inset p-3 text-[13px] text-ink-secondary">
-                        <Briefcase size={13} className="text-ink-tertiary shrink-0" />
-                        <span>Đơn nhiệm chuyên sâu, log kiểm toán minh bạch dưới quyền CAIO.</span>
+                      <div className="space-y-2 rounded-xl border border-accent/30 bg-accent/5 p-3.5">
+                        <div className="text-[13px] font-semibold text-ink flex items-center gap-1.5">
+                          <Briefcase size={14} className="text-accent shrink-0" />
+                          <span>6 Lá Chắn AgenticOS Kernel Tự Động Bật Cho Vị Trí Này:</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[12px] text-ink-secondary">
+                          <div>• <strong>Context Vault &amp; TOC:</strong> Tự nạp vào System Prompt</div>
+                          <div>• <strong>Server Margin Guard:</strong> Quét chiết khấu vượt trần</div>
+                          <div>• <strong>Live Turn Steering:</strong> Bẻ lái/tạm dừng AI tức thì</div>
+                          <div>• <strong>Loop Guard &amp; JSON Repair:</strong> Chống treo &amp; vá lỗi tool</div>
+                          <div>• <strong>Cache Keep-Warm &amp; Budget:</strong> Giảm phí token API</div>
+                          <div>• <strong>Merkle Audit &amp; Evals /21:</strong> Ký SHA-256 &amp; sát hạch</div>
+                        </div>
                       </div>
                     </div>
 

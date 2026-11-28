@@ -43,15 +43,42 @@ function isSafeWebhookUrl(raw: string): URL | null {
 
 export interface EnterpriseStateRouteDeps {
   getBotInteractions?: (botId: string) => { botName: string; interactions: BotSampleInteraction[]; systemPrompt?: string };
+  getEnterpriseStats?: () => { enterpriseBotsCount: number; totalBotsCount: number };
 }
 
 export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): RouteHandler {
-  return async ({ req, res, path, method, auth, json, readBody }) => {
+  return async ({ req, res, path, method, url, auth, json, readBody }) => {
     if (!path.startsWith("/api/enterprise/")) return PASS;
     if (requireEnterpriseVip(res, json)) return;
 
     const urlObj = new URL(req.url ?? "", "http://localhost");
     const store = getEnterpriseStateStore();
+
+    // 5. GET /api/enterprise/architecture-scan - Real workspace readiness scan (/21)
+    if (method === "GET" && path === "/api/enterprise/architecture-scan") {
+      const ws = url.searchParams.get("workspaceId")?.trim() || "default";
+      const state = store.getState(ws);
+      const pillars = state.contextVault?.pillars ?? {};
+      const canonicalKeys = ["brand_voice", "customer_avatar", "offer_breakdown", "competitive_positioning", "sales_process", "case_studies", "sops", "industry_context"];
+      const filledPillars = canonicalKeys.filter((k) => typeof pillars[k] === "string" && pillars[k].trim().length > 0).length;
+      const hasToc = Boolean(state.tocDiagnosis && typeof state.tocDiagnosis === "object");
+      const hasMargin = typeof state.marginGuard?.minThresholdPct === "number" && typeof state.marginGuard?.maxDiscountPct === "number";
+      const pulseCfg = getPulseScheduler().getConfig();
+      const hasPulseSchedule = Boolean(pulseCfg.enabled || state.fridayPulse?.webhookUrl || pulseCfg.zaloToId);
+      const stats = deps?.getEnterpriseStats?.() ?? { enterpriseBotsCount: 0, totalBotsCount: 0 };
+      const evaluatedBots = Object.keys(state.autonomyProfiles ?? {}).length;
+
+      const checks = [
+        { id: "vault", label: `Két Sắt Ngữ Cảnh (${filledPillars}/8 trụ cột)`, passed: filledPillars >= 4, points: Math.min(6, Math.round((filledPillars / 8) * 6)) },
+        { id: "toc", label: "Chẩn đoán Điểm Nghẽn TOC", passed: hasToc, points: hasToc ? 3 : 0 },
+        { id: "margin", label: `Cầu dao Margin Guard (${state.marginGuard?.minThresholdPct ?? 18}% / ${state.marginGuard?.maxDiscountPct ?? 15}%)`, passed: hasMargin, points: hasMargin ? 3 : 0 },
+        { id: "bots", label: `Nhân Sự Số Enterprise (${stats.enterpriseBotsCount} bot)`, passed: stats.enterpriseBotsCount > 0, points: stats.enterpriseBotsCount > 0 ? 4 : 0 },
+        { id: "pulse", label: "Lịch Nhịp Thở 17:00 / Webhook / Zalo", passed: hasPulseSchedule, points: hasPulseSchedule ? 3 : 0 },
+        { id: "autonomy", label: `Sát hạch Tự trị (${evaluatedBots} bot đã kiểm định)`, passed: evaluatedBots > 0, points: evaluatedBots > 0 ? 2 : 0 },
+      ];
+      const totalScore = checks.reduce((acc, c) => acc + c.points, 0);
+      return json(res, 200, { success: true, totalScore, maxScore: 21, checks, stats });
+    }
 
     // 1. GET /api/enterprise/state
     if (method === "GET" && path === "/api/enterprise/state") {

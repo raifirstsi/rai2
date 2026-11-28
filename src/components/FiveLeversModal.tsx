@@ -46,6 +46,7 @@ export function FiveLeversModal({
   const [syncTargetStatus, setSyncTargetStatus] = useState<string | null>(null);
   const [isSyncingTarget, setIsSyncingTarget] = useState(false);
   const [input, setInput] = useState<FiveLeversInput>(() => loadSavedFiveLeversInput());
+  const [livePulseInfo, setLivePulseInfo] = useState<{ revenue: number; marginPct: number } | null>(null);
   const [activePreset, setActivePreset] = useState<string>("BALANCED_10");
   const [improvements, setImprovements] = useState<LeverImprovementPct>(
     LEVER_PRESETS.BALANCED_10.improvements
@@ -58,9 +59,14 @@ export function FiveLeversModal({
   useEffect(() => {
     if (!isOpen) return;
     let alive = true;
-    void fetchEnterpriseState().then(({ state: ent }) => {
-      if (!alive || !ent?.fiveLevers?.input) return;
-      setInput((prev) => ({ ...prev, ...(ent.fiveLevers!.input as Partial<FiveLeversInput>) }));
+    void fetchEnterpriseState().then(({ state: ent, livePulse }) => {
+      if (!alive) return;
+      if (livePulse && typeof livePulse.totalRevenue === "number" && livePulse.totalRevenue > 0) {
+        setLivePulseInfo({ revenue: livePulse.totalRevenue, marginPct: livePulse.netMarginPercent });
+      }
+      if (ent?.fiveLevers?.input) {
+        setInput((prev) => ({ ...prev, ...(ent.fiveLevers!.input as Partial<FiveLeversInput>) }));
+      }
     });
     return () => { alive = false; };
   }, [isOpen]);
@@ -237,6 +243,20 @@ export function FiveLeversModal({
           </div>
 
           {/* Compounding Visual Summary Card */}
+          {livePulseInfo && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs">
+              <span className="text-ink">
+                <strong>Số liệu thật hôm nay (Sổ Nhịp thở):</strong> Doanh thu {livePulseInfo.revenue.toLocaleString("vi-VN")}đ · Biên ròng {livePulseInfo.marginPct.toFixed(1)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setInput((prev) => ({ ...prev, grossMarginPct: Math.max(1, Math.round(livePulseInfo.marginPct)) }))}
+                className="rounded-lg bg-emerald-600 px-2.5 py-1 font-medium text-white hover:bg-emerald-500"
+              >
+                Nạp biên thật vào mô phỏng
+              </button>
+            </div>
+          )}
           <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline/40 pb-3">
               <div>

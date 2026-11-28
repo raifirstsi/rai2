@@ -26,7 +26,7 @@ import {
   MaturityResult,
 } from "@/lib/ai-maturity";
 import { cn } from "@/lib/cn";
-import { fetchEnterpriseState, patchEnterpriseState } from "@/lib/enterprise-state-client";
+import { fetchEnterpriseState, patchEnterpriseState, scanEnterpriseArchitecture, type ArchitectureScanResult } from "@/lib/enterprise-state-client";
 import { api } from "@/state/store";
 
 export interface ArchitectureAssessmentModalProps {
@@ -53,6 +53,8 @@ export function ArchitectureAssessmentModal({
   // Maturity assessment state
   const [answers, setAnswers] = useState<Record<string, number>>(() => loadSavedMaturityAnswers());
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [scanResult, setScanResult] = useState<ArchitectureScanResult | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -224,6 +226,41 @@ export function ArchitectureAssessmentModal({
           {activeTab === "worksheet" ? (
             /* TAB 1: TARGET ARCHITECTURE WORKSHEET */
             <div className="space-y-4">
+              <div className="rounded-xl border border-accent/30 bg-accent/5 p-3.5 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-semibold text-ink">Kiểm định tự động hạ tầng Workspace (/21 điểm thực tế)</div>
+                    <div className="text-[11px] text-ink-secondary">Quét trực tiếp Két Sắt 8 Trụ Cột, TOC, Margin Guard, Bot Enterprise &amp; Lịch 17:00 trên Server.</div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={scanning}
+                    onClick={() => {
+                      setScanning(true);
+                      void scanEnterpriseArchitecture().then((res) => {
+                        if (res) setScanResult(res);
+                        setScanning(false);
+                      });
+                    }}
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                  >
+                    {scanning ? "Đang quét Server..." : "Quét tự động từ Server"}
+                  </button>
+                </div>
+                {scanResult && (
+                  <div className="space-y-1.5 pt-1 border-t border-hairline/40">
+                    <div className="text-xs font-bold text-ink">Điểm sẵn sàng thực tế: {scanResult.totalScore}/{scanResult.maxScore}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                      {scanResult.checks.map((c) => (
+                        <div key={c.id} className="flex items-center justify-between rounded-lg border border-hairline/50 bg-card px-2.5 py-1.5">
+                          <span className={c.passed ? "text-ink" : "text-ink-secondary"}>{c.passed ? "✅" : "⚠️"} {c.label}</span>
+                          <span className="font-semibold text-ink">{c.points}đ</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               {/* Distribution Metric Tiles (Clean Neutral) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div className="rounded-xl border border-hairline/60 bg-control/30 p-3.5 space-y-1">
