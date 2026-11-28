@@ -96,6 +96,7 @@ describe("Enterprise Runtime Hooks (Deep Upgrades)", () => {
     expect(prompt).toContain("Báo giá mất hơn 48h");
     expect(prompt).toContain("22%");
     expect(prompt).toContain("12%");
+    expect(prompt).toContain("[PULSE_RECORD:");
   });
 
   it("detects Margin Guard discount & net-margin violations on the server", () => {

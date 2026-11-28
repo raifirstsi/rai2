@@ -47,6 +47,12 @@ const outDir = join(root, "release", `rai2-custom-${slug}`);
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 cpSync(join(root, "deploy/rai2-custom"), outDir, { recursive: true });
+const composePath = join(outDir, "docker-compose.yml");
+const composeRaw = readFileSync(composePath, "utf8");
+writeFileSync(
+  composePath,
+  composeRaw.replace(/\s*build:\n\s*context: \.\.\/\.\.\n\s*dockerfile: deploy\/rai2-custom\/Dockerfile\n/, "\n"),
+);
 
 const envContent = [
   `DOMAIN=${domain}`,

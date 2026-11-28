@@ -30,7 +30,12 @@ if [ -z "${RAI2_LICENSE_KEY:-}" ] || [[ ! "${RAI2_LICENSE_KEY}" =~ ^RAI2C1\.[A-Z
   exit 1
 fi
 
-docker compose up -d --build
+if [ -f "../../package.json" ] && [ -f "./Dockerfile" ]; then
+  docker compose up -d --build
+else
+  docker compose pull
+  docker compose up -d --no-build
+fi
 echo "Dang cho runtime & Caddy TLS khoi dong..."
 for i in $(seq 1 30); do
   if docker compose exec -T rai2-custom curl -sf http://127.0.0.1:8799/api/health >/dev/null 2>&1; then
