@@ -1372,11 +1372,11 @@ const attributeUsage = createUsageAttribution({ section: (botId) => store.bot(bo
     if (getRai2EntitlementSnapshot().enterpriseAccess && isEnterpriseRuntimeBot(guardBot)) {
       const lastBotMsg = store.messagesFor(row.threadId).findLast((m) => m.role === "bot" && m.kind === "text" && typeof m.text === "string");
       if (lastBotMsg?.text) {
-        const guardRes = checkServerMarginGuard(lastBotMsg.text, "default", row.botName || row.botId);
+        const guardRes = checkServerMarginGuard(lastBotMsg.text, "default", row.botName || row.botId, lastBotMsg.id);
         if (guardRes.violated && guardRes.warningBanner) {
           store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: guardRes.warningBanner, ok: false } });
         }
-        const autoPulse = autoRecordBusinessPulseFromBotReply(lastBotMsg.text, `${row.threadId}:${Date.now()}`, "default", row.botName || row.botId);
+        const autoPulse = autoRecordBusinessPulseFromBotReply(lastBotMsg.text, lastBotMsg.id || `${row.threadId}:${Date.now()}`, "default", row.botName || row.botId, lastBotMsg.id);
         if (autoPulse.recorded) {
           store.appendMessage(row.threadId, { role: "bot", kind: "activity", tool: { name: `[📊 Sổ Nhịp thở 17:00] Tự động ghi nhận đơn ${autoPulse.orderId} · Doanh thu ${autoPulse.revenueVnd?.toLocaleString("vi-VN")}đ`, ok: true } });
         }

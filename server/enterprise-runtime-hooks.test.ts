@@ -201,15 +201,24 @@ describe("Enterprise Runtime Hooks (Deep Upgrades)", () => {
   });
 
   it("auto-records confirmed closed deals into BusinessPulseEngine and serves /api/enterprise/architecture-scan", async () => {
-    const pulseRes = autoRecordBusinessPulseFromBotReply(
+    const pulseRes1 = autoRecordBusinessPulseFromBotReply(
       "Đã chốt đơn thành công cho anh Nam! Doanh thu: 45.000.000đ, Giá vốn: 28.000.000đ.",
-      "turn-deal-1",
+      "msg-dedup-1",
       "default",
       "RAI Close",
+      "msg-dedup-1",
     );
-    expect(pulseRes.recorded).toBe(true);
-    expect(pulseRes.revenueVnd).toBe(45_000_000);
-    expect(pulseRes.costVnd).toBe(28_000_000);
+    expect(pulseRes1.recorded).toBe(true);
+    expect(pulseRes1.revenueVnd).toBe(45_000_000);
+    expect(pulseRes1.costVnd).toBe(28_000_000);
+    const pulseResDup = autoRecordBusinessPulseFromBotReply(
+      "Đã chốt đơn thành công cho anh Nam! Doanh thu: 45.000.000đ, Giá vốn: 28.000.000đ.",
+      "msg-dedup-1",
+      "default",
+      "RAI Close",
+      "msg-dedup-1",
+    );
+    expect(pulseResDup.recorded).toBe(false);
 
     await setTestPlan(tmpDir, "vip");
     getEnterpriseStateStore().updateState("default", {
