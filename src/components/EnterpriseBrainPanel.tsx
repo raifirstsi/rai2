@@ -80,6 +80,7 @@ export function EnterpriseBrainPanel() {
   const [briefZone, setBriefZone] = useState("all");
   const [briefEmail, setBriefEmail] = useState("");
   const [briefMarkdown, setBriefMarkdown] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadBrain = useCallback(async () => {
     try {
@@ -211,8 +212,12 @@ export function EnterpriseBrainPanel() {
     }
   };
 
-  const decisions = Object.values(brain?.decisions ?? {}).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
-  const knowledge = Object.values(brain?.knowledge ?? {});
+  const q = searchQuery.trim().toLowerCase();
+  const decisions = Object.values(brain?.decisions ?? {})
+    .filter((d) => !q || `${d.title} ${d.summary} ${d.scopeZone}`.toLowerCase().includes(q))
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
+  const knowledge = Object.values(brain?.knowledge ?? {})
+    .filter((k) => !q || `${k.title} ${k.content} ${k.scopeZone}`.toLowerCase().includes(q));
   const handovers = Object.values(brain?.handovers ?? {}).sort((a, b) => b.createdAt - a.createdAt);
 
   return (
@@ -240,6 +245,8 @@ export function EnterpriseBrainPanel() {
           );
         })}
       </div>
+
+      <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Tìm kiếm quyết định / tri thức / Zone..." className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-1.5 text-xs text-ink" />
 
       {msg && <div className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400">{msg}</div>}
       {err && <div className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</div>}
@@ -318,11 +325,18 @@ export function EnterpriseBrainPanel() {
                 <p className="mt-1 whitespace-pre-wrap text-ink-secondary">{k.content}</p>
                 <div className="mt-2 flex items-center justify-between text-[11px] text-ink-tertiary">
                   <span>Phạm vi: <strong>{k.scopeZone}</strong> · Tác giả: {k.authorEmail}</span>
-                  {k.status !== "approved" && (
-                    <button type="button" disabled={busy} onClick={() => void handleReviewKnowledge(k.id, "approved")} className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600 hover:bg-emerald-500/25">
-                      <CheckCircle2 size={12} /> Duyệt phát hành
-                    </button>
-                  )}
+                  <div className="flex gap-1.5">
+                    {k.status !== "approved" && (
+                      <button type="button" disabled={busy} onClick={() => void handleReviewKnowledge(k.id, "approved")} className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600 hover:bg-emerald-500/25">
+                        <CheckCircle2 size={12} /> Duyệt phát hành
+                      </button>
+                    )}
+                    {k.status !== "deprecated" && (
+                      <button type="button" disabled={busy} onClick={() => void handleReviewKnowledge(k.id, "deprecated")} className="inline-flex items-center gap-1 rounded-md bg-raised px-2 py-0.5 text-ink-secondary hover:text-ink">
+                        <XCircle size={12} /> Ngừng hiệu lực
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -342,7 +356,19 @@ export function EnterpriseBrainPanel() {
               </button>
             </div>
             {briefMarkdown && (
-              <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-inset p-3 font-mono text-[11px] text-ink-secondary">{briefMarkdown}</pre>
+              <div className="mt-2 space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(briefMarkdown);
+                    setMsg("Đã sao chép Briefing Onboarding vào clipboard.");
+                  }}
+                  className="rounded-md bg-raised px-2.5 py-1 text-[11px] font-medium text-ink hover:bg-control"
+                >
+                  Sao chép Briefing
+                </button>
+                <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-inset p-3 font-mono text-[11px] text-ink-secondary">{briefMarkdown}</pre>
+              </div>
             )}
           </div>
 

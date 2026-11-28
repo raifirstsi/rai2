@@ -62,6 +62,7 @@ describe("Enterprise Phase 2 Brain: Decision Ledger, Knowledge Flywheel, Handove
     expect(brief.handovers.length).toBe(1);
     expect(brief.markdown).toContain("Chuẩn phản hồi CSKH 15 phút");
     expect(brief.markdown).toContain("An Nguyễn");
+    expect(brief.knowledge[0]?.usageCount).toBe(1);
   });
 
   it("extracts [DECISION_PROPOSE] tags from bot replies as proposed (never auto-approved)", () => {

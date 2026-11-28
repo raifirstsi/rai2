@@ -159,6 +159,35 @@ export function EnterpriseGovernancePanel() {
     }
   };
 
+  const handleReactivate = async (emp: EmployeeProfile) => {
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const resp = await fetch("/api/enterprise/employees/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emp.email,
+          name: emp.name,
+          role: emp.role,
+          zone: emp.zone,
+          maxDataTier: emp.maxDataTier,
+        }),
+      });
+      const data = (await resp.json()) as { success?: boolean; governance?: GovernanceState; error?: string };
+      if (!resp.ok || !data.success) {
+        setErr(data.error || "Không thể kích hoạt lại nhân viên.");
+        return;
+      }
+      if (data.governance) setGov(data.governance);
+      setMsg(`Đã kích hoạt lại ${emp.email} & khôi phục quyền trợ lý AI riêng.`);
+      void loadAudit(auditQuery);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleOffboard = async (email: string) => {
     setBusy(true);
     setMsg(null);
@@ -347,6 +376,16 @@ export function EnterpriseGovernancePanel() {
                         className="rounded-lg border border-danger/40 px-2 py-0.5 text-[11px] text-danger hover:bg-danger/10 disabled:opacity-50"
                       >
                         Thu hồi
+                      </button>
+                    )}
+                    {emp.status === "offboarded" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handleReactivate(emp)}
+                        className="rounded-lg border border-emerald-500/40 px-2 py-0.5 text-[11px] text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50"
+                      >
+                        Kích hoạt lại
                       </button>
                     )}
                   </div>

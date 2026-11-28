@@ -12198,6 +12198,11 @@ ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: (
       store.patchBot(botId, { visibility: "admins" });
     } catch {}
   },
+  reactivatePersonalBot: (botId, email) => {
+    try {
+      store.patchBot(botId, { visibility: { people: [email] } });
+    } catch {}
+  },
   getBotInteractions: (botId) => {
     const b = store.bot(botId);
     if (!b) return { botName: botId, interactions: [] };

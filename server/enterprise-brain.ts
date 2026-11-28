@@ -308,6 +308,19 @@ export class EnterpriseBrainStore {
   } {
     const zone = input.zone?.trim() || "all";
     const { decisions, knowledge } = this.getRelevantContextForBot(zone === "all" ? undefined : zone);
+    let dirty = false;
+    for (const k of knowledge) {
+      const stored = this.state.knowledge[k.id];
+      if (stored) {
+        stored.usageCount = (stored.usageCount ?? 0) + 1;
+        k.usageCount = stored.usageCount;
+        dirty = true;
+      }
+    }
+    if (dirty) {
+      this.state.updatedAt = Date.now();
+      this.saveToDisk();
+    }
     const handovers = Object.values(this.state.handovers)
       .filter((h) => matchesZone(h.zone, zone === "all" ? undefined : zone))
       .sort((a, b) => b.createdAt - a.createdAt)

@@ -51,6 +51,7 @@ export interface EnterpriseStateRouteDeps {
   resolveOpenAiKey?: () => { apiKey?: string; baseUrl?: string } | null;
   provisionPersonalBot?: (input: { email: string; name: string; zone?: string; botName: string; namespace: string }) => { id: string; name: string } | null;
   offboardPersonalBot?: (botId: string) => void;
+  reactivatePersonalBot?: (botId: string, email: string) => void;
   fetchImpl?: typeof fetch;
 }
 
@@ -510,6 +511,9 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
           const existing = storeGov.getState().employees[item.email.trim().toLowerCase()];
           let botId = item.personalBotId ?? existing?.personalBotId;
           let botName = existing?.personalBotName ?? desiredBotName;
+          if (botId && existing?.status === "offboarded" && deps?.reactivatePersonalBot) {
+            deps.reactivatePersonalBot(botId, item.email.trim().toLowerCase());
+          }
           if (!botId && deps?.provisionPersonalBot) {
             const created = deps.provisionPersonalBot({
               email: item.email.trim().toLowerCase(),
