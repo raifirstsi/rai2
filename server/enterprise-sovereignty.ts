@@ -154,8 +154,16 @@ export class EnterpriseSovereigntyManager {
     renameSync(tmp, this.filePath);
   }
 
+  private sanitizeTenantId(raw?: string): string {
+    const clean = (raw ?? "default").trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
+    if (!clean || clean === "__proto__" || clean === "constructor" || clean === "prototype") {
+      return "default";
+    }
+    return clean;
+  }
+
   public ensureTenantKey(tenantId = "default", actor = "system"): TenantKeyRecord {
-    const tid = tenantId.trim() || "default";
+    const tid = this.sanitizeTenantId(tenantId);
     let rec = this.state.tenants[tid];
     if (!rec) {
       const now = Date.now();
@@ -199,6 +207,7 @@ export class EnterpriseSovereigntyManager {
   }
 
   public sealTenantSecret(tenantId: string, secretName: string, plaintext: string, actor = "admin"): void {
+    tenantId = this.sanitizeTenantId(tenantId);
     const name = secretName.trim().slice(0, 100);
     if (!name || !plaintext) throw new Error("secretName and plaintext are required");
     const rec = this.ensureTenantKey(tenantId, actor);
@@ -219,7 +228,7 @@ export class EnterpriseSovereigntyManager {
   }
 
   public unsealTenantSecret(tenantId: string, secretName: string): string | null {
-    const rec = this.state.tenants[tenantId];
+    const rec = this.state.tenants[this.sanitizeTenantId(tenantId)];
     if (!rec) return null;
     const entry = rec.encryptedSecrets[secretName.trim()];
     if (!entry) return null;
@@ -228,6 +237,7 @@ export class EnterpriseSovereigntyManager {
   }
 
   public rotateTenantDek(tenantId = "default", actor = "admin"): { keyVersion: number; reencryptedSecrets: number; rotatedAt: number } {
+    tenantId = this.sanitizeTenantId(tenantId);
     const rec = this.ensureTenantKey(tenantId, actor);
     const oldDek = this.unwrapDek(rec);
     const newDek = randomBytes(32);
@@ -450,12 +460,29 @@ export class EnterpriseSovereigntyManager {
       markdownBundle: mdLines.join("\n"),
       encryptedBackupPackage: {
         format: "rai2-envelope-backup-v1",
-        tenantId,
+        tenantId: rec.tenantId,
         keyVersion: rec.keyVersion,
         exportedAt,
         ciphertext,
       },
     };
+  }
+
+  public verifyEncryptedBackupPackage(pkg: {
+    tenantId: string;
+    keyVersion: number;
+    ciphertext: string;
+  }): { valid: boolean; schema?: string } {
+    try {
+      const rec = this.state.tenants[this.sanitizeTenantId(pkg.tenantId)];
+      if (!rec) return { valid: false };
+      const dek = this.unwrapDek(rec);
+      const plain = decryptWithKey(pkg.ciphertext, dek, `enc:dek:v${pkg.keyVersion}`);
+      const parsed = JSON.parse(plain) as { schema?: string };
+      return { valid: parsed.schema === "rai2-enterprise-open-export-v1", schema: parsed.schema };
+    } catch {
+      return { valid: false };
+    }
   }
 }
 

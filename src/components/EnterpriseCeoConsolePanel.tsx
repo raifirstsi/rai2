@@ -217,6 +217,24 @@ export function EnterpriseCeoConsolePanel() {
             </div>
           )}
 
+          <div className="rounded-xl border border-hairline/40 bg-card p-3 text-xs">
+            <div className="mb-1.5 font-medium text-ink">
+              Chi phí &amp; Token LLM theo Model ({snap.aiSpend.totalInputTokens.toLocaleString("vi-VN")} in / {snap.aiSpend.totalOutputTokens.toLocaleString("vi-VN")} out)
+            </div>
+            {snap.aiSpend.byModel.length === 0 ? (
+              <div className="text-[11px] text-ink-tertiary">Chưa phát sinh lượt chạy LLM tính phí trong sổ Merkle Audit.</div>
+            ) : (
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {snap.aiSpend.byModel.map((m) => (
+                  <div key={m.model} className="flex items-center justify-between rounded-lg bg-inset px-2.5 py-1.5 text-[11px]">
+                    <span><code>{m.model}</code> ({m.turns} lượt)</span>
+                    <strong>${m.costUsd.toFixed(4)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-xl border border-hairline/40 bg-card p-3 text-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-medium text-ink">

@@ -68,5 +68,9 @@ describe("Enterprise Phase 5: Envelope Encryption, Key Rotation, Open Export & C
     expect(exp.encryptedBackupPackage.format).toBe("rai2-envelope-backup-v1");
     expect(exp.encryptedBackupPackage.ciphertext).toContain("enc:dek:v1:");
     expect(JSON.stringify(exp.jsonBundle)).not.toContain("wrappedDek");
+    expect(mgr.verifyEncryptedBackupPackage(exp.encryptedBackupPackage).valid).toBe(true);
+    // Tampered ciphertext must fail AES-GCM authTag verification
+    const tampered = { ...exp.encryptedBackupPackage, ciphertext: exp.encryptedBackupPackage.ciphertext.slice(0, -4) + "ffff" };
+    expect(mgr.verifyEncryptedBackupPackage(tampered).valid).toBe(false);
   });
 });
