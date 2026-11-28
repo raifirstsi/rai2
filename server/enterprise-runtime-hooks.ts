@@ -154,7 +154,16 @@ export function checkServerMarginGuard(
   text: string,
   workspaceId = "default",
   actor = "bot",
+  messageId?: string,
 ): MarginGuardCheckResult {
+  if (!claimMessageOnce(processedMarginMsgIds, messageId)) {
+    const state = getEnterpriseStateStore().getState(workspaceId);
+    return {
+      violated: false,
+      minThresholdPct: state.marginGuard?.minThresholdPct ?? 18,
+      maxDiscountPct: state.marginGuard?.maxDiscountPct ?? 15,
+    };
+  }
   const normalizedText = text.replace(/\u00A0/g, " ");
   const state = getEnterpriseStateStore().getState(workspaceId);
   const minThresholdPct = state.marginGuard?.minThresholdPct ?? 18;
@@ -224,6 +233,19 @@ export interface AutoPulseRecordResult {
   costVnd?: number;
 }
 
+const processedMarginMsgIds = new Set<string>();
+const processedPulseMsgIds = new Set<string>();
+function claimMessageOnce(bucket: Set<string>, msgId: string | undefined): boolean {
+  if (!msgId) return true;
+  if (bucket.has(msgId)) return false;
+  if (bucket.size > 2000) {
+    const first = bucket.values().next().value;
+    if (first) bucket.delete(first);
+  }
+  bucket.add(msgId);
+  return true;
+}
+
 const PULSE_DEAL_TAG_RE = /\[PULSE_RECORD:\s*orderId=([^\s\]]+)\s+revenue=(\d+)\s+cost=(\d+)(?:\s+customer=([^\]]+))?\]/i;
 const PULSE_VI_CONFIRMED_RE = /(?:đã chốt đơn|chốt đơn thành công|xác nhận đơn hàng)[^\n]{0,120}?doanh thu\s*[:=]?\s*(\d[\d.,]*)\s*(?:đ|vnd|triệu|tr)?[^\n]{0,120}?(?:giá vốn|chi phí)\s*[:=]?\s*(\d[\d.,]*)\s*(?:đ|vnd|triệu|tr)?/i;
 
@@ -246,7 +268,11 @@ export function autoRecordBusinessPulseFromBotReply(
   turnKey: string,
   workspaceId = "default",
   actor = "bot",
+  messageId?: string,
 ): AutoPulseRecordResult {
+  if (!claimMessageOnce(processedPulseMsgIds, messageId)) {
+    return { recorded: false };
+  }
   let orderId = "";
   let revenueVnd = 0;
   let costVnd = 0;
@@ -268,7 +294,7 @@ export function autoRecordBusinessPulseFromBotReply(
     }
   }
 
-  if (!orderId || !Number.isFinite(revenueVnd) || revenueVnd <= 0 || !Number.isFinite(costVnd) || costVnd < 0) {
+  if (!orderId || !Number.isFinite(revenueVnd) || revenueVnd <= 0 || revenueVnd > 100_000_000_000 || !Number.isFinite(costVnd) || costVnd < 0 || costVnd > 100_000_000_000) {
     return { recorded: false };
   }
 
