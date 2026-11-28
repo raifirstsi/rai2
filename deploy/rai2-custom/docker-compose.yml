@@ -26,6 +26,8 @@ services:
       OMB_SIGNIN_EMAILS: ${OMB_SIGNIN_EMAILS:-}
       OMB_SIGNIN_SMTP_URL: ${OMB_SIGNIN_SMTP_URL:-}
       OMB_SIGNIN_SMTP_FROM: ${OMB_SIGNIN_SMTP_FROM:-}
+      OPENAI_BASE_URL: ${LOCAL_LLM_URL:-}
+      OPENAI_API_KEY: ${LOCAL_LLM_API_KEY:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8799/api/health || exit 1"]
       interval: 15s
@@ -47,7 +49,16 @@ services:
       - rai2_custom_caddy_data:/data
       - rai2_custom_caddy_config:/config
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rai2-custom-ollama
+    profiles: ["local-llm"]
+    restart: unless-stopped
+    volumes:
+      - rai2_custom_ollama:/root/.ollama
+
 volumes:
   rai2_custom_data:
   rai2_custom_caddy_data:
   rai2_custom_caddy_config:
+  rai2_custom_ollama:

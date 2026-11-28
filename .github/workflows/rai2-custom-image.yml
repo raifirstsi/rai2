@@ -1,0 +1,64 @@
+name: RAI2 Custom On-Premise Image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deploy/rai2-custom/**"
+      - "server/rai2-license.ts"
+      - "server/rai2-entitlement.ts"
+      - ".github/workflows/rai2-custom-image.yml"
+  pull_request:
+    paths:
+      - "deploy/rai2-custom/**"
+      - ".github/workflows/rai2-custom-image.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-verify-custom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Custom On-Premise image (smoke + source-leak check)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
+        with:
+          context: .
+          file: deploy/rai2-custom/Dockerfile
+          load: true
+          push: false
+          tags: rai2-custom:smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify no raw src/, server/, or saas/ leaked into runtime image
+        run: |
+          docker run --rm --entrypoint sh rai2-custom:smoke -c '
+            set -e
+            test -d /app/dist
+            test -f /app/dist-server/index.js
+            test ! -d /app/src
+            test ! -d /app/server
+            test ! -d /app/saas
+            test "$RAI2_CUSTOM_ONPREM" = "1"
+            echo "Verified: Custom image is compiled-only & locked to RAI2_CUSTOM_ONPREM=1"
+          '
+      - name: Publish to GHCR (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
+        with:
+          context: .
+          file: deploy/rai2-custom/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/raifirstsi/rai2-custom:latest
+            ghcr.io/raifirstsi/rai2-custom:${{ github.sha }}
+          cache-from: type=gha

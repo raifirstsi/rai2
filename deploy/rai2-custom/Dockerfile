@@ -8,11 +8,7 @@ COPY apps/docs/package.json ./apps/docs/package.json
 COPY cloudflare/control-plane/package.json ./cloudflare/control-plane/package.json
 COPY scripts/install-git-hooks.mjs ./scripts/install-git-hooks.mjs
 RUN pnpm install --frozen-lockfile
-COPY tsconfig*.json vite.config.ts ./
-COPY scripts ./scripts
-COPY skills ./skills
-COPY src ./src
-COPY server ./server
+COPY . .
 ARG TARGETARCH=amd64
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm exec tsc -b \
  && NODE_OPTIONS="--max-old-space-size=4096" VITE_RAI2_SAAS=1 pnpm exec vite build \
@@ -20,7 +16,7 @@ RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm exec tsc -b \
  && arch=x64 && if [ "$TARGETARCH" = "arm64" ]; then arch=arm64; fi \
  && OMB_DUCKDB_ARCH=$arch node scripts/prepare-duckdb.mjs \
  && mkdir -p dist-native/duckdb/target \
- && mv "dist-native/duckdb/linux-$arch"/* dist-native/duckdb/target/ 2>/dev/null || true
+ && mv "dist-native/duckdb/linux-$arch"/* dist-native/duckdb/target/
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
