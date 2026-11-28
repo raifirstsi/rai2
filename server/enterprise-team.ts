@@ -475,14 +475,14 @@ export class EnterpriseTeamOrchestrator {
     parent.updatedAt = Date.now();
     if (allDone && parent.status !== "review_needed") {
       parent.status = "review_needed";
-      parent.deliverable = parent.deliverable || `ÄÃ£ hoÃ n táº¥t toÃ n bá»™ ${children.length} viá»‡c con.`;
+      parent.deliverable = parent.deliverable || `Đã hoàn tất toàn bộ ${children.length} việc con.`;
       this.createEscalation(
         {
           kind: "approval_needed",
-          title: `Chá» duyá»‡t tá»•ng há»£p: ${parent.title}`,
+          title: `Chờ duyệt tổng hợp: ${parent.title}`,
           summaryLines: [
             `Trưởng nhóm: ${parent.leadBotId || parent.assignedBotName} (${parent.zone})`,
-            `ÄÃ£ hoÃ n táº¥t ${children.length}/${children.length} Ä‘áº§u viá»‡c con.`,
+            `Đã hoàn tất ${children.length}/${children.length} đầu việc con.`,
             "Bấm [Duyệt] để chốt hoàn thành công việc cha.",
           ],
           zone: parent.zone,

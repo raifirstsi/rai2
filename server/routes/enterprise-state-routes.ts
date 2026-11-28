@@ -610,11 +610,11 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
           teamOrch.createEscalation(
             {
               kind: "blocker",
-              title: `Cáº§n bÃ n giao viá»‡c cá»§a nhÃ¢n sá»± nghá»‰ viá»‡c: ${t.title}`,
+              title: `Cần bàn giao việc của nhân sự nghỉ việc: ${t.title}`,
               summaryLines: [
-                `NhÃ¢n sá»± ${offboarded.name} (${offboarded.email}) vá»«a bá»‹ thu há»“i quyá»n.`,
-                `Äáº§u viá»‡c Ä‘ang á»Ÿ tráº¡ng thÃ¡i ${t.status} (${t.progressPct}%).`,
-                "Cáº§n TrÆ°á»Ÿng phÃ²ng chá»‰ Ä‘á»‹nh nhÃ¢n sá»± / AI káº¿ nhiá»‡m.",
+                `Nhân sự ${offboarded.name} (${offboarded.email}) vừa bị thu hồi quyền.`,
+                `Đầu việc đang ở trạng thái ${t.status} (${t.progressPct}%).`,
+                "Cần Trưởng phòng chỉ định nhân sự / AI kế nhiệm.",
               ],
               zone: t.zone,
               relatedTaskId: t.id,
@@ -634,7 +634,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       const body = (await readBody(req)) as { text?: string; blockOnForbiddenTopic?: boolean };
       const gov = getEnterpriseGovernanceStore().getState();
       const actor = (auth.kind === "session" ? auth.session.email : undefined) || "admin";
-      const result = scanAndRedactText(String(body.text ?? ""), {
+      const result = scanAndRedactText(String(body.text ?? "").slice(0, 50_000), {
         dlpEnabled: gov.constitution.dlpEnabled,
         censorshipEnabled: gov.constitution.censorshipEnabled,
         forbiddenTopics: gov.constitution.forbiddenTopics,
@@ -651,7 +651,7 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
       const actor = url.searchParams.get("actor") ?? undefined;
       const action = url.searchParams.get("action") ?? undefined;
       const q = url.searchParams.get("q") ?? undefined;
-      const limit = Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50;
+      const limit = Math.min(200, Math.max(1, Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50));
       const trail = getEnterpriseGovernanceStore().queryAuditTrail({ actor, action, q, limit });
       return json(res, 200, trail);
     }

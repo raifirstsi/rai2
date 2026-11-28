@@ -184,14 +184,14 @@ export function buildEnterprisePromptSection(
     const activeTasks = getEnterpriseTeamOrchestrator().getAwarenessSummaryForBot(bot?.section);
     if (activeTasks.length > 0) {
       parts.push(
-        "### Báº¢NG PHá»I Há»¢P CÃ”NG VIá»†C LIÃŠN BOT (CROSS-BOT AWARENESS)\n" +
+        "### BẢNG PHỐI HỢP CÔNG VIỆC LIÊN BOT (CROSS-BOT AWARENESS)\n" +
           activeTasks
             .map(
               (t) =>
-                `- [${t.id}] (${t.zone} Â· ${t.status} Â· ${t.progressPct}%) ${sanitizePromptField(t.title, 100)} â€” Phá»¥ trÃ¡ch: ${sanitizePromptField(t.assignedBotName, 60)}${t.blockerReason ? ` | Káº¹t: ${sanitizePromptField(t.blockerReason, 120)}` : ""}`,
+                `- [${t.id}] (${t.zone} · ${t.status} · ${t.progressPct}%) ${sanitizePromptField(t.title, 100)} — Phụ trách: ${sanitizePromptField(t.assignedBotName, 60)}${t.blockerReason ? ` | Kẹt: ${sanitizePromptField(t.blockerReason, 120)}` : ""}`,
             )
             .join("\n") +
-          '\n- CÃ³ thá»ƒ cáº­p nháº­t tiáº¿n Ä‘á»™ báº±ng `[WORK_UPDATE: taskId="..." status="in_progress|review_needed|blocked" progress=80 note="..."]` hoáº·c bÃ¡o kháº©n báº±ng `[ESCALATE: title="..." summary="..." zone="..."]`.',
+          '\n- Có thể cập nhật tiến độ bằng `[WORK_UPDATE: taskId="..." status="in_progress|review_needed|blocked" progress=80 note="..."]` hoặc báo khẩn bằng `[ESCALATE: title="..." summary="..." zone="..."]`.',
       );
     }
   } catch {

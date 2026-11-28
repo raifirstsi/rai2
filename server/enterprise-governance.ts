@@ -225,11 +225,18 @@ export class EnterpriseGovernanceStore {
     actor = "admin",
   ): EnterpriseGovernanceState {
     if (patch.constitution) {
+      const c = patch.constitution;
       this.state.constitution = {
         ...this.state.constitution,
-        ...patch.constitution,
-        forbiddenTopics: Array.isArray(patch.constitution.forbiddenTopics)
-          ? patch.constitution.forbiddenTopics.map((s) => String(s).trim()).filter(Boolean).slice(0, 100)
+        industry: typeof c.industry === "string" ? c.industry.trim().slice(0, 120) : this.state.constitution.industry,
+        toneOfVoice: typeof c.toneOfVoice === "string" ? c.toneOfVoice.trim().slice(0, 400) : this.state.constitution.toneOfVoice,
+        languagePolicy: typeof c.languagePolicy === "string" ? c.languagePolicy.trim().slice(0, 100) : this.state.constitution.languagePolicy,
+        localLlmEngineHint: typeof c.localLlmEngineHint === "string" ? c.localLlmEngineHint.trim().slice(0, 80) : this.state.constitution.localLlmEngineHint,
+        requireLocalLlmForConfidential: typeof c.requireLocalLlmForConfidential === "boolean" ? c.requireLocalLlmForConfidential : this.state.constitution.requireLocalLlmForConfidential,
+        dlpEnabled: typeof c.dlpEnabled === "boolean" ? c.dlpEnabled : this.state.constitution.dlpEnabled,
+        censorshipEnabled: typeof c.censorshipEnabled === "boolean" ? c.censorshipEnabled : this.state.constitution.censorshipEnabled,
+        forbiddenTopics: Array.isArray(c.forbiddenTopics)
+          ? c.forbiddenTopics.map((s) => String(s).trim().slice(0, 80)).filter(Boolean).slice(0, 100)
           : this.state.constitution.forbiddenTopics,
         updatedAt: Date.now(),
       };

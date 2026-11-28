@@ -75,8 +75,8 @@ interface TeamState {
 const STATUS_STYLE: Record<WorkStatus, { label: string; cls: string }> = {
   pending: { label: "Chờ nhận", cls: "bg-raised text-ink-secondary" },
   in_progress: { label: "Đang chạy", cls: "bg-sky-500/15 text-sky-600" },
-  review_needed: { label: "Chá» duyá»‡t", cls: "bg-amber-500/15 text-amber-600" },
-  approved: { label: "ÄÃ£ duyá»‡t", cls: "bg-emerald-500/15 text-emerald-600" },
+  review_needed: { label: "Chờ duyệt", cls: "bg-amber-500/15 text-amber-600" },
+  approved: { label: "Đã duyệt", cls: "bg-emerald-500/15 text-emerald-600" },
   rejected: { label: "Làm lại", cls: "bg-danger/15 text-danger" },
   blocked: { label: "Bị kẹt", cls: "bg-danger/15 text-danger" },
   completed: { label: "Hoàn tất", cls: "bg-emerald-500/15 text-emerald-600" },
@@ -108,7 +108,7 @@ export function EnterpriseTeamPanel() {
       const resp = await fetch("/api/enterprise/team");
       const data = (await resp.json()) as { team?: TeamState; error?: string };
       if (!resp.ok || !data.team) {
-        setErr(data.error || "KhÃ´ng thá»ƒ táº£i tráº¡ng thÃ¡i Äá»™i ngÅ© AI & DAG.");
+        setErr(data.error || "Không thể tải trạng thái Đội ngũ AI & DAG.");
         return;
       }
       setTeam(data.team);
@@ -148,7 +148,7 @@ export function EnterpriseTeamPanel() {
       }
       if (data.team) setTeam(data.team);
       setTaskTitle("");
-      setMsg("ÄÃ£ giao viá»‡c cho Äá»™i ngÅ© AI & Ä‘á»“ng bá»™ lÃªn Cross-Bot Awareness Bus.");
+      setMsg("Đã giao việc cho Đội ngũ AI & đồng bộ lên Cross-Bot Awareness Bus.");
     } finally {
       setBusy(false);
     }
@@ -173,7 +173,7 @@ export function EnterpriseTeamPanel() {
         return;
       }
       if (data.team) setTeam(data.team);
-      setMsg("ÄÃ£ phÃ¢n rÃ£ thÃªm viá»‡c con cho ThÃ nh viÃªn AI.");
+      setMsg("Đã phân rã thêm việc con cho Thành viên AI.");
     } finally {
       setBusy(false);
     }
@@ -198,7 +198,7 @@ export function EnterpriseTeamPanel() {
         return;
       }
       if (data.team) setTeam(data.team);
-      setMsg("ÄÃ£ cáº­p nháº­t tráº¡ng thÃ¡i cÃ´ng viá»‡c.");
+      setMsg("Đã cập nhật trạng thái công việc.");
     } finally {
       setBusy(false);
     }
@@ -232,7 +232,7 @@ export function EnterpriseTeamPanel() {
       }
       if (data.team) setTeam(data.team);
       setDagName("");
-      setMsg("ÄÃ£ Ä‘Ã³ng gÃ³i & phÃ¡t hÃ nh DAG Workflow vÃ o Org Library.");
+      setMsg("Đã đóng gói & phát hành DAG Workflow vào Org Library.");
     } finally {
       setBusy(false);
     }
@@ -301,7 +301,7 @@ export function EnterpriseTeamPanel() {
       }
       if (data.team) setTeam(data.team);
       setRemTitle("");
-      setMsg("ÄÃ£ táº¡o lá»‹ch nháº¯c viá»‡c & bÃ¡o cÃ¡o Ä‘á»‹nh ká»³.");
+      setMsg("Đã tạo lịch nhắc việc & báo cáo định kỳ.");
     } finally {
       setBusy(false);
     }
@@ -320,7 +320,7 @@ export function EnterpriseTeamPanel() {
       }
       if (data.team) setTeam(data.team);
       if (data.sweep?.digestMarkdown) setDigestMd(data.sweep.digestMarkdown);
-      setMsg("ÄÃ£ quÃ©t toÃ n bá»™ Ä‘áº§u viá»‡c quÃ¡ háº¡n / bá»‹ káº¹t & tá»•ng há»£p bÃ¡o cÃ¡o.");
+      setMsg("Đã quét toàn bộ đầu việc quá hạn / bị kẹt & tổng hợp báo cáo.");
     } finally {
       setBusy(false);
     }
@@ -337,7 +337,7 @@ export function EnterpriseTeamPanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {[
-          { id: "tasks", label: `Äá»™i ngÅ© & Báº£ng viá»‡c (${tasks.length})`, icon: Users },
+          { id: "tasks", label: `Đội ngũ & Bảng việc (${tasks.length})`, icon: Users },
           { id: "dag", label: `Quy trình DAG (${workflows.length})`, icon: GitBranch },
           { id: "escalations", label: `Cảnh báo cần xử lý${openEscCount > 0 ? ` (${openEscCount})` : ""}`, icon: AlertTriangle },
           { id: "reminders", label: `Nhắc việc & Báo cáo (${reminders.length})`, icon: BellRing },
@@ -369,7 +369,7 @@ export function EnterpriseTeamPanel() {
       {subTab === "tasks" && (
         <div className="space-y-4">
           <form onSubmit={(e) => void handleCreateTask(e)} className="space-y-2 rounded-xl border border-hairline/40 bg-card p-3 text-xs">
-            <div className="font-medium text-ink">Giao viá»‡c cho Äá»™i ngÅ© AI (TrÆ°á»Ÿng nhÃ³m â†’ ThÃ nh viÃªn)</div>
+            <div className="font-medium text-ink">Giao việc cho Đội ngũ AI (Trưởng nhóm → Thành viên)</div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
               <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Tên đầu việc..." className="sm:col-span-2 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
               <input value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} placeholder="AI Thực hiện" className="rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-ink" />
@@ -401,7 +401,7 @@ export function EnterpriseTeamPanel() {
                     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", badge.cls)}>{badge.label} ({t.progressPct}%)</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-tertiary">
-                    <span>Zone: <strong>{t.zone}</strong> Â· Thá»±c hiá»‡n: {t.assignedBotName}{t.leadBotId ? ` Â· Duyá»‡t: ${t.leadBotId}` : ""}{t.reviewedBy ? ` Â· ÄÃ£ duyá»‡t: ${t.reviewedBy}` : ""}{t.blockerReason ? ` Â· Káº¹t: ${t.blockerReason}` : ""}</span>
+                    <span>Zone: <strong>{t.zone}</strong> · Thực hiện: {t.assignedBotName}{t.leadBotId ? ` · Duyệt: ${t.leadBotId}` : ""}{t.reviewedBy ? ` · Đã duyệt: ${t.reviewedBy}` : ""}{t.blockerReason ? ` · Kẹt: ${t.blockerReason}` : ""}</span>
                     <div className="flex gap-1.5">
                       {t.status === "in_progress" && (
                         <>
@@ -450,7 +450,7 @@ export function EnterpriseTeamPanel() {
               <div key={wf.id} className="flex items-center justify-between rounded-xl border border-hairline/40 bg-card p-3 text-xs">
                 <div>
                   <div className="font-semibold text-ink">{wf.name} ({wf.scopeZone})</div>
-                  <div className="text-[11px] text-ink-tertiary">{wf.steps.length} bước · Max Hops: {wf.maxHops} · Budget Cap: ${wf.budgetCapUsd}</div>
+                  <div className="text-[11px] text-ink-tertiary">{wf.steps.map((s) => s.title).join(" → ")} · Max Hops: {wf.maxHops} · Budget Cap: ${wf.budgetCapUsd}</div>
                 </div>
                 <button type="button" disabled={busy} onClick={() => void handleRunDag({ workflowId: wf.id })} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-600 hover:bg-emerald-500/25">
                   <Play size={12} /> Chạy DAG
