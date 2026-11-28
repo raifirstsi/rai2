@@ -12152,6 +12152,17 @@ ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: (
     enterpriseBotsCount: store.bots.filter((b) => isEnterpriseRuntimeBot(b)).length,
     totalBotsCount: store.bots.length,
   }),
+  resolveOpenAiKey: () => {
+    const configs = providerConfigs();
+    for (const [id, entry] of Object.entries(configs)) {
+      const c = (entry?.config ?? {}) as { apiKey?: unknown; url?: unknown };
+      if (typeof c.apiKey === "string" && c.apiKey.trim() && (/openai/i.test(id) || (typeof c.url === "string" && /openai/i.test(c.url)))) {
+        return { apiKey: c.apiKey.trim(), baseUrl: typeof c.url === "string" && c.url.trim() ? c.url.trim() : "https://api.openai.com/v1" };
+      }
+    }
+    const envKey = process.env.OPENAI_API_KEY || process.env.OMB_OPENAI_API_KEY;
+    return envKey ? { apiKey: envKey, baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1" } : null;
+  },
 })); getPulseScheduler({ onPulseTriggered: (snap) => console.info("[Pulse17Pm]", snap.workspaceId, snap.formattedWidget.headline) }).start(); new RunReaper().startPeriodic(); ROUTES.push(createStopLineRoutes()); ROUTES.push(createAgenticOsRoutes({
   stopTurn: async (turnId: string) => {
     const targetBot = store.botByThread(turnId) ?? store.bots.find((b: any) => b.id === turnId || b.threadId === turnId);

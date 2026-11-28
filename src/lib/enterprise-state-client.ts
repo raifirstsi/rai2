@@ -189,3 +189,21 @@ export async function scanEnterpriseArchitecture(workspaceId = "default"): Promi
     return null;
   }
 }
+
+
+export async function transcribeVoiceAudioOnServer(payload: {
+  audioBase64: string;
+  mimeType: string;
+  fileName?: string;
+  language?: string;
+}): Promise<{ ok: boolean; text?: string; error?: string }> {
+  try {
+    const resp = await api<{ success?: boolean; text?: string; error?: string }>("/api/enterprise/voice-transcribe", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return { ok: resp?.success === true, text: resp?.text, error: resp?.error };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Giải mã âm thanh thất bại" };
+  }
+}
