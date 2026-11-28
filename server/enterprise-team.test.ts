@@ -2,7 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { EnterpriseTeamOrchestrator, resetEnterpriseTeamOrchestratorForTest } from "./enterprise-team.ts";
+import { EnterpriseTeamOrchestrator, getEnterpriseTeamOrchestrator, resetEnterpriseTeamOrchestratorForTest } from "./enterprise-team.ts";
+import { autoHandleTeamTagsFromBotReply } from "./enterprise-runtime-hooks.ts";
 
 describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalations", () => {
   const dirs: string[] = [];
@@ -114,5 +115,40 @@ describe("Enterprise Phase 3: Team Orchestrator, DAG Engine & Proactive Escalati
     expect(run.hopCount).toBe(4);
     const esc = Object.values(team.getState().escalations).find((e) => e.kind === "loop_guard");
     expect(esc?.status).toBe("open");
+  });
+  it("enforces cross-zone guard and lead review gate in autoHandleTeamTagsFromBotReply & escalation idempotency", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-hook-team-"));
+    dirs.push(dir);
+    process.env.RAI2_DATA_DIR = dir;
+    resetEnterpriseTeamOrchestratorForTest();
+
+    const team = getEnterpriseTeamOrchestrator();
+    const tZone6 = team.createTask(
+      { title: "BÃ¡o cÃ¡o P&L Zone 6", assignedBotId: "bot-fin", zone: "Zone 6", leadBotId: "lead-fin" },
+      "cfo@co.vn",
+    );
+
+    // Bot in Zone 1 must NOT tamper with Zone 6 task
+    const denied = autoHandleTeamTagsFromBotReply(
+      `[WORK_UPDATE: taskId="${tZone6.id}" status="completed" progress=100 note="hacked"]`,
+      "Zone 1",
+      "bot-zone1",
+    );
+    expect(denied.updatedTaskId).toBeUndefined();
+
+    // Bot in Zone 6 attempting status="completed" on a task with leadBotId is routed to review_needed
+    const ok = autoHandleTeamTagsFromBotReply(
+      `[WORK_UPDATE: taskId="${tZone6.id}" status="completed" progress=100 note="Xong P&L"]`,
+      "Zone 6",
+      "bot-fin",
+    );
+    expect(ok.updatedTaskId).toBe(tZone6.id);
+
+    const esc = Object.values(team.getState().escalations)[0];
+    expect(esc).toBeDefined();
+    const firstResolve = team.resolveEscalation(esc!.id, "approved", "cfo@co.vn");
+    const secondResolve = team.resolveEscalation(esc!.id, "dismissed", "other@co.vn");
+    expect(firstResolve?.status).toBe("approved");
+    expect(secondResolve?.status).toBe("approved");
   });
 });

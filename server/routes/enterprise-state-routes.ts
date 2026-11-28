@@ -599,6 +599,31 @@ export function createEnterpriseStateRoutes(deps?: EnterpriseStateRouteDeps): Ro
         },
         actor,
       );
+      const teamOrch = getEnterpriseTeamOrchestrator();
+      for (const t of Object.values(teamOrch.getState().workItems)) {
+        if (
+          t.status !== "completed" &&
+          t.status !== "approved" &&
+          ((offboarded.personalBotId && t.assignedBotId === offboarded.personalBotId) ||
+            t.createdBy.toLowerCase() === offboarded.email.toLowerCase())
+        ) {
+          teamOrch.createEscalation(
+            {
+              kind: "blocker",
+              title: `Cáº§n bÃ n giao viá»‡c cá»§a nhÃ¢n sá»± nghá»‰ viá»‡c: ${t.title}`,
+              summaryLines: [
+                `NhÃ¢n sá»± ${offboarded.name} (${offboarded.email}) vá»«a bá»‹ thu há»“i quyá»n.`,
+                `Äáº§u viá»‡c Ä‘ang á»Ÿ tráº¡ng thÃ¡i ${t.status} (${t.progressPct}%).`,
+                "Cáº§n TrÆ°á»Ÿng phÃ²ng chá»‰ Ä‘á»‹nh nhÃ¢n sá»± / AI káº¿ nhiá»‡m.",
+              ],
+              zone: t.zone,
+              relatedTaskId: t.id,
+              assignedToEmail: body.successorEmail,
+            },
+            actor,
+          );
+        }
+      }
       return json(res, 200, { success: true, employee: offboarded, handover, governance: storeGov.getState() });
     }
 

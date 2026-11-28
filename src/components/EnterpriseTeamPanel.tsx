@@ -44,6 +44,7 @@ interface DagRun {
   currentStepId: string | null;
   hopCount: number;
   spentUsd: number;
+  stepCheckpoints?: Record<string, { status: string }>;
 }
 
 interface EscalationCard {
@@ -143,6 +144,31 @@ export function EnterpriseTeamPanel() {
       if (data.team) setTeam(data.team);
       setTaskTitle("");
       setMsg("ÄÃ£ giao viá»‡c cho Äá»™i ngÅ© AI & Ä‘á»“ng bá»™ lÃªn Cross-Bot Awareness Bus.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelegateSub = async (parentId: string, zone: string, assignedBotName: string) => {
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const resp = await fetch("/api/enterprise/team/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parentTaskId: parentId,
+          subtasks: [{ title: `BÆ°á»›c triá»ƒn khai con (${zone})`, assignedBotId: assignedBotName.toLowerCase().replace(/\s+/g, "-"), assignedBotName }],
+        }),
+      });
+      const data = (await resp.json()) as { success?: boolean; team?: TeamState; error?: string };
+      if (!resp.ok || !data.success) {
+        setErr(data.error || "KhÃ´ng thá»ƒ phÃ¢n rÃ£ viá»‡c con.");
+        return;
+      }
+      if (data.team) setTeam(data.team);
+      setMsg("ÄÃ£ phÃ¢n rÃ£ thÃªm viá»‡c con cho ThÃ nh viÃªn AI.");
     } finally {
       setBusy(false);
     }
@@ -366,6 +392,9 @@ export function EnterpriseTeamPanel() {
                           <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "review_needed", progressPct: 95, deliverable: "HoÃ n táº¥t theo SOP" })} className="rounded-md bg-amber-500/15 px-2 py-0.5 font-medium text-amber-600">
                             Ná»™p duyá»‡t
                           </button>
+                          <button type="button" disabled={busy} onClick={() => void handleDelegateSub(t.id, t.zone, t.assignedBotName)} className="rounded-md bg-sky-500/15 px-2 py-0.5 font-medium text-sky-600">
+                            + Viá»‡c con
+                          </button>
                           <button type="button" disabled={busy} onClick={() => void handleTaskAction(t.id, { status: "blocked", blockerReason: "Cáº§n TrÆ°á»Ÿng phÃ²ng há»— trá»£ thÃ¡o gá»¡" })} className="rounded-md bg-danger/15 px-2 py-0.5 font-medium text-danger">
                             BÃ¡o káº¹t
                           </button>
@@ -419,7 +448,7 @@ export function EnterpriseTeamPanel() {
               <div className="text-xs font-medium text-ink">Lá»‹ch sá»­ cháº¡y DAG (Checkpoints)</div>
               {runs.map((r) => (
                 <div key={r.id} className="flex items-center justify-between rounded-xl border border-hairline/40 bg-inset p-2.5 text-xs">
-                  <span><strong>{r.workflowName}</strong> Â· Tráº¡ng thÃ¡i: <code>{r.status}</code> Â· Hops: {r.hopCount}</span>
+                  <span><strong>{r.workflowName}</strong> Â· Tráº¡ng thÃ¡i: <code>{r.status}</code> Â· Hops: {r.hopCount} Â· Checkpoints: {Object.values(r.stepCheckpoints ?? {}).filter((c) => c.status === "completed").length}/{Object.keys(r.stepCheckpoints ?? {}).length}</span>
                   {r.status === "waiting_approval" && (
                     <div className="flex gap-1.5">
                       <button type="button" disabled={busy} onClick={() => void handleRunDag({ runId: r.id, action: "approve" })} className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-emerald-600">Duyá»‡t cháº¡y tiáº¿p</button>

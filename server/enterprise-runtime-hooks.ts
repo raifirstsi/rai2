@@ -3,7 +3,7 @@ import { getRai2EntitlementSnapshot } from "./rai2-entitlement.ts";
 import { getWorkspaceAuditLedger } from "./agent/merkle-audit.ts";
 import { getBusinessPulseEngine } from "./business-pulse.ts";
 import { getEnterpriseGovernanceStore, resolveSensitivityModelRoute, type DataClassificationTier } from "./enterprise-governance.ts";
-import { getEnterpriseBrainStore } from "./enterprise-brain.ts";
+import { getEnterpriseBrainStore, matchesZone } from "./enterprise-brain.ts";
 import { getEnterpriseTeamOrchestrator, type WorkItemStatus } from "./enterprise-team.ts";
 import { scanAndRedactText, type DlpScanResult } from "./enterprise-dlp.ts";
 
@@ -543,42 +543,52 @@ export function autoHandleTeamTagsFromBotReply(
   actor = "enterprise-bot",
 ): { updatedTaskId?: string; escalationId?: string } {
   const out: { updatedTaskId?: string; escalationId?: string } = {};
-  const wm = replyText.match(WORK_UPDATE_TAG_RE);
-  if (wm) {
+  const orch = getEnterpriseTeamOrchestrator();
+  const state = orch.getState();
+
+  const wmAll = Array.from(replyText.matchAll(new RegExp(WORK_UPDATE_TAG_RE.source, "gi"))).slice(0, 3);
+  for (const wm of wmAll) {
     const taskId = wm[1]?.trim();
-    const status = wm[2]?.trim() as WorkItemStatus;
+    let status = wm[2]?.trim() as WorkItemStatus;
     const progressPct = wm[3] ? Number.parseInt(wm[3], 10) : undefined;
     const note = wm[4]?.trim();
-    if (taskId) {
-      try {
-        const updated = getEnterpriseTeamOrchestrator().updateTaskProgress(
-          taskId,
-          {
-            status,
-            progressPct,
-            ...(status === "blocked" && note ? { blockerReason: note } : {}),
-            ...(status !== "blocked" && note ? { deliverable: note } : {}),
-          },
-          actor,
-        );
-        if (updated) out.updatedTaskId = updated.id;
-      } catch {}
+    if (!taskId) continue;
+    const existing = state.workItems[taskId];
+    if (!existing || !matchesZone(existing.zone, botSection)) {
+      continue;
     }
+    if (status === "completed" && existing.leadBotId) {
+      status = "review_needed";
+    }
+    try {
+      const updated = orch.updateTaskProgress(
+        taskId,
+        {
+          status,
+          progressPct,
+          ...(status === "blocked" && note ? { blockerReason: note } : {}),
+          ...(status !== "blocked" && note ? { deliverable: note } : {}),
+        },
+        actor,
+      );
+      if (updated && !out.updatedTaskId) out.updatedTaskId = updated.id;
+    } catch {}
   }
-  const em = replyText.match(ESCALATE_TAG_RE);
-  if (em) {
+
+  const emAll = Array.from(replyText.matchAll(new RegExp(ESCALATE_TAG_RE.source, "gi"))).slice(0, 3);
+  for (const em of emAll) {
     const title = em[1]?.trim();
     const summary = em[2]?.trim();
-    const zone = em[3]?.trim() || botSection || "all";
-    if (title && summary) {
-      try {
-        const card = getEnterpriseTeamOrchestrator().createEscalation(
-          { kind: "blocker", title, summaryLines: [summary], zone },
-          actor,
-        );
-        out.escalationId = card.id;
-      } catch {}
-    }
+    const reqZone = em[3]?.trim();
+    const zone = reqZone && matchesZone(reqZone, botSection) ? reqZone : (botSection || "all");
+    if (!title || !summary) continue;
+    try {
+      const card = orch.createEscalation(
+        { kind: "blocker", title, summaryLines: [summary], zone },
+        actor,
+      );
+      if (!out.escalationId) out.escalationId = card.id;
+    } catch {}
   }
   return out;
 }

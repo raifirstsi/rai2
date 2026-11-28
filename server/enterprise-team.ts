@@ -715,6 +715,7 @@ export class EnterpriseTeamOrchestrator {
   ): ActionableEscalationCard | null {
     const card = this.state.escalations[id];
     if (!card) return null;
+    if (card.status !== "open") return structuredClone(card);
     const now = Date.now();
     card.status = decision;
     card.resolvedBy = actor;
@@ -804,7 +805,12 @@ export class EnterpriseTeamOrchestrator {
       }
     }
     for (const r of Object.values(this.state.reminders)) {
-      if (r.enabled) r.lastTriggeredAt = now;
+      if (!r.enabled) continue;
+      const minIntervalMs =
+        r.schedule === "hourly" ? 55 * 60_000 : r.schedule === "weekly_mon" ? 6 * 86_400_000 : 23 * 3_600_000;
+      if (!r.lastTriggeredAt || now - r.lastTriggeredAt >= minIntervalMs) {
+        r.lastTriggeredAt = now;
+      }
     }
     this.state.updatedAt = now;
     this.saveToDisk();
