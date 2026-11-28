@@ -25,7 +25,7 @@ export function MascotTemplatePicker({ selectedUrl, disabled, onSelect }: {
               : "border-hairline/40 hover:border-ink/25 hover:bg-control",
           )}
         >
-          <img src={mascot.url} alt="" className="size-full rounded-[10px] object-cover" loading="lazy" />
+          <img src={`${mascot.url}?v=8`} alt="" className="size-full rounded-[10px] object-cover" loading="lazy" />
         </button>
       ))}
     </div>
