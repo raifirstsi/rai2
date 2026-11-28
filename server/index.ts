@@ -10882,6 +10882,25 @@ function startGroupTurn(
   if (options.goalCoordinatorBotId && (channelMode !== "goal" || !requestedGoalCoordinator)) {
     throw Object.assign(new Error("the selected goal coordinator is not an active room member"), { status: 409 });
   }
+  // Phase 1+2 Enterprise Guard for Group Turns: block offboarded senders & scrub secrets via DLP
+  let safeGroupText = text;
+  if (getRai2EntitlementSnapshot().enterpriseAccess) {
+    const gSender = options.sender as { name?: string; email?: string } | undefined;
+    const gIdentity = gSender?.email || gSender?.name;
+    const gAccess = checkEmployeeTurnAccess(gIdentity);
+    if (!gAccess.allowed) {
+      throw Object.assign(
+        new Error("Tài khoản nhân viên đã nghỉ việc (offboarded) — quyền truy cập Enterprise AI đã bị thu hồi."),
+        { status: 403 },
+      );
+    }
+    if (members.some((m) => isEnterpriseRuntimeBot(m))) {
+      const gDlp = applyEnterpriseInboundDlp(text, gIdentity || "group-user");
+      if (gDlp.redactions.length > 0) {
+        safeGroupText = gDlp.sanitizedText;
+      }
+    }
+  }
   // Read the room before this message is appended just below.
   const autoCandidate = !group.dm && channelMode === "chat" && group.defaultResponder.kind === "auto" &&
     deciderReady(cfg, "roomRouting");
@@ -10926,7 +10945,7 @@ function startGroupTurn(
     : store.appendMessage(threadId, {
         role: "user",
         kind: "text",
-        text,
+        text: safeGroupText,
         replyToId: replyTo?.id,
         reaction: replyTo?.reactedWith,
         sendId,

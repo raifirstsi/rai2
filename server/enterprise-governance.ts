@@ -235,18 +235,33 @@ export class EnterpriseGovernanceStore {
       };
     }
     if (patch.zoneDataTiers) {
-      this.state.zoneDataTiers = { ...this.state.zoneDataTiers, ...patch.zoneDataTiers };
+      const nextTiers = { ...this.state.zoneDataTiers };
+      for (const [zoneKey, tierVal] of Object.entries(patch.zoneDataTiers)) {
+        if (zoneKey === "__proto__" || zoneKey === "constructor" || zoneKey === "prototype") continue;
+        if (tierVal in DATA_TIER_RANK) {
+          nextTiers[zoneKey] = tierVal;
+        }
+      }
+      this.state.zoneDataTiers = nextTiers;
     }
     if (patch.employeeUpdates) {
       for (const [rawEmail, empPatch] of Object.entries(patch.employeeUpdates)) {
         const key = normalizeEmailKey(rawEmail);
         const existing = this.state.employees[key];
-        if (!existing) continue;
+        if (!existing || !empPatch || typeof empPatch !== "object") continue;
+        const safeRole = empPatch.role && empPatch.role in ROLE_DEFAULT_MAX_TIER ? empPatch.role : existing.role;
+        const safeTier = empPatch.maxDataTier && empPatch.maxDataTier in DATA_TIER_RANK ? empPatch.maxDataTier : existing.maxDataTier;
         this.state.employees[key] = {
           ...existing,
-          ...empPatch,
+          name: typeof empPatch.name === "string" && empPatch.name.trim() ? empPatch.name.trim().slice(0, 120) : existing.name,
+          zone: typeof empPatch.zone === "string" ? empPatch.zone.trim().slice(0, 80) : existing.zone,
+          role: safeRole,
+          maxDataTier: safeTier,
           email: existing.email,
+          status: existing.status,
+          personalBotId: existing.personalBotId,
           namespaces: existing.namespaces,
+          createdAt: existing.createdAt,
           updatedAt: Date.now(),
         };
       }

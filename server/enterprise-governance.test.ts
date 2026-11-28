@@ -130,6 +130,27 @@ describe("Enterprise Phase 1 Governance, ABAC, DLP & Sensitivity Routing", () =>
     expect(res.redactions.length).toBeGreaterThan(0);
   });
 
+  it("rejects invalid tier/status overwrite via updateGovernance whitelist", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rai2-upd-"));
+    dirs.push(dir);
+    const store = new EnterpriseGovernanceStore(dir);
+    store.upsertEmployee({ email: "le@company.vn", name: "Lê", role: "member", zone: "Zone 2" }, "admin");
+    store.offboardEmployee("le@company.vn", "admin");
+    const next = store.updateGovernance(
+      {
+        zoneDataTiers: { "Zone 2": "invalid_tier" as DataClassificationTier },
+        employeeUpdates: {
+          "le@company.vn": { status: "active", role: "super_admin" as EmployeeRole, zone: "Zone 9" },
+        },
+      },
+      "admin",
+    );
+    expect(next.zoneDataTiers["Zone 2"]).toBeUndefined();
+    expect(next.employees["le@company.vn"]?.status).toBe("offboarded");
+    expect(next.employees["le@company.vn"]?.role).toBe("member");
+    expect(next.employees["le@company.vn"]?.zone).toBe("Zone 9");
+  });
+
   it("blocks turns from offboarded employees via checkEmployeeTurnAccess", () => {
     expect(checkEmployeeTurnAccess("unknown@company.vn").allowed).toBe(true);
   });

@@ -220,13 +220,15 @@ export function EnterpriseBrainPanel() {
   const knowledge = Object.values(brain?.knowledge ?? {})
     .filter((k) => !q || `${k.title} ${k.content} ${k.scopeZone}`.toLowerCase().includes(q));
   const handovers = Object.values(brain?.handovers ?? {}).sort((a, b) => b.createdAt - a.createdAt);
+  const pendingDecisions = Object.values(brain?.decisions ?? {}).filter((d) => d.status === "proposed").length;
+  const pendingKnowledge = Object.values(brain?.knowledge ?? {}).filter((k) => k.status === "proposed").length;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {[
-          { id: "decisions", label: `Quyết định công ty (${decisions.length})`, icon: Brain },
-          { id: "knowledge", label: `Kho Tri thức (${knowledge.length})`, icon: BookOpenCheck },
+          { id: "decisions", label: `Quyết định công ty (${decisions.length})${pendingDecisions > 0 ? ` · ${pendingDecisions} chờ` : ""}`, icon: Brain },
+          { id: "knowledge", label: `Kho Tri thức (${knowledge.length})${pendingKnowledge > 0 ? ` · ${pendingKnowledge} chờ` : ""}`, icon: BookOpenCheck },
           { id: "onboarding", label: `Bàn giao & Onboarding (${handovers.length})`, icon: Sparkles },
         ].map((item) => {
           const Icon = item.icon;

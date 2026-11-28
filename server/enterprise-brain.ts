@@ -173,7 +173,7 @@ export class EnterpriseBrainStore {
       summary: cleanSummary,
       scopeZone,
       status,
-      effectiveFrom: input.effectiveFrom ?? new Date(now).toISOString().slice(0, 10),
+      effectiveFrom: input.effectiveFrom && /^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom.trim()) ? input.effectiveFrom.trim() : new Date(now).toISOString().slice(0, 10),
       proposedBy: actor,
       ...(status === "approved" ? { approvedBy: actor } : {}),
       ...(input.sourceRef ? { sourceRef: input.sourceRef.slice(0, 200) } : {}),
